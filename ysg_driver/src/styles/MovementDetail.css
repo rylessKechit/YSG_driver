@@ -1,0 +1,373 @@
+/* src/styles/MovementDetail.css */
+.detail-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+  }
+  
+  .detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+  }
+  
+  .detail-title {
+    font-size: 1.75rem;
+    font-weight: bold;
+    color: #1f2937;
+    margin: 0;
+  }
+  
+  .back-link {
+    color: #2563eb;
+    text-decoration: none;
+    font-weight: 500;
+  }
+  
+  .back-link:hover {
+    text-decoration: underline;
+  }
+  
+  .success-message {
+    background-color: #d1fae5;
+    border: 1px solid #34d399;
+    color: #047857;
+    padding: 0.75rem 1rem;
+    border-radius: 0.25rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .error-message {
+    background-color: #fee2e2;
+    border: 1px solid #f87171;
+    color: #b91c1c;
+    padding: 0.75rem 1rem;
+    border-radius: 0.25rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .detail-card {
+    background-color: white;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+  
+  .detail-section {
+    margin-bottom: 2rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  
+  .detail-section:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+  }
+  
+  .section-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 1.25rem;
+    color: #1f2937;
+  }
+  
+  .info-item {
+    display: flex;
+    margin-bottom: 0.75rem;
+  }
+  
+  .info-label {
+    width: 200px;
+    font-weight: 500;
+    color: #4b5563;
+  }
+  
+  .info-value {
+    flex: 1;
+  }
+  
+  .info-value.highlight {
+    font-weight: 600;
+    color: #1f2937;
+  }
+  
+  .status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+  
+  .status-pending {
+    background-color: #fef3c7;
+    color: #d97706;
+  }
+  
+  .status-in-progress {
+    background-color: #dbeafe;
+    color: #3b82f6;
+  }
+  
+  .status-completed {
+    background-color: #d1fae5;
+    color: #10b981;
+  }
+  
+  .route-map {
+    position: relative;
+    padding: 1rem 0;
+  }
+  
+  .route-point {
+    display: flex;
+    align-items: flex-start;
+    position: relative;
+    z-index: 2;
+    margin-bottom: 2rem;
+  }
+  
+  .route-point:last-child {
+    margin-bottom: 0;
+  }
+  
+  .point-marker {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+    flex-shrink: 0;
+  }
+  
+  .point-marker.departure {
+    background-color: #3b82f6;
+  }
+  
+  .point-marker.arrival {
+    background-color: #10b981;
+  }
+  
+  .route-line {
+    position: absolute;
+    top: 2rem;
+    left: 1rem;
+    bottom: 2rem;
+    width: 2px;
+    background-color: #e5e7eb;
+    z-index: 1;
+  }
+  
+  .point-details {
+    flex: 1;
+  }
+  
+  .point-type {
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 0.25rem;
+  }
+  
+  .point-name {
+    font-size: 1.125rem;
+    margin-bottom: 0.25rem;
+  }
+  
+  .point-time {
+    color: #6b7280;
+    margin-bottom: 0.5rem;
+  }
+  
+  .point-coordinates {
+    font-size: 0.875rem;
+    color: #6b7280;
+  }
+  
+  .photos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+  }
+  
+  .photo-item {
+    border-radius: 0.5rem;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+  
+  .photo-item:hover {
+    transform: scale(1.03);
+  }
+  
+  .movement-photo {
+    width: 100%;
+    height: 150px;
+    object-fit: cover;
+    display: block;
+  }
+  
+  .photo-info {
+    padding: 0.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #f3f4f6;
+    font-size: 0.75rem;
+  }
+  
+  .photo-type {
+    font-weight: 600;
+  }
+  
+  .photo-type.departure {
+    color: #3b82f6;
+  }
+  
+  .photo-type.arrival {
+    color: #10b981;
+  }
+  
+  .photo-type.damage {
+    color: #ef4444;
+  }
+  
+  .photo-time {
+    color: #6b7280;
+  }
+  
+  .no-photos-message {
+    color: #6b7280;
+    font-style: italic;
+    padding: 1rem 0;
+  }
+  
+  .notes-textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    resize: vertical;
+    min-height: 100px;
+  }
+  
+  .notes-textarea:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+  }
+  
+  .notes-content {
+    padding: 1rem;
+    background-color: #f9fafb;
+    border-radius: 0.375rem;
+    min-height: 100px;
+    white-space: pre-wrap;
+  }
+  
+  .dates-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+  
+  .date-item {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .date-label {
+    font-weight: 500;
+    color: #4b5563;
+    margin-bottom: 0.25rem;
+  }
+  
+  .date-value {
+    color: #1f2937;
+  }
+  
+  .detail-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
+  
+  .btn {
+    display: inline-block;
+    padding: 0.625rem 1.25rem;
+    border-radius: 0.375rem;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    border: none;
+  }
+  
+  .btn-primary {
+    background-color: #2563eb;
+    color: white;
+  }
+  
+  .btn-primary:hover {
+    background-color: #1d4ed8;
+  }
+  
+  .btn-success {
+    background-color: #10b981;
+    color: white;
+  }
+  
+  .btn-success:hover {
+    background-color: #059669;
+  }
+  
+  .btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+  
+  .back-button-container {
+    margin-top: 1.5rem;
+    text-align: center;
+  }
+  
+  .loading-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 300px;
+  }
+  
+  .spinner {
+    display: inline-block;
+    width: 3rem;
+    height: 3rem;
+    border: 3px solid rgba(0, 0, 0, 0.1);
+    border-radius: 50%;
+    border-top-color: #3b82f6;
+    animation: spin 1s ease-in-out infinite;
+  }
+  
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  
+  @media (max-width: 768px) {
+    .dates-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .detail-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+  }

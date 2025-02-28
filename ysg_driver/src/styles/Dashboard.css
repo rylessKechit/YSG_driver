@@ -1,0 +1,206 @@
+/* src/styles/Dashboard.css */
+.dashboard-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.dashboard-title {
+  font-size: 1.75rem;
+  font-weight: bold;
+  margin-bottom: 1.5rem;
+  color: #1f2937;
+}
+
+.welcome-card {
+  background-color: #3b82f6;
+  color: white;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.welcome-message {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+
+.date-info {
+  font-size: 1rem;
+  opacity: 0.9;
+}
+
+.card-title {
+  font-size: 1.25rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+  color: #1f2937;
+}
+
+.status-card,
+.actions-card,
+.recent-movements-card {
+  background-color: white;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.status-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.status-dot {
+  height: 1rem;
+  width: 1rem;
+  border-radius: 50%;
+  margin-right: 0.5rem;
+}
+
+.status-dot.active {
+  background-color: #10b981;
+}
+
+.status-dot.inactive {
+  background-color: #9ca3af;
+}
+
+.status-text {
+  font-weight: 600;
+}
+
+.active-service-info,
+.inactive-service-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.action-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem 1rem;
+  background-color: #f3f4f6;
+  border-radius: 0.5rem;
+  text-decoration: none;
+  color: #1f2937;
+  transition: background-color 0.2s;
+}
+
+.action-button:hover {
+  background-color: #e5e7eb;
+}
+
+.action-icon {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.movements-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.movement-item {
+  padding: 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+}
+
+.movement-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.vehicle-plate {
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.movement-status {
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.status-pending {
+  background-color: #fef3c7;
+  color: #d97706;
+}
+
+.status-in-progress {
+  background-color: #dbeafe;
+  color: #3b82f6;
+}
+
+.status-completed {
+  background-color: #d1fae5;
+  color: #10b981;
+}
+
+.movement-details {
+  margin-bottom: 0.5rem;
+}
+
+.movement-route {
+  margin-bottom: 0.25rem;
+}
+
+.movement-date {
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.movement-link {
+  display: inline-block;
+  margin-top: 0.5rem;
+  color: #3b82f6;
+  text-decoration: none;
+}
+
+.movement-link:hover {
+  text-decoration: underline;
+}
+
+.no-data-message {
+  color: #6b7280;
+  font-style: italic;
+  padding: 1rem 0;
+}
+
+.view-all-link {
+  margin-top: 1rem;
+  text-align: center;
+}
+
+.view-all-link a {
+  color: #3b82f6;
+  text-decoration: none;
+}
+
+.view-all-link a:hover {
+  text-decoration: underline;
+}
