@@ -1,4 +1,4 @@
-export const API_URL = process.env.REACT_APP_API_URL || 'https://ysg-driver-backend.onrender.com';
+export const API_URL = process.env.REACT_APP_API_URL || 'https://ysg-driver-backend.onrender.com/api';
 
 // Configuration des endpoints de l'API
 export const ENDPOINTS = {
