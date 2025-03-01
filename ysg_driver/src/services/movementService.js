@@ -1,8 +1,9 @@
+// src/services/movementService.js
 import { api } from './authService';
 import { ENDPOINTS } from '../config';
 
 const movementService = {
-  // Créer un nouveau mouvement
+  // Créer un nouveau mouvement (admin seulement)
   createMovement: async (movementData) => {
     try {
       const response = await api.post(ENDPOINTS.MOVEMENTS.BASE, movementData);
@@ -12,7 +13,17 @@ const movementService = {
     }
   },
   
-  // Démarrer un mouvement
+  // Obtenir les chauffeurs en service (admin seulement)
+  getDriversOnDuty: async () => {
+    try {
+      const response = await api.get(`${ENDPOINTS.MOVEMENTS.BASE}/drivers-on-duty`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+  
+  // Démarrer un mouvement (chauffeur)
   startMovement: async (movementId) => {
     try {
       const response = await api.post(`${ENDPOINTS.MOVEMENTS.DETAIL(movementId)}/start`);
@@ -22,10 +33,30 @@ const movementService = {
     }
   },
   
-  // Terminer un mouvement
+  // Terminer un mouvement (chauffeur)
   completeMovement: async (movementId, notes) => {
     try {
       const response = await api.post(`${ENDPOINTS.MOVEMENTS.DETAIL(movementId)}/complete`, { notes });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+  
+  // Annuler un mouvement (admin seulement)
+  cancelMovement: async (movementId) => {
+    try {
+      const response = await api.post(`${ENDPOINTS.MOVEMENTS.DETAIL(movementId)}/cancel`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+  
+  // Réassigner un mouvement (admin seulement)
+  reassignMovement: async (movementId, userId) => {
+    try {
+      const response = await api.post(`${ENDPOINTS.MOVEMENTS.DETAIL(movementId)}/reassign`, { userId });
       return response.data;
     } catch (error) {
       throw error;

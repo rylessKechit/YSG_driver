@@ -2,32 +2,37 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import './styles/App.css'
+import './styles/App.css';
 
 // Pages
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import TimeLog from './pages/TimeLog';
-import VehicleMovement from './pages/VehicleMovement';
 import MovementHistory from './pages/MovementHistory';
-import MovementDetail from './pages/MovementDetail'; // Nouvelle page de détail
+import MovementDetail from './pages/MovementDetail';
 import Profile from './pages/Profile';
 import AdminPanel from './pages/AdminPanel';
+import AdminMovementCreate from './pages/AdminMovementCreate';
 
 // Composant de route protégée
-const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth();
+const ProtectedRoute = ({ children, adminOnly = false }) => {
+  const { isAuthenticated, loading, currentUser } = useAuth();
   
   if (loading) {
     return (
       <div className="loading-container">
         <div className="spinner"></div>
+        <div className="loading-text">Chargement...</div>
       </div>
     );
   }
   
   if (!isAuthenticated) {
     return <Navigate to="/login" />;
+  }
+  
+  if (adminOnly && currentUser.role !== 'admin') {
+    return <Navigate to="/dashboard" />;
   }
   
   return children;
@@ -67,14 +72,6 @@ const AppContent = () => {
           } 
         />
         <Route 
-          path="/movement/new" 
-          element={
-            <ProtectedRoute>
-              <VehicleMovement />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
           path="/movement/history" 
           element={
             <ProtectedRoute>
@@ -98,11 +95,21 @@ const AppContent = () => {
             </ProtectedRoute>
           } 
         />
+        
+        {/* Routes admin */}
         <Route 
           path="/admin" 
           element={
-            <ProtectedRoute>
+            <ProtectedRoute adminOnly={true}>
               <AdminPanel />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/movements/create" 
+          element={
+            <ProtectedRoute adminOnly={true}>
+              <AdminMovementCreate />
             </ProtectedRoute>
           } 
         />

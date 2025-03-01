@@ -186,3 +186,71 @@
     align-items: center;
     height: 100vh;
   }
+
+  /* Ces styles doivent être ajoutés à votre fichier App.css existant */
+
+/* Statuts supplémentaires pour les badges */
+.badge-assigned {
+  background-color: rgba(67, 97, 238, 0.1);
+  color: var(--primary);
+}
+
+.badge-cancelled {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: var(--danger);
+}
+
+/* Styles pour les boutons de taille plus petite */
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 0.875rem;
+  border-radius: var(--radius-sm);
+}
+
+/* Styles pour que l'alerte d'erreur et de succès soit cohérente partout */
+.alert {
+  padding: 16px;
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: flex-start;
+}
+
+.alert-icon {
+  margin-right: 12px;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.alert-content {
+  flex: 1;
+}
+
+.alert-error {
+  background-color: rgba(230, 57, 70, 0.1);
+  color: var(--danger);
+}
+
+.alert-success {
+  background-color: rgba(45, 198, 83, 0.1);
+  color: var(--success);
+}
+
+/* Ajouter ces styles pour les coordonnées géographiques */
+.coordinates-box {
+  background-color: var(--light);
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 12px;
+  font-size: 0.875rem;
+  color: var(--text-light);
+}
+
+.coordinates-box p {
+  margin: 0;
+  margin-bottom: 4px;
+}
+
+.coordinates-box p:last-child {
+  margin-bottom: 0;
+}

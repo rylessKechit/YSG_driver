@@ -1,3 +1,4 @@
+// server/models/movement.model.js
 const mongoose = require('mongoose');
 
 const photoSchema = new mongoose.Schema({
@@ -21,6 +22,10 @@ const movementSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true
+  },
+  assignedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
   },
   timeLogId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -57,15 +62,14 @@ const movementSchema = new mongoose.Schema({
     }
   },
   departureTime: {
-    type: Date,
-    default: Date.now
+    type: Date
   },
   arrivalTime: {
     type: Date
   },
   status: {
     type: String,
-    enum: ['pending', 'in-progress', 'completed'],
+    enum: ['pending', 'assigned', 'in-progress', 'completed', 'cancelled'],
     default: 'pending'
   },
   photos: [photoSchema],
