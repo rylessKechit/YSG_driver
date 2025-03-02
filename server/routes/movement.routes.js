@@ -18,10 +18,11 @@ const checkDriverActiveTimeLog = async (driverId) => {
 };
 
 // Créer un nouveau mouvement (réservé aux admins)
+// Modifier la route de création du mouvement (POST /)
 router.post('/', verifyToken, isAdmin, async (req, res) => {
   try {
     const {
-      userId, // ID du chauffeur à qui le mouvement sera assigné
+      userId, // ID du chauffeur à qui le mouvement sera assigné (optionnel maintenant)
       licensePlate,
       vehicleModel,
       departureLocation,
@@ -36,6 +37,186 @@ router.post('/', verifyToken, isAdmin, async (req, res) => {
       });
     }
     
+    // Vérification du chauffeur (si fourni)
+    let timeLogId = null;
+    let driver = null;
+    
+    if (userId) {
+      // Vérifier que l'utilisateur existe et est un chauffeur
+      driver = await User.findById(userId);
+      if (!driver) {
+        return res.status(404).json({ message: 'Chauffeur non trouvé' });
+      }
+      
+      if (driver.role !== 'driver') {
+        return res.status(400).json({ message: 'L\'utilisateur sélectionné n\'est pas un chauffeur' });
+      }
+
+      // Vérifier si le chauffeur est en service
+      const activeTimeLog = await checkDriverActiveTimeLog(userId);
+      if (activeTimeLog) {
+        timeLogId = activeTimeLog._id;
+      }
+    }
+    
+    // Déterminer le statut initial
+    let status = 'pending'; // Par défaut sans chauffeur ou chauffeur hors service
+    
+    // Créer le mouvement
+    const movement = new Movement({
+      assignedBy: req.user._id, // Admin qui assigne
+      licensePlate,
+      vehicleModel,
+      departureLocation,
+      arrivalLocation,
+      status,
+      notes
+    });
+    
+    // Si un chauffeur est fourni, l'assigner
+    if (userId) {
+      movement.userId = userId;
+      movement.timeLogId = timeLogId;
+    }
+    
+    await movement.save();
+    
+    let message = 'Mouvement créé sans chauffeur assigné';
+    if (userId) {
+      message = 'Mouvement créé et assigné au chauffeur';
+    }
+    
+    res.status(201).json({
+      message: message,
+      movement
+    });
+  } catch (error) {
+    console.error('Erreur lors de la création du mouvement:', error);
+    res.status(500).json({ message: 'Erreur serveur' });
+  }
+});
+
+router.get('/all-drivers', verifyToken, isAdmin, async (req, res) => {
+  try {
+    // Trouver tous les utilisateurs avec le rôle "driver"
+    const drivers = await User.find({ role: 'driver' })
+      .select('_id username fullName email phone');
+    
+    // Récupérer tous les pointages actifs pour déterminer quels chauffeurs sont en service
+    const activeLogs = await TimeLog.find({
+      status: 'active',
+      userId: { $in: drivers.map(driver => driver._id) }
+    });
+    
+    // Créer un ensemble d'IDs de chauffeurs en service pour recherche rapide
+    const activeDriverIds = new Set(activeLogs.map(log => log.userId.toString()));
+    
+    // Ajouter un indicateur "isOnDuty" à chaque chauffeur
+    const driversWithStatus = drivers.map(driver => {
+      const isOnDuty = activeDriverIds.has(driver._id.toString());
+      const activeLog = isOnDuty ? activeLogs.find(log => log.userId.toString() === driver._id.toString()) : null;
+      
+      return {
+        _id: driver._id,
+        username: driver.username,
+        fullName: driver.fullName,
+        email: driver.email,
+        phone: driver.phone,
+        isOnDuty: isOnDuty,
+        serviceStartTime: activeLog ? activeLog.startTime : null
+      };
+    });
+    
+    res.json(driversWithStatus);
+  } catch (error) {
+    console.error('Erreur lors de la récupération des chauffeurs:', error);
+    res.status(500).json({ message: 'Erreur serveur' });
+  }
+});
+
+// Créer un nouveau mouvement (réservé aux admins)
+router.post('/:id/start', verifyToken, async (req, res) => {
+  try {
+    // Récupérer le mouvement
+    const movement = await Movement.findById(req.params.id);
+    
+    if (!movement) {
+      return res.status(404).json({
+        message: 'Mouvement non trouvé'
+      });
+    }
+    
+    // Vérifier si un chauffeur est assigné
+    if (!movement.userId) {
+      return res.status(400).json({
+        message: 'Un chauffeur doit être assigné avant de pouvoir démarrer le mouvement'
+      });
+    }
+    
+    // Vérifier si l'utilisateur est bien le chauffeur assigné ou un admin
+    if (req.user.role !== 'admin' && movement.userId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        message: 'Vous n\'êtes pas autorisé à démarrer ce mouvement'
+      });
+    }
+    
+    if (movement.status !== 'pending' && movement.status !== 'assigned') {
+      return res.status(400).json({
+        message: 'Ce mouvement ne peut pas être démarré'
+      });
+    }
+    
+    // Vérifier si l'utilisateur est en service
+    const activeTimeLog = await TimeLog.findOne({
+      userId: movement.userId,
+      status: 'active'
+    });
+    
+    if (!activeTimeLog) {
+      return res.status(400).json({
+        message: 'Le chauffeur doit être en service pour démarrer un mouvement'
+      });
+    }
+    
+    movement.status = 'in-progress';
+    movement.departureTime = new Date();
+    
+    // Si le timeLogId n'était pas déjà défini, le définir maintenant
+    if (!movement.timeLogId) {
+      movement.timeLogId = activeTimeLog._id;
+    }
+    
+    await movement.save();
+    
+    res.json({
+      message: 'Mouvement démarré avec succès',
+      movement
+    });
+  } catch (error) {
+    console.error('Erreur lors du démarrage du mouvement:', error);
+    res.status(500).json({ message: 'Erreur serveur' });
+  }
+});
+
+// Ajouter une route pour assigner un chauffeur à un mouvement existant
+router.post('/:id/assign', verifyToken, isAdmin, async (req, res) => {
+  try {
+    const { userId } = req.body;
+    
+    if (!userId) {
+      return res.status(400).json({
+        message: 'ID du chauffeur requis'
+      });
+    }
+    
+    const movement = await Movement.findById(req.params.id);
+    
+    if (!movement) {
+      return res.status(404).json({
+        message: 'Mouvement non trouvé'
+      });
+    }
+    
     // Vérifier que l'utilisateur existe et est un chauffeur
     const driver = await User.findById(userId);
     if (!driver) {
@@ -45,39 +226,29 @@ router.post('/', verifyToken, isAdmin, async (req, res) => {
     if (driver.role !== 'driver') {
       return res.status(400).json({ message: 'L\'utilisateur sélectionné n\'est pas un chauffeur' });
     }
-
+    
     // Vérifier si le chauffeur est en service
     const activeTimeLog = await checkDriverActiveTimeLog(userId);
     
-    let status = 'pending';
-    let timeLogId = null;
+    // Mettre à jour le mouvement
+    movement.userId = userId;
     
     if (activeTimeLog) {
-      status = 'assigned';
-      timeLogId = activeTimeLog._id;
+      movement.timeLogId = activeTimeLog._id;
+      movement.status = 'assigned';
+    } else {
+      movement.timeLogId = null;
+      // Conserver le statut 'pending'
     }
-    
-    // Créer le mouvement
-    const movement = new Movement({
-      userId, // Chauffeur assigné
-      assignedBy: req.user._id, // Admin qui assigne
-      timeLogId,
-      licensePlate,
-      vehicleModel,
-      departureLocation,
-      arrivalLocation,
-      status,
-      notes
-    });
     
     await movement.save();
     
-    res.status(201).json({
-      message: activeTimeLog ? 'Mouvement assigné au chauffeur' : 'Mouvement créé, mais le chauffeur n\'est pas en service',
+    res.json({
+      message: activeTimeLog ? 'Chauffeur assigné et prêt pour le mouvement' : 'Chauffeur assigné mais hors service',
       movement
     });
   } catch (error) {
-    console.error('Erreur lors de la création du mouvement:', error);
+    console.error('Erreur lors de l\'assignation du chauffeur:', error);
     res.status(500).json({ message: 'Erreur serveur' });
   }
 });

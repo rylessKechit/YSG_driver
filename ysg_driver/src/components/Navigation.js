@@ -41,14 +41,90 @@ const Navigation = () => {
       });
   };
   
-  // Déterminer la route correcte pour "Nouveau trajet" en fonction du rôle
-  const getNewMovementPath = () => {
-    // Pour les admins, utiliser le chemin d'admin pour la création
-    if (currentUser && currentUser.role === 'admin') {
-      return '/admin/movements/create';
-    }
-    // Pour les chauffeurs, utiliser le chemin standard
-    return '/movement/new';
+  // Rendu des liens de navigation selon le rôle de l'utilisateur
+  const renderNavLinks = () => {
+    const commonLinks = [
+      {
+        name: 'Tableau de bord',
+        path: '/dashboard',
+        visible: true
+      },
+      {
+        name: 'Pointage',
+        path: '/timelog',
+        visible: currentUser?.role !== 'direction'
+      },
+      {
+        name: 'Profil',
+        path: '/profile',
+        visible: true
+      }
+    ];
+    
+    const roleSpecificLinks = {
+      admin: [
+        {
+          name: 'Nouveau mouvement',
+          path: '/admin/movements/create',
+          visible: true
+        },
+        {
+          name: 'Mouvements',
+          path: '/movement/history',
+          visible: true
+        },
+        {
+          name: 'Préparations',
+          path: '/preparations',
+          visible: true
+        },
+        {
+          name: 'Rapports',
+          path: '/reports',
+          visible: true
+        },
+        {
+          name: 'Administration',
+          path: '/admin',
+          visible: true
+        }
+      ],
+      driver: [
+        {
+          name: 'Mouvements',
+          path: '/movement/history',
+          visible: true
+        }
+      ],
+      preparator: [
+        {
+          name: 'Préparations',
+          path: '/preparations',
+          visible: true
+        },
+        {
+          name: 'Nouvelle préparation',
+          path: '/preparations/create',
+          visible: true
+        }
+      ],
+      direction: [
+        {
+          name: 'Rapports',
+          path: '/reports',
+          visible: true
+        }
+      ]
+    };
+    
+    // Combiner les liens communs et spécifiques au rôle
+    const links = [
+      ...commonLinks,
+      ...(roleSpecificLinks[currentUser?.role] || [])
+    ];
+    
+    // Filtrer les liens visibles
+    return links.filter(link => link.visible);
   };
 
   return (
@@ -79,61 +155,16 @@ const Navigation = () => {
           
           {/* Menu de navigation - version desktop ou mobile */}
           <ul className={`nav-links ${isMobile ? (isMenuOpen ? 'mobile open' : 'mobile closed') : 'desktop'}`}>
-            <li className="nav-item">
-              <div 
-                className="nav-link"
-                onClick={() => goTo('/dashboard')}
-              >
-                Tableau de bord
-              </div>
-            </li>
-            
-            <li className="nav-item">
-              <div 
-                className="nav-link"
-                onClick={() => goTo('/timelog')}
-              >
-                Pointage
-              </div>
-            </li>
-            
-            <li className="nav-item">
-              <div 
-                className="nav-link"
-                onClick={() => goTo(getNewMovementPath())}
-              >
-                Nouveau trajet
-              </div>
-            </li>
-            
-            <li className="nav-item">
-              <div 
-                className="nav-link"
-                onClick={() => goTo('/movement/history')}
-              >
-                Historique
-              </div>
-            </li>
-            
-            <li className="nav-item">
-              <div 
-                className="nav-link"
-                onClick={() => goTo('/profile')}
-              >
-                Profil
-              </div>
-            </li>
-            
-            {currentUser && currentUser.role === 'admin' && (
-              <li className="nav-item">
+            {renderNavLinks().map((link, index) => (
+              <li key={index} className="nav-item">
                 <div 
                   className="nav-link"
-                  onClick={() => goTo('/admin')}
+                  onClick={() => goTo(link.path)}
                 >
-                  Administration
+                  {link.name}
                 </div>
               </li>
-            )}
+            ))}
             
             <li className="nav-item">
               <div 

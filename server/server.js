@@ -8,6 +8,8 @@ const authRoutes = require('./routes/auth.routes');
 const userRoutes = require('./routes/user.routes');
 const timelogRoutes = require('./routes/timelog.routes');
 const movementRoutes = require('./routes/movement.routes');
+const preparationRoutes = require('./routes/preparation.routes');
+const reportRoutes = require('./routes/report.routes');
 const { verifyToken } = require('./middleware/auth.middleware');
 
 // Configuration des variables d'environnement
@@ -15,7 +17,7 @@ dotenv.config();
 
 // Initialisation de l'application Express
 const app = express();
-const PORT = 2000;
+const PORT = 4000;
 
 // Connexion à la base de données
 connectDB();
@@ -33,6 +35,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', verifyToken, userRoutes);
 app.use('/api/timelogs', verifyToken, timelogRoutes);
 app.use('/api/movements', verifyToken, movementRoutes);
+app.use('/api/preparations', verifyToken, preparationRoutes);
+app.use('/api/reports', verifyToken, reportRoutes);
 
 // Route de test
 app.get('/', (req, res) => {

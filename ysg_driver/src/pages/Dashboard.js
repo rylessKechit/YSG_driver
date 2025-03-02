@@ -205,11 +205,11 @@ const Dashboard = () => {
                   </div>
                   <span className="action-title">Tous les mouvements</span>
                 </Link>
-                <Link to="/admin/drivers" className="action-card">
+                <Link to="/reports" className="action-card">
                   <div className="action-icon">
-                    <i className="fas fa-users"></i>
+                    <i className="fas fa-file-excel"></i>
                   </div>
-                  <span className="action-title">Gérer les chauffeurs</span>
+                  <span className="action-title">Rapports</span>
                 </Link>
                 <Link to="/admin" className="action-card">
                   <div className="action-icon">

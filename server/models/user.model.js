@@ -31,8 +31,12 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['driver', 'admin'],
+    enum: ['admin', 'driver', 'preparator', 'direction'],
     default: 'driver'
+  },
+  isActive: {
+    type: Boolean,
+    default: true
   }
 }, {
   timestamps: true

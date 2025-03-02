@@ -115,7 +115,17 @@ const movementService = {
     } catch (error) {
       throw error;
     }
-  }
+  },
+
+  // Obtenir tous les chauffeurs (en service ou non)
+  getAllDrivers: async () => {
+    try {
+      const response = await api.get(`${ENDPOINTS.MOVEMENTS.BASE}/all-drivers`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
 };
 
 export default movementService;

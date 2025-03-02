@@ -40,14 +40,47 @@ exports.verifyToken = async (req, res, next) => {
   }
 };
 
-console.log('Middleware')
-
 // Middleware pour vérifier le rôle administrateur
 exports.isAdmin = (req, res, next) => {
-  console.log(req.user.role);
   if (req.user && req.user.role === 'admin') {
     next();
   } else {
     res.status(403).json({ message: 'Accès refusé. Rôle administrateur requis.' });
+  }
+};
+
+// Middleware pour vérifier le rôle chauffeur
+exports.isDriver = (req, res, next) => {
+  if (req.user && req.user.role === 'driver') {
+    next();
+  } else {
+    res.status(403).json({ message: 'Accès refusé. Rôle chauffeur requis.' });
+  }
+};
+
+// Middleware pour vérifier le rôle préparateur
+exports.isPreparator = (req, res, next) => {
+  if (req.user && req.user.role === 'preparator') {
+    next();
+  } else {
+    res.status(403).json({ message: 'Accès refusé. Rôle préparateur requis.' });
+  }
+};
+
+// Middleware pour vérifier le rôle direction
+exports.isDirection = (req, res, next) => {
+  if (req.user && req.user.role === 'direction') {
+    next();
+  } else {
+    res.status(403).json({ message: 'Accès refusé. Rôle direction requis.' });
+  }
+};
+
+// Middleware pour vérifier l'accès aux rapports (admin et direction)
+exports.canAccessReports = (req, res, next) => {
+  if (req.user && (req.user.role === 'admin' || req.user.role === 'direction')) {
+    next();
+  } else {
+    res.status(403).json({ message: 'Accès refusé. Droits insuffisants pour accéder aux rapports.' });
   }
 };

@@ -4,18 +4,28 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider, useAuth } from './context/AuthContext';
 import './styles/App.css';
 
-// Pages
+// Pages communes
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import TimeLog from './pages/TimeLog';
+import Profile from './pages/Profile';
+
+// Pages Chauffeur
 import MovementHistory from './pages/MovementHistory';
 import MovementDetail from './pages/MovementDetail';
-import Profile from './pages/Profile';
+
+// Pages Admin
 import AdminPanel from './pages/AdminPanel';
 import AdminMovementCreate from './pages/AdminMovementCreate';
 
+// Pages nouvelles (à créer)
+import PreparationList from './pages/PreparationList';
+import PreparationDetail from './pages/PreparationDetail';
+import PreparationCreate from './pages/PreparationCreate';
+import Reports from './pages/Reports';
+
 // Composant de route protégée
-const ProtectedRoute = ({ children, adminOnly = false }) => {
+const ProtectedRoute = ({ children, requiredRoles = [] }) => {
   const { isAuthenticated, loading, currentUser } = useAuth();
   
   if (loading) {
@@ -31,7 +41,8 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
     return <Navigate to="/login" />;
   }
   
-  if (adminOnly && currentUser.role !== 'admin') {
+  // Si des rôles sont requis, vérifier que l'utilisateur a l'un d'entre eux
+  if (requiredRoles.length > 0 && !requiredRoles.includes(currentUser.role)) {
     return <Navigate to="/dashboard" />;
   }
   
@@ -46,7 +57,7 @@ const AppContent = () => {
         {/* Routes publiques */}
         <Route path="/login" element={<Login />} />
         
-        {/* Routes protégées */}
+        {/* Route par défaut */}
         <Route 
           path="/" 
           element={
@@ -55,6 +66,8 @@ const AppContent = () => {
             </ProtectedRoute>
           } 
         />
+        
+        {/* Routes communes */}
         <Route 
           path="/dashboard" 
           element={
@@ -72,22 +85,6 @@ const AppContent = () => {
           } 
         />
         <Route 
-          path="/movement/history" 
-          element={
-            <ProtectedRoute>
-              <MovementHistory />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/movement/:id" 
-          element={
-            <ProtectedRoute>
-              <MovementDetail />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
           path="/profile" 
           element={
             <ProtectedRoute>
@@ -96,11 +93,55 @@ const AppContent = () => {
           } 
         />
         
-        {/* Routes admin */}
+        {/* Routes Chauffeur */}
+        <Route 
+          path="/movement/history" 
+          element={
+            <ProtectedRoute requiredRoles={['admin', 'driver']}>
+              <MovementHistory />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/movement/:id" 
+          element={
+            <ProtectedRoute requiredRoles={['admin', 'driver']}>
+              <MovementDetail />
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Routes Préparateur */}
+        <Route 
+          path="/preparations" 
+          element={
+            <ProtectedRoute requiredRoles={['admin', 'preparator']}>
+              <PreparationList />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/preparations/:id" 
+          element={
+            <ProtectedRoute requiredRoles={['admin', 'preparator']}>
+              <PreparationDetail />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/preparations/create" 
+          element={
+            <ProtectedRoute requiredRoles={['admin', 'preparator']}>
+              <PreparationCreate />
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Routes Admin */}
         <Route 
           path="/admin" 
           element={
-            <ProtectedRoute adminOnly={true}>
+            <ProtectedRoute requiredRoles={['admin']}>
               <AdminPanel />
             </ProtectedRoute>
           } 
@@ -108,8 +149,18 @@ const AppContent = () => {
         <Route 
           path="/admin/movements/create" 
           element={
-            <ProtectedRoute adminOnly={true}>
+            <ProtectedRoute requiredRoles={['admin']}>
               <AdminMovementCreate />
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Routes Rapports (Admin et Direction) */}
+        <Route 
+          path="/reports" 
+          element={
+            <ProtectedRoute requiredRoles={['admin', 'direction']}>
+              <Reports />
             </ProtectedRoute>
           } 
         />

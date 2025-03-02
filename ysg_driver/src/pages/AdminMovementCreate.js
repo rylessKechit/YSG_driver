@@ -1,4 +1,5 @@
-// src/pages/AdminMovementCreate.js
+// Modifier le composant AdminMovementCreate.js
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -22,7 +23,8 @@ const AdminMovementCreate = () => {
     notes: ''
   });
   
-  const [driversOnDuty, setDriversOnDuty] = useState([]);
+  // Utiliser une liste de tous les chauffeurs au lieu de seulement ceux en service
+  const [allDrivers, setAllDrivers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [fetchingDrivers, setFetchingDrivers] = useState(true);
   const [error, setError] = useState(null);
@@ -37,22 +39,22 @@ const AdminMovementCreate = () => {
     }
   }, [currentUser, navigate]);
 
-  // Charger les chauffeurs en service
+  // Charger tous les chauffeurs (pas seulement ceux en service)
   useEffect(() => {
-    const loadDriversOnDuty = async () => {
+    const loadAllDrivers = async () => {
       try {
         setFetchingDrivers(true);
-        const drivers = await movementService.getDriversOnDuty();
-        setDriversOnDuty(drivers);
+        const drivers = await movementService.getAllDrivers();
+        setAllDrivers(drivers);
       } catch (err) {
-        console.error('Erreur lors du chargement des chauffeurs en service:', err);
-        setError('Impossible de charger les chauffeurs en service');
+        console.error('Erreur lors du chargement des chauffeurs:', err);
+        setError('Impossible de charger la liste des chauffeurs');
       } finally {
         setFetchingDrivers(false);
       }
     };
 
-    loadDriversOnDuty();
+    loadAllDrivers();
   }, []);
 
   // Gérer les changements dans le formulaire
@@ -134,7 +136,7 @@ const AdminMovementCreate = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!formData.userId || !formData.licensePlate || !formData.departureLocation.name || !formData.arrivalLocation.name) {
+    if (!formData.licensePlate || !formData.departureLocation.name || !formData.arrivalLocation.name) {
       setError('Veuillez remplir tous les champs obligatoires');
       return;
     }
@@ -144,9 +146,9 @@ const AdminMovementCreate = () => {
       setError(null);
       
       // Créer le mouvement
-      const response = await movementService.createMovement(formData);
+      await movementService.createMovement(formData);
       
-      setSuccess('Mouvement créé et assigné avec succès');
+      setSuccess('Mouvement créé avec succès');
       setTimeout(() => {
         navigate('/admin/movements');
       }, 2000);
@@ -165,7 +167,7 @@ const AdminMovementCreate = () => {
       <div className="admin-movement-container">
         <div className="page-header">
           <h1 className="page-title">Créer un mouvement de véhicule</h1>
-          <p className="page-subtitle">Assignez un nouveau mouvement à un chauffeur en service</p>
+          <p className="page-subtitle">Assignez un nouveau mouvement à un chauffeur ou créez-le sans chauffeur</p>
         </div>
         
         {error && (
@@ -185,7 +187,7 @@ const AdminMovementCreate = () => {
         {fetchingDrivers ? (
           <div className="loading-container">
             <div className="spinner"></div>
-            <p className="loading-text">Chargement des chauffeurs en service...</p>
+            <p className="loading-text">Chargement des chauffeurs...</p>
           </div>
         ) : (
           <div className="card">
@@ -193,33 +195,46 @@ const AdminMovementCreate = () => {
               <form onSubmit={handleSubmit}>
                 <div className="form-section">
                   <h2 className="section-title">
-                    <i className="fas fa-user"></i> Sélection du chauffeur
+                    <i className="fas fa-user"></i> Sélection du chauffeur (optionnel)
                   </h2>
                   
                   <div className="form-group">
-                    <label htmlFor="userId" className="form-label">Chauffeur *</label>
+                    <label htmlFor="userId" className="form-label">Chauffeur</label>
                     <select
                       id="userId"
                       name="userId"
                       value={formData.userId}
                       onChange={handleChange}
                       className="form-select"
-                      required
                     >
-                      <option value="">Sélectionnez un chauffeur</option>
-                      {driversOnDuty.length > 0 ? (
-                        driversOnDuty.map(driver => (
-                          <option key={driver._id} value={driver._id}>
-                            {driver.fullName} ({driver.username}) - En service depuis {new Date(driver.serviceStartTime).toLocaleTimeString()}
-                          </option>
-                        ))
-                      ) : (
-                        <option value="" disabled>Aucun chauffeur en service</option>
-                      )}
+                      <option value="">Aucun chauffeur (créer sans assignation)</option>
+                      <optgroup label="Chauffeurs en service">
+                        {allDrivers.filter(driver => driver.isOnDuty).length > 0 ? (
+                          allDrivers.filter(driver => driver.isOnDuty).map(driver => (
+                            <option key={driver._id} value={driver._id}>
+                              {driver.fullName} ({driver.username}) - En service
+                            </option>
+                          ))
+                        ) : (
+                          <option value="" disabled>Aucun chauffeur en service</option>
+                        )}
+                      </optgroup>
+                      <optgroup label="Chauffeurs hors service">
+                        {allDrivers.filter(driver => !driver.isOnDuty).length > 0 ? (
+                          allDrivers.filter(driver => !driver.isOnDuty).map(driver => (
+                            <option key={driver._id} value={driver._id}>
+                              {driver.fullName} ({driver.username}) - Hors service
+                            </option>
+                          ))
+                        ) : (
+                          <option value="" disabled>Aucun chauffeur hors service</option>
+                        )}
+                      </optgroup>
                     </select>
-                    {driversOnDuty.length === 0 && (
-                      <p className="form-hint">Aucun chauffeur n'est actuellement en service. Le mouvement sera créé en attente.</p>
-                    )}
+                    <p className="form-hint">
+                      Un mouvement sans chauffeur ou avec un chauffeur hors service ne pourra pas être démarré. 
+                      Le chauffeur devra être en service pour pouvoir démarrer le mouvement.
+                    </p>
                   </div>
                 </div>
                 
@@ -369,7 +384,7 @@ const AdminMovementCreate = () => {
                     className="btn btn-primary"
                     disabled={loading}
                   >
-                    {loading ? 'Création en cours...' : 'Créer et assigner le mouvement'}
+                    {loading ? 'Création en cours...' : 'Créer le mouvement'}
                   </button>
                 </div>
               </form>
