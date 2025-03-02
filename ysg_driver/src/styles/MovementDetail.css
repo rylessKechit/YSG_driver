@@ -289,7 +289,7 @@
 }
 
 /* Media Queries */
-@media (min-width: 768px) {
+@media (min-width: 950px) {
   .detail-container {
     padding: 24px;
     max-width: 800px;

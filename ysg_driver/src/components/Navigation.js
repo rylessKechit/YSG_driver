@@ -1,72 +1,159 @@
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const Navigation = () => {
   const { currentUser, logout } = useAuth();
-  const location = useLocation();
+  const navigate = useNavigate();
   
-  const isActive = (path) => {
-    return location.pathname === path ? 'nav-link active' : 'nav-link';
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  
+  // Gestion du redimensionnement
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+      if (window.innerWidth >= 768) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  
+  // Fonction de navigation explicite
+  const goTo = (path) => {
+    console.log(`Navigation vers: ${path}`);
+    setIsMenuOpen(false);
+    navigate(path);
   };
   
-  const handleLogout = async () => {
-    try {
-      await logout();
-    } catch (error) {
-      console.error('Erreur lors de la déconnexion:', error);
+  // Gestion de la déconnexion
+  const handleLogout = () => {
+    console.log('Tentative de déconnexion');
+    logout()
+      .then(() => {
+        navigate('/login');
+      })
+      .catch(error => {
+        console.error('Erreur de déconnexion:', error);
+      });
+  };
+  
+  // Déterminer la route correcte pour "Nouveau trajet" en fonction du rôle
+  const getNewMovementPath = () => {
+    // Pour les admins, utiliser le chemin d'admin pour la création
+    if (currentUser && currentUser.role === 'admin') {
+      return '/admin/movements/create';
     }
+    // Pour les chauffeurs, utiliser le chemin standard
+    return '/movement/new';
   };
-  
+
   return (
     <header className="header">
       <div className="container">
         <nav className="nav">
-          <Link to="/dashboard" className="nav-logo">
+          {/* Logo */}
+          <div 
+            className="nav-logo" 
+            onClick={() => goTo('/dashboard')}
+          >
             GestionChauffeurs
-          </Link>
+          </div>
           
-          <ul className="nav-links">
+          {/* Hamburger button (visible only on mobile) */}
+          {isMobile && (
+            <button 
+              className="hamburger-button"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+            >
+              <div className={`hamburger-icon ${isMenuOpen ? 'open' : ''}`}>
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+            </button>
+          )}
+          
+          {/* Menu de navigation - version desktop ou mobile */}
+          <ul className={`nav-links ${isMobile ? (isMenuOpen ? 'mobile open' : 'mobile closed') : 'desktop'}`}>
             <li className="nav-item">
-              <Link to="/dashboard" className={isActive('/dashboard')}>
+              <div 
+                className="nav-link"
+                onClick={() => goTo('/dashboard')}
+              >
                 Tableau de bord
-              </Link>
+              </div>
             </li>
+            
             <li className="nav-item">
-              <Link to="/timelog" className={isActive('/timelog')}>
+              <div 
+                className="nav-link"
+                onClick={() => goTo('/timelog')}
+              >
                 Pointage
-              </Link>
+              </div>
             </li>
+            
             <li className="nav-item">
-              <Link to="/movement/new" className={isActive('/movement/new')}>
+              <div 
+                className="nav-link"
+                onClick={() => goTo(getNewMovementPath())}
+              >
                 Nouveau trajet
-              </Link>
+              </div>
             </li>
+            
             <li className="nav-item">
-              <Link to="/movement/history" className={isActive('/movement/history')}>
+              <div 
+                className="nav-link"
+                onClick={() => goTo('/movement/history')}
+              >
                 Historique
-              </Link>
+              </div>
             </li>
+            
             <li className="nav-item">
-              <Link to="/profile" className={isActive('/profile')}>
+              <div 
+                className="nav-link"
+                onClick={() => goTo('/profile')}
+              >
                 Profil
-              </Link>
+              </div>
             </li>
+            
             {currentUser && currentUser.role === 'admin' && (
               <li className="nav-item">
-                <Link to="/admin" className={isActive('/admin')}>
+                <div 
+                  className="nav-link"
+                  onClick={() => goTo('/admin')}
+                >
                   Administration
-                </Link>
+                </div>
               </li>
             )}
+            
             <li className="nav-item">
-              <button onClick={handleLogout} className="nav-link" style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+              <div 
+                className="nav-link logout"
+                onClick={handleLogout}
+              >
                 Déconnexion
-              </button>
+              </div>
             </li>
           </ul>
         </nav>
       </div>
+      
+      {/* Overlay pour fermer le menu - s'assurer qu'il est derrière le menu mais devant le contenu */}
+      {isMobile && isMenuOpen && (
+        <div 
+          className="menu-overlay"
+          onClick={() => setIsMenuOpen(false)}
+        ></div>
+      )}
     </header>
   );
 };

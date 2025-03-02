@@ -418,7 +418,7 @@
 }
 
 /* Media Queries */
-@media (min-width: 768px) {
+@media (min-width: 950px) {
   .dashboard-container {
     padding: 24px;
   }

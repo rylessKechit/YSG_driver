@@ -175,7 +175,7 @@
 }
 
 /* Media Queries */
-@media (min-width: 768px) {
+@media (min-width: 950px) {
   .admin-movement-container {
     padding: 24px;
     max-width: 800px;

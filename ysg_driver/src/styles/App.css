@@ -159,7 +159,7 @@
     grid-template-columns: repeat(3, 1fr);
   }
   
-  @media (max-width: 768px) {
+  @media (max-width: 950px) {
     .grid-2-cols,
     .grid-3-cols {
       grid-template-columns: 1fr;
@@ -253,4 +253,179 @@
 
 .coordinates-box p:last-child {
   margin-bottom: 0;
+}
+
+/* Styles CSS combinant affichage horizontal en desktop et menu hamburger en mobile */
+
+/* Reset et styles de base */
+.header {
+  background-color: #333;
+  color: white;
+  width: 100%;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 15px;
+}
+
+.nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 60px;
+}
+
+.nav-logo {
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  color: #4da6ff;
+}
+
+/* Styles pour les liens de navigation */
+.nav-links {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.nav-item {
+  margin: 0;
+}
+
+.nav-link {
+  color: white;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.nav-link:hover {
+  color: #4da6ff;
+}
+
+.nav-link.logout {
+  color: #ff6b6b;
+}
+
+.nav-link.logout:hover {
+  color: #ff4f4f;
+}
+
+/* Styles pour l'affichage DESKTOP */
+.nav-links.desktop {
+  display: flex;
+  align-items: center;
+}
+
+.nav-links.desktop .nav-item {
+  margin-left: 20px;
+}
+
+.nav-links.desktop .nav-link {
+  padding: 8px 0;
+}
+
+/* Styles pour le bouton hamburger (mobile uniquement) */
+.hamburger-button {
+  background: none;
+  border: none;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.hamburger-icon {
+  width: 100%;
+  height: 18px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.hamburger-icon span {
+  display: block;
+  width: 100%;
+  height: 3px;
+  background-color: white;
+  transition: all 0.3s;
+}
+
+.hamburger-icon.open span:nth-child(1) {
+  transform: translateY(7.5px) rotate(45deg);
+}
+
+.hamburger-icon.open span:nth-child(2) {
+  opacity: 0;
+}
+
+.hamburger-icon.open span:nth-child(3) {
+  transform: translateY(-7.5px) rotate(-45deg);
+}
+
+/* Overlay pour le menu mobile */
+.menu-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 99;
+}
+
+/* Styles pour le mode MOBILE */
+@media (max-width: 950px) {
+  /* Masquer le menu mobile par défaut */
+  .nav-links.mobile {
+    position: fixed;
+    top: 60px;
+    right: -80%;
+    width: 80%;
+    height: calc(100vh - 60px);
+    background-color: #333;
+    flex-direction: column;
+    transition: right 0.3s ease;
+    z-index: 100;
+    overflow-y: auto;
+    padding: 20px 0;
+    box-shadow: -5px 0 15px rgba(0, 0, 0, 0.2);
+  }
+  
+  /* Menu mobile ouvert */
+  .nav-links.mobile.open {
+    right: 0;
+  }
+  
+  /* Menu mobile fermé */
+  .nav-links.mobile.closed {
+    right: -80%;
+  }
+  
+  /* Style des éléments dans le menu mobile */
+  .nav-links.mobile .nav-item {
+    width: 100%;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .nav-links.mobile .nav-link {
+    display: block;
+    padding: 15px 20px;
+    width: 100%;
+  }
+  
+  .nav-links.mobile .nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .nav-links.mobile .nav-link:active {
+    background-color: rgba(255, 255, 255, 0.2);
+  }
 }

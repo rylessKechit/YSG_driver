@@ -1,4 +1,5 @@
-export const API_URL = 'https://ysg-driver-backend.onrender.com/api';
+//export const API_URL = 'https://ysg-driver-backend.onrender.com/api';
+export const API_URL = 'http://localhost:2000/api';
 
 // Configuration des endpoints de l'API
 export const ENDPOINTS = {
