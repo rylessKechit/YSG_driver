@@ -150,7 +150,7 @@ const AdminMovementCreate = () => {
       
       setSuccess('Mouvement créé avec succès');
       setTimeout(() => {
-        navigate('/admin/movements');
+        navigate('/movement/history');
       }, 2000);
     } catch (err) {
       setError(err.response?.data?.message || 'Erreur lors de la création du mouvement');
