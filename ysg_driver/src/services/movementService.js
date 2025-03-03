@@ -126,6 +126,26 @@ const movementService = {
       throw error;
     }
   },
+
+  // Assigner un chauffeur à un mouvement
+  assignDriver: async (movementId, driverId) => {
+    try {
+      const response = await api.post(`${ENDPOINTS.MOVEMENTS.DETAIL(movementId)}/assign`, { userId: driverId });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Supprimer un mouvement
+  deleteMovement: async (movementId) => {
+    try {
+      const response = await api.delete(ENDPOINTS.MOVEMENTS.DETAIL(movementId));
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
 };
 
 export default movementService;

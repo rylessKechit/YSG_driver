@@ -292,6 +292,8 @@ const AdminPanel = () => {
                     required
                   >
                     <option value="driver">Chauffeur</option>
+                    <option value="preparator">Préparateur</option>
+                    <option value="direction">Direction</option>
                     <option value="admin">Administrateur</option>
                   </select>
                 </div>
@@ -343,8 +345,16 @@ const AdminPanel = () => {
                     <td>{user.email}</td>
                     <td>{user.phone}</td>
                     <td>
-                      <span className={`role-badge ${user.role === 'admin' ? 'admin-role' : 'driver-role'}`}>
-                        {user.role === 'admin' ? 'Admin' : 'Chauffeur'}
+                      <span className={`role-badge ${
+                        user.role === 'admin' ? 'admin-role' : 
+                        user.role === 'driver' ? 'driver-role' : 
+                        user.role === 'preparator' ? 'preparator-role' : 
+                        'direction-role'
+                      }`}>
+                        {user.role === 'admin' ? 'Admin' : 
+                        user.role === 'driver' ? 'Chauffeur' : 
+                        user.role === 'preparator' ? 'Préparateur' : 
+                        'Direction'}
                       </span>
                     </td>
                     <td>

@@ -365,13 +365,36 @@ router.post('/:id/complete', verifyToken, async (req, res) => {
   }
 });
 
-// Upload de photos (par un chauffeur)
+// Supprimer un mouvement (admin seulement, si non démarré)
+router.delete('/:id', verifyToken, isAdmin, async (req, res) => {
+  try {
+    const movement = await Movement.findById(req.params.id);
+    
+    if (!movement) {
+      return res.status(404).json({ message: 'Mouvement non trouvé' });
+    }
+    
+    // Vérifier que le mouvement n'est pas déjà démarré
+    if (movement.status === 'in-progress' || movement.status === 'completed') {
+      return res.status(400).json({ 
+        message: 'Impossible de supprimer un mouvement qui est déjà en cours ou terminé' 
+      });
+    }
+    
+    // Supprimer le mouvement
+    await Movement.findByIdAndDelete(req.params.id);
+    
+    res.json({ message: 'Mouvement supprimé avec succès' });
+  } catch (error) {
+    console.error('Erreur lors de la suppression du mouvement:', error);
+    res.status(500).json({ message: 'Erreur serveur' });
+  }
+});
+
+// Mise à jour améliorée pour l'upload de photos
 router.post('/:id/photos', verifyToken, upload.array('photos', 5), async (req, res) => {
   try {
-    const movement = await Movement.findOne({
-      _id: req.params.id,
-      userId: req.user._id
-    });
+    const movement = await Movement.findById(req.params.id);
     
     if (!movement) {
       return res.status(404).json({
@@ -379,8 +402,30 @@ router.post('/:id/photos', verifyToken, upload.array('photos', 5), async (req, r
       });
     }
     
-    // Type de photo (départ, arrivée, dommage, autre)
+    // Vérifier que l'utilisateur est autorisé (admin ou chauffeur assigné)
+    if (req.user.role !== 'admin' && 
+        (!movement.userId || movement.userId.toString() !== req.user._id.toString())) {
+      return res.status(403).json({
+        message: 'Vous n\'êtes pas autorisé à modifier ce mouvement'
+      });
+    }
+    
+    // Vérifier que le mouvement est en cours
+    if (movement.status !== 'in-progress') {
+      return res.status(400).json({
+        message: 'Vous ne pouvez ajouter des photos qu\'à un mouvement en cours'
+      });
+    }
+    
+    // Type de photo (valider les types autorisés)
+    const allowedTypes = ['front', 'passenger', 'driver', 'rear', 'windshield', 'roof', 'departure', 'arrival', 'damage', 'other'];
     const { type = 'other' } = req.body;
+    
+    if (!allowedTypes.includes(type)) {
+      return res.status(400).json({
+        message: 'Type de photo non valide'
+      });
+    }
     
     // Ajouter les photos
     if (req.files && req.files.length > 0) {

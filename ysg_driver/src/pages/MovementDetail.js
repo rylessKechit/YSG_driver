@@ -1,6 +1,7 @@
 // src/pages/MovementDetail.js
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import movementService from '../services/movementService';
 import Navigation from '../components/Navigation';
 import '../styles/MovementDetail.css';
@@ -13,29 +14,211 @@ const MovementDetail = () => {
   const [notes, setNotes] = useState('');
   const [updateLoading, setUpdateLoading] = useState(false);
   const [updateSuccess, setUpdateSuccess] = useState(null);
+  const [allDrivers, setAllDrivers] = useState([]);
+  const [selectedDriver, setSelectedDriver] = useState('');
+  const [loadingDrivers, setLoadingDrivers] = useState(false);
+  const [photoType, setPhotoType] = useState('front');
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [photosStatus, setPhotosStatus] = useState({
+    front: false,   // Face avant avec plaque
+    passenger: false, // Côté passager
+    driver: false,  // Côté conducteur
+    rear: false,    // Face arrière
+    windshield: false, // Pare-brise
+    roof: false     // Toit
+  });
+  
+  const { currentUser } = useAuth();
   const navigate = useNavigate();
 
   // Charger les détails du mouvement
   useEffect(() => {
-    const fetchMovementDetails = async () => {
-      try {
-        setLoading(true);
-        const data = await movementService.getMovement(id);
-        setMovement(data);
-        
-        if (data.notes) {
-          setNotes(data.notes);
-        }
-      } catch (err) {
-        console.error('Erreur lors du chargement des détails du mouvement:', err);
-        setError('Erreur lors du chargement des détails du mouvement');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchMovementDetails();
+    loadMovement();
   }, [id]);
+
+  // Charger tous les chauffeurs (admin seulement)
+  useEffect(() => {
+    if (currentUser && currentUser.role === 'admin') {
+      const loadDrivers = async () => {
+        try {
+          setLoadingDrivers(true);
+          const drivers = await movementService.getAllDrivers();
+          setAllDrivers(drivers);
+          setLoadingDrivers(false);
+        } catch (err) {
+          console.error('Erreur lors du chargement des chauffeurs:', err);
+          setLoadingDrivers(false);
+        }
+      };
+      
+      loadDrivers();
+    }
+  }, [currentUser]);
+
+  // Charger les détails du mouvement
+  const loadMovement = async () => {
+    try {
+      setLoading(true);
+      const data = await movementService.getMovement(id);
+      setMovement(data);
+      
+      if (data.notes) {
+        setNotes(data.notes);
+      }
+      
+      // Analyser les photos pour déterminer quelles vues sont déjà disponibles
+      if (data.photos && data.photos.length > 0) {
+        const newPhotoStatus = { ...photosStatus };
+        
+        data.photos.forEach(photo => {
+          if (photo.type && newPhotoStatus.hasOwnProperty(photo.type)) {
+            newPhotoStatus[photo.type] = true;
+          }
+        });
+        
+        setPhotosStatus(newPhotoStatus);
+      }
+      
+    } catch (err) {
+      console.error('Erreur lors du chargement des détails du mouvement:', err);
+      setError('Erreur lors du chargement des détails du mouvement');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Assigner un chauffeur au mouvement
+  const handleAssignDriver = async () => {
+    if (!selectedDriver) {
+      setError('Veuillez sélectionner un chauffeur');
+      return;
+    }
+    
+    try {
+      setUpdateLoading(true);
+      await movementService.assignDriver(id, selectedDriver);
+      
+      setUpdateSuccess('Chauffeur assigné avec succès');
+      setTimeout(() => setUpdateSuccess(null), 3000);
+      
+      await loadMovement();
+      setSelectedDriver('');
+    } catch (err) {
+      console.error('Erreur lors de l\'assignation du chauffeur:', err);
+      setError(err.response?.data?.message || 'Erreur lors de l\'assignation du chauffeur');
+    } finally {
+      setUpdateLoading(false);
+    }
+  };
+
+  // Supprimer le mouvement
+  const handleDeleteMovement = async () => {
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer ce mouvement ?')) {
+      return;
+    }
+    
+    try {
+      setUpdateLoading(true);
+      await movementService.deleteMovement(id);
+      
+      setUpdateSuccess('Mouvement supprimé avec succès');
+      setTimeout(() => {
+        navigate('/movement/history');
+      }, 2000);
+    } catch (err) {
+      console.error('Erreur lors de la suppression du mouvement:', err);
+      setError(err.response?.data?.message || 'Erreur lors de la suppression du mouvement');
+      setUpdateLoading(false);
+    }
+  };
+
+  // Changer le statut du mouvement
+  const handleStartMovement = async () => {
+    try {
+      setUpdateLoading(true);
+      
+      await movementService.startMovement(id);
+      await loadMovement();
+      
+      setUpdateSuccess('Mouvement démarré avec succès');
+      setTimeout(() => setUpdateSuccess(null), 3000);
+    } catch (err) {
+      console.error('Erreur lors du démarrage du mouvement:', err);
+      setError(err.response?.data?.message || 'Erreur lors du démarrage du mouvement');
+    } finally {
+      setUpdateLoading(false);
+    }
+  };
+
+  // Gérer le changement de fichier pour l'upload de photo
+  const handleFileChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedFile(e.target.files[0]);
+    }
+  };
+
+  // Uploader une photo
+  const handleUploadPhoto = async (e) => {
+    e.preventDefault();
+    
+    if (!selectedFile) {
+      setError('Veuillez sélectionner une photo');
+      return;
+    }
+    
+    try {
+      setUploadingPhoto(true);
+      
+      const formData = new FormData();
+      formData.append('photos', selectedFile);
+      formData.append('type', photoType);
+      
+      await movementService.uploadPhotos(id, formData);
+      
+      // Marquer cette vue comme photographiée
+      setPhotosStatus(prev => ({
+        ...prev,
+        [photoType]: true
+      }));
+      
+      setSelectedFile(null);
+      document.getElementById('photo-upload').value = '';
+      
+      setUpdateSuccess('Photo téléchargée avec succès');
+      setTimeout(() => setUpdateSuccess(null), 3000);
+      
+      await loadMovement();
+    } catch (err) {
+      console.error('Erreur lors du téléchargement de la photo:', err);
+      setError(err.response?.data?.message || 'Erreur lors du téléchargement de la photo');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  // Terminer le mouvement (avec vérification des photos)
+  const handleCompleteMovement = async () => {
+    try {
+      setUpdateLoading(true);
+      
+      await movementService.completeMovement(id, { notes });
+      await loadMovement();
+      
+      setUpdateSuccess('Mouvement terminé avec succès');
+      setTimeout(() => setUpdateSuccess(null), 3000);
+    } catch (err) {
+      console.error('Erreur lors de la fin du mouvement:', err);
+      setError(err.response?.data?.message || 'Erreur lors de la fin du mouvement');
+    } finally {
+      setUpdateLoading(false);
+    }
+  };
+
+  // Vérifier si toutes les photos requises ont été prises
+  const allRequiredPhotosTaken = () => {
+    return Object.values(photosStatus).every(status => status === true);
+  };
 
   // Formatter la date
   const formatDate = (dateString) => {
@@ -51,42 +234,42 @@ const MovementDetail = () => {
     });
   };
 
-  // Gérer le changement de statut du mouvement
-  const handleStatusChange = async (newStatus) => {
-    try {
-      setUpdateLoading(true);
-      
-      if (newStatus === 'in-progress') {
-        await movementService.startMovement(id);
-      } else if (newStatus === 'completed') {
-        await movementService.completeMovement(id, notes);
-      }
-      
-      // Recharger les détails du mouvement
-      const updatedMovement = await movementService.getMovement(id);
-      setMovement(updatedMovement);
-      
-      setUpdateSuccess(`Statut mis à jour avec succès : ${
-        newStatus === 'in-progress' ? 'En cours' : 'Terminé'
-      }`);
-      
-      setTimeout(() => setUpdateSuccess(null), 3000);
-    } catch (err) {
-      setError(err.response?.data?.message || 'Erreur lors de la mise à jour du statut');
-      console.error(err);
-    } finally {
-      setUpdateLoading(false);
-    }
-  };
-
-  // Gérer le changement des notes
-  const handleNotesChange = (e) => {
-    setNotes(e.target.value);
-  };
-
   // Ouvrir l'image en plein écran
   const openFullScreenImage = (url) => {
     window.open(url, '_blank');
+  };
+
+  // Obtenir le libellé du type de photo
+  const getPhotoTypeLabel = (type) => {
+    switch (type) {
+      case 'front': return 'Face avant';
+      case 'passenger': return 'Côté passager';
+      case 'driver': return 'Côté conducteur';
+      case 'rear': return 'Face arrière';
+      case 'windshield': return 'Pare-brise';
+      case 'roof': return 'Toit';
+      case 'departure': return 'Départ';
+      case 'arrival': return 'Arrivée';
+      case 'damage': return 'Dommage';
+      default: return 'Autre';
+    }
+  };
+
+  // Vérifier si l'utilisateur peut éditer ce mouvement
+  const canEditMovement = () => {
+    if (!movement || !currentUser) return false;
+    
+    // Les admins peuvent toujours éditer
+    if (currentUser.role === 'admin') return true;
+    
+    // Les chauffeurs peuvent éditer uniquement s'ils sont assignés et si le mouvement est en cours
+    if (currentUser.role === 'driver' && 
+        movement.userId && 
+        movement.userId._id === currentUser._id) {
+      return true;
+    }
+    
+    return false;
   };
 
   if (loading) {
@@ -100,7 +283,7 @@ const MovementDetail = () => {
     );
   }
 
-  if (error) {
+  if (error && !movement) {
     return (
       <div>
         <Navigation />
@@ -154,9 +337,17 @@ const MovementDetail = () => {
           </Link>
         </div>
         
+        {error && (
+          <div className="alert alert-error">
+            <div className="alert-icon">⚠️</div>
+            <div className="alert-content">{error}</div>
+          </div>
+        )}
+        
         {updateSuccess && (
-          <div className="success-message">
-            {updateSuccess}
+          <div className="alert alert-success">
+            <div className="alert-icon">✓</div>
+            <div className="alert-content">{updateSuccess}</div>
           </div>
         )}
         
@@ -177,11 +368,114 @@ const MovementDetail = () => {
               <span className="info-label">Statut:</span>
               <span className={`status-badge status-${movement.status}`}>
                 {movement.status === 'pending' && 'En attente'}
+                {movement.status === 'assigned' && 'Assigné'}
                 {movement.status === 'in-progress' && 'En cours'}
                 {movement.status === 'completed' && 'Terminé'}
+                {movement.status === 'cancelled' && 'Annulé'}
               </span>
             </div>
           </div>
+          
+          {/* Section d'assignation de chauffeur - Visible pour les administrateurs uniquement */}
+          {currentUser.role === 'admin' && (
+            <div className="detail-section driver-assignment">
+              <h2 className="section-title">
+                <i className="fas fa-user"></i> Chauffeur assigné
+              </h2>
+              
+              {movement.userId ? (
+                <div className="assigned-driver">
+                  <div className="info-item">
+                    <span className="info-label">Chauffeur:</span>
+                    <span className="info-value">{movement.userId.fullName}</span>
+                  </div>
+                  
+                  {/* Option pour modifier le chauffeur si le mouvement n'est pas démarré */}
+                  {movement.status === 'pending' || movement.status === 'assigned' ? (
+                    <div className="change-driver">
+                      <h3 className="subsection-title">Modifier le chauffeur</h3>
+                      
+                      {loadingDrivers ? (
+                        <div className="loading-indicator-small">Chargement des chauffeurs...</div>
+                      ) : (
+                        <div className="assign-form">
+                          <select 
+                            value={selectedDriver} 
+                            onChange={(e) => setSelectedDriver(e.target.value)}
+                            className="form-select"
+                          >
+                            <option value="">Sélectionnez un chauffeur</option>
+                            <optgroup label="Chauffeurs en service">
+                              {allDrivers.filter(driver => driver.isOnDuty).map(driver => (
+                                <option key={driver._id} value={driver._id}>
+                                  {driver.fullName} - En service
+                                </option>
+                              ))}
+                            </optgroup>
+                            <optgroup label="Chauffeurs hors service">
+                              {allDrivers.filter(driver => !driver.isOnDuty).map(driver => (
+                                <option key={driver._id} value={driver._id}>
+                                  {driver.fullName} - Hors service
+                                </option>
+                              ))}
+                            </optgroup>
+                          </select>
+                          
+                          <button 
+                            onClick={handleAssignDriver}
+                            className="btn btn-primary"
+                            disabled={updateLoading || !selectedDriver}
+                          >
+                            {updateLoading ? 'Mise à jour...' : 'Changer de chauffeur'}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
+                </div>
+              ) : (
+                <div className="no-driver-assigned">
+                  <p className="no-assignment-message">Aucun chauffeur assigné à ce mouvement.</p>
+                  
+                  {loadingDrivers ? (
+                    <div className="loading-indicator-small">Chargement des chauffeurs...</div>
+                  ) : (
+                    <div className="assign-form">
+                      <select 
+                        value={selectedDriver} 
+                        onChange={(e) => setSelectedDriver(e.target.value)}
+                        className="form-select"
+                      >
+                        <option value="">Sélectionnez un chauffeur</option>
+                        <optgroup label="Chauffeurs en service">
+                          {allDrivers.filter(driver => driver.isOnDuty).map(driver => (
+                            <option key={driver._id} value={driver._id}>
+                              {driver.fullName} - En service
+                            </option>
+                          ))}
+                        </optgroup>
+                        <optgroup label="Chauffeurs hors service">
+                          {allDrivers.filter(driver => !driver.isOnDuty).map(driver => (
+                            <option key={driver._id} value={driver._id}>
+                              {driver.fullName} - Hors service
+                            </option>
+                          ))}
+                        </optgroup>
+                      </select>
+                      
+                      <button 
+                        onClick={handleAssignDriver}
+                        className="btn btn-primary"
+                        disabled={updateLoading || !selectedDriver}
+                      >
+                        {updateLoading ? 'Assignation...' : 'Assigner un chauffeur'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
           
           <div className="detail-section route-info">
             <h2 className="section-title">Itinéraire</h2>
@@ -194,7 +488,7 @@ const MovementDetail = () => {
                   <div className="point-time">
                     {formatDate(movement.departureTime)}
                   </div>
-                  {movement.departureLocation.coordinates && (
+                  {movement.departureLocation.coordinates && movement.departureLocation.coordinates.latitude && (
                     <div className="point-coordinates">
                       Lat: {movement.departureLocation.coordinates.latitude}, 
                       Lng: {movement.departureLocation.coordinates.longitude}
@@ -213,7 +507,7 @@ const MovementDetail = () => {
                   <div className="point-time">
                     {formatDate(movement.arrivalTime)}
                   </div>
-                  {movement.arrivalLocation.coordinates && (
+                  {movement.arrivalLocation.coordinates && movement.arrivalLocation.coordinates.latitude && (
                     <div className="point-coordinates">
                       Lat: {movement.arrivalLocation.coordinates.latitude}, 
                       Lng: {movement.arrivalLocation.coordinates.longitude}
@@ -224,6 +518,109 @@ const MovementDetail = () => {
             </div>
           </div>
           
+          {/* Section pour l'upload de photos guidé - Visible uniquement pour le chauffeur assigné et en cours */}
+          {canEditMovement() && movement.status === 'in-progress' && (
+            <div className="detail-section photo-upload-section">
+              <h2 className="section-title">
+                <i className="fas fa-camera"></i> Photos du véhicule
+              </h2>
+              
+              <div className="photo-guidelines">
+                <p className="guidelines-intro">
+                  Pour compléter ce mouvement, veuillez prendre les photos suivantes du véhicule:
+                </p>
+                
+                <div className="photo-checklist">
+                  <div className={`checklist-item ${photosStatus.front ? 'completed' : ''}`}>
+                    <span className="status-icon">
+                      {photosStatus.front ? '✓' : '○'}
+                    </span>
+                    <span className="item-label">Face avant (avec plaque visible)</span>
+                  </div>
+                  <div className={`checklist-item ${photosStatus.passenger ? 'completed' : ''}`}>
+                    <span className="status-icon">
+                      {photosStatus.passenger ? '✓' : '○'}
+                    </span>
+                    <span className="item-label">Côté passager</span>
+                  </div>
+                  <div className={`checklist-item ${photosStatus.driver ? 'completed' : ''}`}>
+                    <span className="status-icon">
+                      {photosStatus.driver ? '✓' : '○'}
+                    </span>
+                    <span className="item-label">Côté conducteur</span>
+                  </div>
+                  <div className={`checklist-item ${photosStatus.rear ? 'completed' : ''}`}>
+                    <span className="status-icon">
+                      {photosStatus.rear ? '✓' : '○'}
+                    </span>
+                    <span className="item-label">Face arrière</span>
+                  </div>
+                  <div className={`checklist-item ${photosStatus.windshield ? 'completed' : ''}`}>
+                    <span className="status-icon">
+                      {photosStatus.windshield ? '✓' : '○'}
+                    </span>
+                    <span className="item-label">Pare-brise</span>
+                  </div>
+                  <div className={`checklist-item ${photosStatus.roof ? 'completed' : ''}`}>
+                    <span className="status-icon">
+                      {photosStatus.roof ? '✓' : '○'}
+                    </span>
+                    <span className="item-label">Toit</span>
+                  </div>
+                </div>
+              </div>
+              
+              <form onSubmit={handleUploadPhoto} className="photo-upload-form">
+                <div className="form-group">
+                  <label htmlFor="photoType" className="form-label">Type de photo</label>
+                  <select 
+                    id="photoType" 
+                    value={photoType} 
+                    onChange={(e) => setPhotoType(e.target.value)}
+                    className="form-select"
+                  >
+                    <option value="front" disabled={photosStatus.front}>Face avant (avec plaque)</option>
+                    <option value="passenger" disabled={photosStatus.passenger}>Côté passager</option>
+                    <option value="driver" disabled={photosStatus.driver}>Côté conducteur</option>
+                    <option value="rear" disabled={photosStatus.rear}>Face arrière</option>
+                    <option value="windshield" disabled={photosStatus.windshield}>Pare-brise</option>
+                    <option value="roof" disabled={photosStatus.roof}>Toit</option>
+                    <option value="damage">Dommages (si présents)</option>
+                    <option value="other">Autre photo</option>
+                  </select>
+                </div>
+                
+                <div className="form-group">
+                  <label htmlFor="photo-upload" className="form-label">Sélectionner une photo</label>
+                  <input 
+                    type="file" 
+                    id="photo-upload" 
+                    accept="image/*" 
+                    onChange={handleFileChange}
+                    className="form-input"
+                  />
+                </div>
+                
+                <button 
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={!selectedFile || uploadingPhoto}
+                >
+                  {uploadingPhoto ? 'Envoi en cours...' : 'Télécharger la photo'}
+                </button>
+              </form>
+              
+              {allRequiredPhotosTaken() && (
+                <div className="photo-confirmation">
+                  <div className="confirmation-message">
+                    <i className="fas fa-check-circle"></i>
+                    <span>Toutes les photos requises ont été prises !</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          
           <div className="detail-section photos-section">
             <h2 className="section-title">Photos</h2>
             {movement.photos && movement.photos.length > 0 ? (
@@ -233,10 +630,7 @@ const MovementDetail = () => {
                     <img src={photo.url} alt={`Photo ${index + 1}`} className="movement-photo" />
                     <div className="photo-info">
                       <span className={`photo-type ${photo.type}`}>
-                        {photo.type === 'departure' && 'Départ'}
-                        {photo.type === 'arrival' && 'Arrivée'}
-                        {photo.type === 'damage' && 'Dommage'}
-                        {photo.type === 'other' && 'Autre'}
+                        {getPhotoTypeLabel(photo.type)}
                       </span>
                       <span className="photo-time">
                         {formatDate(photo.timestamp)}
@@ -252,10 +646,10 @@ const MovementDetail = () => {
           
           <div className="detail-section notes-section">
             <h2 className="section-title">Notes</h2>
-            {movement.status !== 'completed' ? (
+            {movement.status !== 'completed' && canEditMovement() ? (
               <textarea
                 value={notes}
-                onChange={handleNotesChange}
+                onChange={(e) => setNotes(e.target.value)}
                 className="notes-textarea"
                 placeholder="Ajouter des notes concernant ce mouvement..."
                 rows="4"
@@ -289,29 +683,56 @@ const MovementDetail = () => {
             </div>
           </div>
           
-          {movement.status !== 'completed' && (
-            <div className="detail-actions">
-              {movement.status === 'pending' && (
-                <button
-                  onClick={() => handleStatusChange('in-progress')}
-                  className="btn btn-primary"
-                  disabled={updateLoading}
-                >
-                  {updateLoading ? 'En cours...' : 'Démarrer le trajet'}
-                </button>
-              )}
-              
-              {movement.status === 'in-progress' && (
-                <button
-                  onClick={() => handleStatusChange('completed')}
-                  className="btn btn-success"
-                  disabled={updateLoading}
-                >
-                  {updateLoading ? 'En cours...' : 'Terminer le trajet'}
-                </button>
-              )}
-            </div>
-          )}
+          {/* Actions en fonction du statut et du rôle */}
+          <div className="detail-actions">
+            {/* Bouton retour */}
+            <button
+              onClick={() => navigate('/movement/history')}
+              className="btn btn-secondary"
+            >
+              Retour à la liste
+            </button>
+            
+            {/* Options pour supprimer (admin uniquement, si non démarré) */}
+            {currentUser.role === 'admin' && (movement.status === 'pending' || movement.status === 'assigned') && (
+              <button
+                onClick={handleDeleteMovement}
+                className="btn btn-danger"
+                disabled={updateLoading}
+              >
+                {updateLoading ? 'Suppression...' : 'Supprimer le mouvement'}
+              </button>
+            )}
+            
+            {/* Options pour démarrer (chauffeur assigné si pas démarré) */}
+            {movement.status === 'assigned' && 
+             movement.userId && 
+             currentUser.role === 'driver' && 
+             movement.userId._id === currentUser._id && (
+              <button
+                onClick={handleStartMovement}
+                className="btn btn-primary"
+                disabled={updateLoading}
+              >
+                {updateLoading ? 'Démarrage...' : 'Démarrer le trajet'}
+              </button>
+            )}
+            
+            {/* Options pour terminer (chauffeur assigné, si démarré et toutes les photos prises) */}
+            {movement.status === 'in-progress' && 
+             movement.userId && 
+             currentUser.role === 'driver' && 
+             movement.userId._id === currentUser._id && (
+              <button
+                onClick={handleCompleteMovement}
+                className="btn btn-success"
+                disabled={updateLoading || !allRequiredPhotosTaken()}
+                title={!allRequiredPhotosTaken() ? "Toutes les photos requises doivent être prises" : ""}
+              >
+                {updateLoading ? 'Finalisation...' : 'Terminer le trajet'}
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

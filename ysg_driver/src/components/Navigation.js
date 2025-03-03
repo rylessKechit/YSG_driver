@@ -52,7 +52,8 @@ const Navigation = () => {
       {
         name: 'Pointage',
         path: '/timelog',
-        visible: currentUser?.role !== 'direction'
+        // Masquer l'option de pointage pour les rôles admin et direction
+        visible: currentUser?.role !== 'direction' && currentUser?.role !== 'admin'
       },
       {
         name: 'Profil',
