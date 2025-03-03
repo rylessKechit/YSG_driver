@@ -195,6 +195,11 @@
   color: var(--primary);
 }
 
+.status-preparing {
+  background-color: rgba(147, 197, 253, 0.2);
+  color: #2563eb;
+}
+
 .badge-cancelled {
   background-color: rgba(239, 68, 68, 0.1);
   color: var(--danger);

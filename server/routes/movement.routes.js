@@ -134,11 +134,13 @@ router.get('/all-drivers', verifyToken, isAdmin, async (req, res) => {
   }
 });
 
-// Créer un nouveau mouvement (réservé aux admins)
-router.post('/:id/start', verifyToken, async (req, res) => {
+// Démarrer la préparation d'un mouvement (première étape)
+router.post('/:id/prepare', verifyToken, async (req, res) => {
   try {
-    // Récupérer le mouvement
-    const movement = await Movement.findById(req.params.id);
+    const movement = await Movement.findOne({
+      _id: req.params.id,
+      userId: req.user._id
+    });
     
     if (!movement) {
       return res.status(404).json({
@@ -146,21 +148,54 @@ router.post('/:id/start', verifyToken, async (req, res) => {
       });
     }
     
-    // Vérifier si un chauffeur est assigné
-    if (!movement.userId) {
+    if (movement.status !== 'assigned') {
       return res.status(400).json({
-        message: 'Un chauffeur doit être assigné avant de pouvoir démarrer le mouvement'
+        message: 'Ce mouvement ne peut pas être préparé'
       });
     }
     
-    // Vérifier si l'utilisateur est bien le chauffeur assigné ou un admin
-    if (req.user.role !== 'admin' && movement.userId.toString() !== req.user._id.toString()) {
-      return res.status(403).json({
-        message: 'Vous n\'êtes pas autorisé à démarrer ce mouvement'
+    // Vérifier si l'utilisateur est en service
+    const activeTimeLog = await TimeLog.findOne({
+      userId: req.user._id,
+      status: 'active'
+    });
+    
+    if (!activeTimeLog) {
+      return res.status(400).json({
+        message: 'Vous devez être en service pour préparer un mouvement'
       });
     }
     
-    if (movement.status !== 'pending' && movement.status !== 'assigned') {
+    movement.status = 'preparing';
+    
+    await movement.save();
+    
+    res.json({
+      message: 'Préparation du mouvement démarrée',
+      movement
+    });
+  } catch (error) {
+    console.error('Erreur lors du démarrage de la préparation:', error);
+    res.status(500).json({ message: 'Erreur serveur' });
+  }
+});
+
+// Démarrer le trajet (deuxième étape, après la préparation)
+router.post('/:id/start', verifyToken, async (req, res) => {
+  try {
+    const movement = await Movement.findOne({
+      _id: req.params.id,
+      userId: req.user._id
+    });
+    
+    if (!movement) {
+      return res.status(404).json({
+        message: 'Mouvement non trouvé'
+      });
+    }
+    
+    // Modifier pour accepter les transitions depuis "preparing" ou "assigned"
+    if (movement.status !== 'assigned' && movement.status !== 'preparing') {
       return res.status(400).json({
         message: 'Ce mouvement ne peut pas être démarré'
       });
@@ -168,13 +203,13 @@ router.post('/:id/start', verifyToken, async (req, res) => {
     
     // Vérifier si l'utilisateur est en service
     const activeTimeLog = await TimeLog.findOne({
-      userId: movement.userId,
+      userId: req.user._id,
       status: 'active'
     });
     
     if (!activeTimeLog) {
       return res.status(400).json({
-        message: 'Le chauffeur doit être en service pour démarrer un mouvement'
+        message: 'Vous devez être en service pour démarrer un mouvement'
       });
     }
     

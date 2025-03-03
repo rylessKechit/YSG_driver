@@ -309,6 +309,11 @@
   color: var(--danger);
 }
 
+.badge-preparing {
+  background-color: rgba(147, 197, 253, 0.2);
+  color: #2563eb;
+}
+
 .movement-route {
   margin-bottom: 12px;
 }

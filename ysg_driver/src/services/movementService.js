@@ -22,6 +22,16 @@ const movementService = {
       throw error;
     }
   },
+
+  // Commencer la préparation d'un mouvement
+  prepareMovement: async (movementId) => {
+    try {
+      const response = await api.post(`${ENDPOINTS.MOVEMENTS.DETAIL(movementId)}/prepare`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
   
   // Démarrer un mouvement (chauffeur)
   startMovement: async (movementId) => {
@@ -34,9 +44,10 @@ const movementService = {
   },
   
   // Terminer un mouvement (chauffeur)
-  completeMovement: async (movementId, notes) => {
+  completeMovement: async (movementId, notesData) => {
     try {
-      const response = await api.post(`${ENDPOINTS.MOVEMENTS.DETAIL(movementId)}/complete`, { notes });
+      // Passer notesData directement comme corps de la requête
+      const response = await api.post(`${ENDPOINTS.MOVEMENTS.DETAIL(movementId)}/complete`, notesData);
       return response.data;
     } catch (error) {
       throw error;

@@ -561,3 +561,76 @@
     width: 100%;
   }
 }
+
+/* Styles pour l'upload multiple */
+.multi-upload-section {
+  margin-top: 1.5rem;
+  padding: 1.25rem;
+  background-color: #f9fafb;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+}
+
+.upload-instructions {
+  margin-bottom: 1.25rem;
+}
+
+.upload-instructions p {
+  margin-bottom: 0.75rem;
+}
+
+.upload-instructions ol {
+  padding-left: 1.5rem;
+}
+
+.upload-instructions li {
+  margin-bottom: 0.5rem;
+}
+
+.upload-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.upload-status {
+  margin-top: 0.75rem;
+  font-size: 0.9375rem;
+  color: #4b5563;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  margin: 1.5rem 0;
+  color: #6b7280;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.divider span {
+  padding: 0 0.75rem;
+  font-size: 0.875rem;
+}
+
+/* Rendre le bouton de l'upload multiple plus visible */
+.upload-form .btn-primary {
+  margin-top: 0.75rem;
+  font-weight: 600;
+}
+
+@media (min-width: 768px) {
+  .upload-form {
+    flex-direction: row;
+    align-items: flex-end;
+  }
+  
+  .upload-form .btn-primary {
+    margin-top: 0;
+  }
+}

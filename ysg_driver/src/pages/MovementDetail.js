@@ -37,6 +37,70 @@ const MovementDetail = () => {
     loadMovement();
   }, [id]);
 
+  // Variables d'état pour l'upload multiple
+const [selectedFiles, setSelectedFiles] = useState([]);
+
+// Gérer la sélection de plusieurs fichiers
+const handleMultipleFilesChange = (e) => {
+  if (e.target.files && e.target.files.length > 0) {
+    setSelectedFiles(Array.from(e.target.files));
+  }
+};
+
+// Uploader plusieurs photos à la fois
+const handleMultipleUpload = async () => {
+  if (selectedFiles.length === 0) {
+    setError('Veuillez sélectionner au moins une photo');
+    return;
+  }
+  
+  try {
+    setUploadingPhoto(true);
+    
+    // Détermine les types de photos manquantes
+    const missingPhotoTypes = Object.entries(photosStatus)
+      .filter(([_, taken]) => !taken)
+      .map(([type]) => type);
+    
+    // Si on a plus de fichiers que de photos manquantes, on limite
+    const maxFilesToUpload = Math.min(selectedFiles.length, missingPhotoTypes.length);
+    
+    // Pour chaque fichier, on l'associe à un type manquant
+    for (let i = 0; i < maxFilesToUpload; i++) {
+      const file = selectedFiles[i];
+      const photoType = missingPhotoTypes[i];
+      
+      const formData = new FormData();
+      formData.append('photos', file);
+      formData.append('type', photoType);
+      
+      await movementService.uploadPhotos(id, formData);
+      
+      // Marquer cette vue comme photographiée
+      setPhotosStatus(prev => ({
+        ...prev,
+        [photoType]: true
+      }));
+    }
+    
+    // Réinitialiser la sélection de fichiers
+    setSelectedFiles([]);
+    document.getElementById('multi-photos').value = '';
+    
+    // Message de succès
+    setUpdateSuccess(`${maxFilesToUpload} photo(s) téléchargée(s) avec succès`);
+    setTimeout(() => setUpdateSuccess(null), 3000);
+    
+    // Recharger le mouvement pour afficher les nouvelles photos
+    await loadMovement();
+  } catch (err) {
+    console.error('Erreur lors du téléchargement des photos:', err);
+    setError(err.response?.data?.message || 'Erreur lors du téléchargement des photos');
+  } finally {
+    setUploadingPhoto(false);
+  }
+};
+
   // Charger tous les chauffeurs (admin seulement)
   useEffect(() => {
     if (currentUser && currentUser.role === 'admin') {
@@ -133,7 +197,25 @@ const MovementDetail = () => {
     }
   };
 
-  // Changer le statut du mouvement
+  // Démarrer la préparation du mouvement (première étape)
+  const handlePrepareMovement = async () => {
+    try {
+      setUpdateLoading(true);
+      
+      await movementService.prepareMovement(id);
+      await loadMovement();
+      
+      setUpdateSuccess('Préparation du mouvement démarrée');
+      setTimeout(() => setUpdateSuccess(null), 3000);
+    } catch (err) {
+      console.error('Erreur lors du démarrage de la préparation:', err);
+      setError(err.response?.data?.message || 'Erreur lors du démarrage de la préparation');
+    } finally {
+      setUpdateLoading(false);
+    }
+  };
+
+  // Démarrer le trajet (deuxième étape, après la préparation)
   const handleStartMovement = async () => {
     try {
       setUpdateLoading(true);
@@ -262,7 +344,7 @@ const MovementDetail = () => {
     // Les admins peuvent toujours éditer
     if (currentUser.role === 'admin') return true;
     
-    // Les chauffeurs peuvent éditer uniquement s'ils sont assignés et si le mouvement est en cours
+    // Les chauffeurs peuvent éditer uniquement s'ils sont assignés
     if (currentUser.role === 'driver' && 
         movement.userId && 
         movement.userId._id === currentUser._id) {
@@ -369,6 +451,7 @@ const MovementDetail = () => {
               <span className={`status-badge status-${movement.status}`}>
                 {movement.status === 'pending' && 'En attente'}
                 {movement.status === 'assigned' && 'Assigné'}
+                {movement.status === 'preparing' && 'En préparation'}
                 {movement.status === 'in-progress' && 'En cours'}
                 {movement.status === 'completed' && 'Terminé'}
                 {movement.status === 'cancelled' && 'Annulé'}
@@ -518,8 +601,8 @@ const MovementDetail = () => {
             </div>
           </div>
           
-          {/* Section pour l'upload de photos guidé - Visible uniquement pour le chauffeur assigné et en cours */}
-          {canEditMovement() && movement.status === 'in-progress' && (
+          {/* Section pour l'upload de photos guidé - Visible uniquement pour le chauffeur assigné et en préparation */}
+          {canEditMovement() && (movement.status === 'preparing') && (
             <div className="detail-section photo-upload-section">
               <h2 className="section-title">
                 <i className="fas fa-camera"></i> Photos du véhicule
@@ -527,7 +610,7 @@ const MovementDetail = () => {
               
               <div className="photo-guidelines">
                 <p className="guidelines-intro">
-                  Pour compléter ce mouvement, veuillez prendre les photos suivantes du véhicule:
+                  Pour continuer ce mouvement, vous devez prendre les photos suivantes du véhicule:
                 </p>
                 
                 <div className="photo-checklist">
@@ -570,54 +653,97 @@ const MovementDetail = () => {
                 </div>
               </div>
               
-              <form onSubmit={handleUploadPhoto} className="photo-upload-form">
-                <div className="form-group">
-                  <label htmlFor="photoType" className="form-label">Type de photo</label>
-                  <select 
-                    id="photoType" 
-                    value={photoType} 
-                    onChange={(e) => setPhotoType(e.target.value)}
-                    className="form-select"
-                  >
-                    <option value="front" disabled={photosStatus.front}>Face avant (avec plaque)</option>
-                    <option value="passenger" disabled={photosStatus.passenger}>Côté passager</option>
-                    <option value="driver" disabled={photosStatus.driver}>Côté conducteur</option>
-                    <option value="rear" disabled={photosStatus.rear}>Face arrière</option>
-                    <option value="windshield" disabled={photosStatus.windshield}>Pare-brise</option>
-                    <option value="roof" disabled={photosStatus.roof}>Toit</option>
-                    <option value="damage">Dommages (si présents)</option>
-                    <option value="other">Autre photo</option>
-                  </select>
+              <div className="multi-upload-section">
+                <h3 className="subsection-title">Charger toutes les photos</h3>
+                
+                <div className="upload-instructions">
+                  <p>Pour gagner du temps, vous pouvez charger toutes les photos à la fois :</p>
+                  <ol>
+                    <li>Prenez les 6 photos requises dans cet ordre : <strong>face avant, côté passager, côté conducteur, face arrière, pare-brise, toit</strong></li>
+                    <li>Sélectionnez toutes les photos dans le sélecteur ci-dessous</li>
+                    <li>Cliquez sur "Charger les photos"</li>
+                  </ol>
                 </div>
                 
-                <div className="form-group">
-                  <label htmlFor="photo-upload" className="form-label">Sélectionner une photo</label>
+                <div className="upload-form">
                   <input 
                     type="file" 
-                    id="photo-upload" 
+                    id="multi-photos" 
                     accept="image/*" 
-                    onChange={handleFileChange}
+                    onChange={(e) => handleMultipleFilesChange(e)}
                     className="form-input"
+                    multiple
                   />
+                  <button 
+                    onClick={handleMultipleUpload}
+                    className="btn btn-primary"
+                    disabled={uploadingPhoto || selectedFiles.length === 0}
+                  >
+                    {uploadingPhoto ? 'Chargement en cours...' : 'Charger les photos'}
+                  </button>
                 </div>
                 
-                <button 
-                  type="submit"
-                  className="btn btn-primary"
-                  disabled={!selectedFile || uploadingPhoto}
-                >
-                  {uploadingPhoto ? 'Envoi en cours...' : 'Télécharger la photo'}
-                </button>
-              </form>
-              
-              {allRequiredPhotosTaken() && (
-                <div className="photo-confirmation">
-                  <div className="confirmation-message">
-                    <i className="fas fa-check-circle"></i>
-                    <span>Toutes les photos requises ont été prises !</span>
-                  </div>
+                <div className="upload-status">
+                  {selectedFiles.length > 0 && (
+                    <p>{selectedFiles.length} photo(s) sélectionnée(s)</p>
+                  )}
                 </div>
-              )}
+                
+                <div className="divider">
+                  <span>OU</span>
+                </div>
+                
+                <h3 className="subsection-title">Charger une photo spécifique</h3>
+                
+                <form onSubmit={handleUploadPhoto} className="photo-upload-form">
+                  <div className="form-group">
+                    <label htmlFor="photoType" className="form-label">Type de photo</label>
+                    <select 
+                      id="photoType" 
+                      value={photoType} 
+                      onChange={(e) => setPhotoType(e.target.value)}
+                      className="form-select"
+                    >
+                      <option value="front" disabled={photosStatus.front}>Face avant (avec plaque)</option>
+                      <option value="passenger" disabled={photosStatus.passenger}>Côté passager</option>
+                      <option value="driver" disabled={photosStatus.driver}>Côté conducteur</option>
+                      <option value="rear" disabled={photosStatus.rear}>Face arrière</option>
+                      <option value="windshield" disabled={photosStatus.windshield}>Pare-brise</option>
+                      <option value="roof" disabled={photosStatus.roof}>Toit</option>
+                      <option value="damage">Dommages (si présents)</option>
+                      <option value="other">Autre photo</option>
+                    </select>
+                  </div>
+                  
+                  <div className="form-group">
+                    <label htmlFor="photo-upload" className="form-label">Sélectionner une photo</label>
+                    <input 
+                      type="file" 
+                      id="photo-upload" 
+                      accept="image/*" 
+                      onChange={handleFileChange}
+                      className="form-input"
+                    />
+                  </div>
+                  
+                  <button 
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={!selectedFile || uploadingPhoto}
+                  >
+                    {uploadingPhoto ? 'Envoi en cours...' : 'Télécharger la photo'}
+                  </button>
+                </form>
+                
+                {allRequiredPhotosTaken() && (
+                  <div className="photo-confirmation">
+                    <div className="confirmation-message">
+                      <i className="fas fa-check-circle"></i>
+                      <span>Toutes les photos requises ont été prises !</span>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
           
@@ -704,30 +830,44 @@ const MovementDetail = () => {
               </button>
             )}
             
-            {/* Options pour démarrer (chauffeur assigné si pas démarré) */}
+            {/* Étape 1: Démarrer la préparation (chauffeur assigné) */}
             {movement.status === 'assigned' && 
-             movement.userId && 
-             currentUser.role === 'driver' && 
-             movement.userId._id === currentUser._id && (
+              movement.userId && 
+              currentUser.role === 'driver' && 
+              movement.userId._id === currentUser._id && (
               <button
-                onClick={handleStartMovement}
+                onClick={handlePrepareMovement}
                 className="btn btn-primary"
                 disabled={updateLoading}
               >
-                {updateLoading ? 'Démarrage...' : 'Démarrer le trajet'}
+                {updateLoading ? 'Démarrage...' : 'Préparer le véhicule'}
               </button>
             )}
             
-            {/* Options pour terminer (chauffeur assigné, si démarré et toutes les photos prises) */}
-            {movement.status === 'in-progress' && 
-             movement.userId && 
-             currentUser.role === 'driver' && 
-             movement.userId._id === currentUser._id && (
+            {/* Étape 2: Démarrer le trajet (après préparation et photos) */}
+            {movement.status === 'preparing' && 
+              movement.userId && 
+              currentUser.role === 'driver' && 
+              movement.userId._id === currentUser._id && (
               <button
-                onClick={handleCompleteMovement}
+                onClick={handleStartMovement}
                 className="btn btn-success"
                 disabled={updateLoading || !allRequiredPhotosTaken()}
                 title={!allRequiredPhotosTaken() ? "Toutes les photos requises doivent être prises" : ""}
+              >
+                {updateLoading ? 'Démarrage...' : 'En route'}
+              </button>
+            )}
+            
+            {/* Étape 3: Terminer le trajet */}
+            {movement.status === 'in-progress' && 
+              movement.userId && 
+              currentUser.role === 'driver' && 
+              movement.userId._id === currentUser._id && (
+              <button
+                onClick={handleCompleteMovement}
+                className="btn btn-success"
+                disabled={updateLoading}
               >
                 {updateLoading ? 'Finalisation...' : 'Terminer le trajet'}
               </button>

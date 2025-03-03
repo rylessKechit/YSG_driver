@@ -73,7 +73,7 @@ const movementSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['pending', 'assigned', 'in-progress', 'completed', 'cancelled'],
+    enum: ['pending', 'assigned', 'preparing', 'in-progress', 'completed', 'cancelled'],
     default: 'pending'
   },
   photos: [photoSchema],
