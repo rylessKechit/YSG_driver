@@ -8,6 +8,7 @@ const WeeklySchedule = () => {
   const [schedule, setSchedule] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [expandedDay, setExpandedDay] = useState(null);
   const { currentUser } = useAuth();
   
   const days = [
@@ -23,6 +24,11 @@ const WeeklySchedule = () => {
   // Déterminer la date du jour actuel et de la semaine
   const today = new Date();
   const currentDay = days[today.getDay() === 0 ? 6 : today.getDay() - 1].value;
+  
+  // Au chargement, définir le jour actuel comme jour étendu par défaut
+  useEffect(() => {
+    setExpandedDay(currentDay);
+  }, [currentDay]);
   
   // Calculer les dates de la semaine
   const getWeekDates = () => {
@@ -70,6 +76,15 @@ const WeeklySchedule = () => {
   const getEntryForDay = (day) => {
     return schedule.find(entry => entry.day === day);
   };
+  
+  // Gérer le clic sur un jour pour l'étendre/réduire
+  const toggleDayExpansion = (day) => {
+    if (expandedDay === day) {
+      setExpandedDay(null);
+    } else {
+      setExpandedDay(day);
+    }
+  };
 
   return (
     <div className="weekly-schedule-container">
@@ -89,58 +104,90 @@ const WeeklySchedule = () => {
           <p>Aucun planning défini pour cette semaine.</p>
         </div>
       ) : (
-        <div className="week-view">
-            {days.map(day => {
+        <div className="mobile-week-view">
+          {days.map(day => {
             const entry = getEntryForDay(day.value);
             const isToday = day.value === currentDay;
+            const isExpanded = expandedDay === day.value;
             const isRestDay = entry && entry.entryType === 'rest';
             
             return (
-                <div 
+              <div 
                 key={day.value} 
-                className={`day-card ${isToday ? 'today' : ''} ${entry ? 'has-schedule' : 'no-schedule'} ${isRestDay ? 'rest-day' : ''}`}
+                className={`mobile-day-card ${isToday ? 'today' : ''} ${entry ? 'has-schedule' : 'no-schedule'} ${isRestDay ? 'rest-day' : ''}`}
+              >
+                <div 
+                  className={`mobile-day-header ${isExpanded ? 'expanded' : ''}`}
+                  onClick={() => toggleDayExpansion(day.value)}
                 >
-                <div className="day-header">
-                    <div className="day-name">{day.label}</div>
-                    <div className="day-date">{weekDates[day.value]}</div>
+                  <div className="mobile-day-name">
+                    {day.label} <span className="mobile-day-date">{weekDates[day.value]}</span>
+                    {isToday && <span className="today-badge">Aujourd'hui</span>}
+                  </div>
+                  <div className="mobile-day-summary">
+                    {entry ? (
+                      isRestDay ? (
+                        <span className="rest-day-badge">
+                          <i className="fas fa-bed"></i> Repos
+                        </span>
+                      ) : (
+                        <span className="work-day-badge">
+                          <i className="fas fa-briefcase"></i> {entry.startTime}-{entry.endTime}
+                        </span>
+                      )
+                    ) : (
+                      <span className="no-schedule-badge">Non planifié</span>
+                    )}
+                    <i className={`fas fa-chevron-${isExpanded ? 'up' : 'down'}`}></i>
+                  </div>
                 </div>
                 
-                {entry ? (
-                    <div className="day-content">
+                {isExpanded && entry && (
+                  <div className="mobile-day-details">
                     {isRestDay ? (
-                        <div className="rest-day-info">
+                      <div className="rest-day-info">
                         <i className="fas fa-bed"></i>
                         <div className="rest-day-label">Jour de repos</div>
-                        </div>
+                      </div>
                     ) : (
-                        <>
-                        <div className="schedule-time">
-                            <i className="fas fa-clock"></i> {entry.startTime} - {entry.endTime}
+                      <>
+                        <div className="detail-item">
+                          <div className="detail-label">
+                            <i className="fas fa-clock"></i> Horaires:
+                          </div>
+                          <div className="detail-value">{entry.startTime} - {entry.endTime}</div>
                         </div>
                         
                         {entry.location && (
-                            <div className="schedule-location">
-                            <i className="fas fa-map-marker-alt"></i> {entry.location}
+                          <div className="detail-item">
+                            <div className="detail-label">
+                              <i className="fas fa-map-marker-alt"></i> Lieu:
                             </div>
+                            <div className="detail-value">{entry.location}</div>
+                          </div>
                         )}
                         
                         {entry.tasks && (
-                            <div className="schedule-tasks">
-                            <div className="tasks-label">Tâches:</div>
-                            <div className="tasks-content">{entry.tasks}</div>
+                          <div className="detail-item tasks-detail">
+                            <div className="detail-label">
+                              <i className="fas fa-tasks"></i> Tâches:
                             </div>
+                            <div className="detail-value">{entry.tasks}</div>
+                          </div>
                         )}
-                        </>
+                      </>
                     )}
-                    </div>
-                ) : (
-                    <div className="day-content empty">
-                    <p>Pas d'horaire défini</p>
-                    </div>
+                  </div>
                 )}
-                </div>
+                
+                {isExpanded && !entry && (
+                  <div className="mobile-day-details empty">
+                    <p>Pas d'horaire défini pour ce jour</p>
+                  </div>
+                )}
+              </div>
             );
-            })}
+          })}
         </div>
       )}
     </div>
