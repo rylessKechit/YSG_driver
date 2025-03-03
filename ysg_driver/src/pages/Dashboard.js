@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import timelogService from '../services/timelogService';
 import movementService from '../services/movementService';
 import Navigation from '../components/Navigation';
+import WeeklySchedule from '../components/WeeklySchedule';
 import '../styles/Dashboard.css';
 
 const Dashboard = () => {
@@ -88,6 +89,8 @@ const Dashboard = () => {
           <h1 className="greeting-title">Bonjour, {currentUser?.fullName || 'Chauffeur'}</h1>
           <p className="greeting-subtitle">{new Date().toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
         </div>
+
+        {currentUser.role === 'preparator' && <WeeklySchedule />}
         
         {error && (
           <div className="alert alert-error">
@@ -213,11 +216,11 @@ const Dashboard = () => {
                   </div>
                   <span className="action-title">Rapports</span>
                 </Link>
-                <Link to="/admin/movements/create" className="action-card">
+                <Link to="/schedules" className="action-card">
                   <div className="action-icon">
-                    <i className="fas fa-plus"></i>
+                    <i className="fas fa-calendar-week"></i>
                   </div>
-                  <span className="action-title">Créer un mouvement</span>
+                  <span className="action-title">Planning préparateurs</span>
                 </Link>
               </>
             ) : currentUser.role === 'team-leader' ? (

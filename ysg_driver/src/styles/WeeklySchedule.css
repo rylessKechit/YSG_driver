@@ -1,0 +1,188 @@
+/* src/styles/WeeklySchedule.css */
+.weekly-schedule-container {
+    background-color: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .schedule-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .schedule-title i {
+    color: #3b82f6;
+  }
+  
+  .schedule-error {
+    color: #ef4444;
+    padding: 1rem;
+    background-color: #fee2e2;
+    border-radius: 0.375rem;
+    text-align: center;
+  }
+  
+  .schedule-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1rem;
+    color: #6b7280;
+  }
+  
+  .small-spinner {
+    width: 1.25rem;
+    height: 1.25rem;
+    border: 2px solid rgba(0, 0, 0, 0.1);
+    border-radius: 50%;
+    border-top-color: #3b82f6;
+    animation: spin 1s ease-in-out infinite;
+  }
+  
+  .no-schedule {
+    text-align: center;
+    padding: 2rem 0;
+    color: #6b7280;
+  }
+  
+  .week-view {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1rem;
+    overflow-x: auto;
+  }
+  
+  .day-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 0.375rem;
+    overflow: hidden;
+  }
+  
+  .day-card.today {
+    border-color: #3b82f6;
+  }
+  
+  .day-card.has-schedule {
+    background-color: #f3f4f6;
+  }
+  
+  .day-header {
+    padding: 0.5rem;
+    background-color: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+    text-align: center;
+  }
+  
+  .day-card.today .day-header {
+    background-color: #3b82f6;
+    color: white;
+  }
+  
+  .day-name {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+  }
+  
+  .day-date {
+    font-size: 0.75rem;
+    color: #6b7280;
+  }
+  
+  .day-card.today .day-date {
+    color: rgba(255, 255, 255, 0.8);
+  }
+  
+  .day-content {
+    padding: 0.75rem;
+    min-height: 100px;
+  }
+  
+  .day-content.empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #9ca3af;
+    font-style: italic;
+  }
+  
+  .schedule-time {
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+  }
+  
+  .schedule-location {
+    font-size: 0.875rem;
+    color: #4b5563;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+  }
+  
+  .schedule-tasks {
+    margin-top: 0.75rem;
+    border-top: 1px solid #e5e7eb;
+    padding-top: 0.75rem;
+  }
+  
+  .tasks-label {
+    font-weight: 500;
+    font-size: 0.875rem;
+    margin-bottom: 0.25rem;
+  }
+  
+  .tasks-content {
+    font-size: 0.875rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  /* Style pour les jours de repos */
+.day-card.rest-day {
+  background-color: #fef2f2;
+  border-color: #fca5a5;
+}
+
+.rest-day-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #b91c1c;
+  height: 100%;
+  text-align: center;
+  padding: 1rem;
+}
+
+.rest-day-info i {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.rest-day-label {
+  font-weight: 600;
+}
+  
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  
+  /* Responsive */
+  @media (min-width: 768px) {
+    .week-view {
+      grid-template-columns: repeat(7, 1fr);
+    }
+  }

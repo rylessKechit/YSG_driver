@@ -32,5 +32,11 @@ export const ENDPOINTS = {
   REPORTS: {
     MOVEMENTS: '/reports/movements',
     PREPARATIONS: '/reports/preparations'
+  },
+  SCHEDULES: {
+    BASE: '/schedules',
+    USER: (userId) => `/schedules/user/${userId}`,
+    ALL: '/schedules/all',
+    PREPARATORS: '/schedules/preparators'
   }
 };

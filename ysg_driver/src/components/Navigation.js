@@ -85,6 +85,11 @@ const Navigation = () => {
           visible: true
         },
         {
+          name: 'Planning préparateurs',
+          path: '/schedules',
+          visible: true
+        },
+        {
           name: 'Administration',
           path: '/admin',
           visible: true
@@ -141,7 +146,12 @@ const Navigation = () => {
           name: 'Rapports',
           path: '/reports',
           visible: true
-        }
+        },
+        {
+          name: 'Planning préparateurs',
+          path: '/schedules',
+          visible: true
+        },
       ]
     };
     

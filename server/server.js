@@ -11,6 +11,7 @@ const movementRoutes = require('./routes/movement.routes');
 const preparationRoutes = require('./routes/preparation.routes');
 const reportRoutes = require('./routes/report.routes');
 const { verifyToken } = require('./middleware/auth.middleware');
+const scheduleRoutes = require('./routes/schedule.routes');
 
 // Configuration des variables d'environnement
 dotenv.config();
@@ -37,6 +38,7 @@ app.use('/api/timelogs', verifyToken, timelogRoutes);
 app.use('/api/movements', verifyToken, movementRoutes);
 app.use('/api/preparations', verifyToken, preparationRoutes);
 app.use('/api/reports', verifyToken, reportRoutes);
+app.use('/api/schedules', verifyToken, scheduleRoutes);
 
 // Route de test
 app.get('/', (req, res) => {

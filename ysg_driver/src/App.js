@@ -24,6 +24,8 @@ import PreparationDetail from './pages/PreparationDetail';
 import PreparationCreate from './pages/PreparationCreate';
 import Reports from './pages/Reports';
 
+import ScheduleManager from './pages/ScheduleManager';
+
 // Composant de route protégée
 const ProtectedRoute = ({ children, requiredRoles = [] }) => {
   const { isAuthenticated, loading, currentUser } = useAuth();
@@ -161,6 +163,14 @@ const AppContent = () => {
           element={
             <ProtectedRoute requiredRoles={['admin', 'direction']}>
               <Reports />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/schedules" 
+          element={
+            <ProtectedRoute requiredRoles={['admin', 'direction']}>
+              <ScheduleManager />
             </ProtectedRoute>
           } 
         />
