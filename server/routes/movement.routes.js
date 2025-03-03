@@ -446,7 +446,7 @@ router.post('/:id/photos', verifyToken, upload.array('photos', 5), async (req, r
     }
     
     // Vérifier que le mouvement est en cours
-    if (movement.status !== 'in-progress') {
+    if (movement.status !== 'preparing') {
       return res.status(400).json({
         message: 'Vous ne pouvez ajouter des photos qu\'à un mouvement en cours'
       });
