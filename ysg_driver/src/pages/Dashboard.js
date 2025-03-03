@@ -96,7 +96,7 @@ const Dashboard = () => {
           </div>
         )}
         
-        {(currentUser.role === 'driver' || currentUser.role === 'preparator') && (
+        {(currentUser.role === 'driver' || currentUser.role === 'preparator' || currentUser.role === 'team-leader') && (
           <div className="status-card">
             <div className="status-header">
               <h2 className="status-title">Statut de service</h2>
@@ -195,17 +195,17 @@ const Dashboard = () => {
             {currentUser.role === 'admin' ? (
               // Actions admin
               <>
-                <Link to="/admin/movements/create" className="action-card">
+                <Link to="/movement/history" className="action-card">
                   <div className="action-icon">
-                    <i className="fas fa-plus"></i>
+                    <i className="fas fa-history"></i>
                   </div>
-                  <span className="action-title">Créer un mouvement</span>
+                  <span className="action-title">Historique des mouvements</span>
                 </Link>
-                <Link to="/admin/movements" className="action-card">
+                <Link to="/preparations" className="action-card">
                   <div className="action-icon">
-                    <i className="fas fa-list"></i>
+                    <i className="fas fa-tools"></i>
                   </div>
-                  <span className="action-title">Tous les mouvements</span>
+                  <span className="action-title">Historique des préparations</span>
                 </Link>
                 <Link to="/reports" className="action-card">
                   <div className="action-icon">
@@ -213,16 +213,72 @@ const Dashboard = () => {
                   </div>
                   <span className="action-title">Rapports</span>
                 </Link>
-                <Link to="/admin" className="action-card">
+                <Link to="/admin/movements/create" className="action-card">
                   <div className="action-icon">
-                    <i className="fas fa-cog"></i>
+                    <i className="fas fa-plus"></i>
                   </div>
-                  <span className="action-title">Administration</span>
+                  <span className="action-title">Créer un mouvement</span>
+                </Link>
+              </>
+            ) : currentUser.role === 'team-leader' ? (
+              // Actions chef d'équipe
+              <>
+                <Link to="/admin/movements/create" className="action-card">
+                  <div className="action-icon">
+                    <i className="fas fa-plus-circle"></i>
+                  </div>
+                  <span className="action-title">Créer un mouvement</span>
+                </Link>
+                <Link to="/preparations/create" className="action-card">
+                  <div className="action-icon">
+                    <i className="fas fa-tools"></i>
+                  </div>
+                  <span className="action-title">Créer une préparation</span>
+                </Link>
+                <Link to="/movement/history" className="action-card">
+                  <div className="action-icon">
+                    <i className="fas fa-history"></i>
+                  </div>
+                  <span className="action-title">Historique</span>
+                </Link>
+                <Link to="/profile" className="action-card">
+                  <div className="action-icon">
+                    <i className="fas fa-user"></i>
+                  </div>
+                  <span className="action-title">Mon profil</span>
+                </Link>
+              </>
+            ) : currentUser.role === 'preparator' ? (
+              // Actions préparateur
+              <>
+                <Link to="/preparations/create" className="action-card">
+                  <div className="action-icon">
+                    <i className="fas fa-plus-circle"></i>
+                  </div>
+                  <span className="action-title">Créer une préparation</span>
+                </Link>
+                <Link to="/preparations" className="action-card">
+                  <div className="action-icon">
+                    <i className="fas fa-clipboard-list"></i>
+                  </div>
+                  <span className="action-title">Historique des préparations</span>
+                </Link>
+                <Link to="/profile" className="action-card">
+                  <div className="action-icon">
+                    <i className="fas fa-user"></i>
+                  </div>
+                  <span className="action-title">Mon profil</span>
                 </Link>
               </>
             ) : (
-              // Actions chauffeur
+              // Actions chauffeur (par défaut)
               <>
+                <Link to="/preparations/create" className="action-card">
+                  <div className="action-icon">
+                    <i className="fas fa-plus-circle"></i>
+                  </div>
+                  <span className="action-title">Créer une préparation</span>
+                </Link>
                 <Link to="/movement/history" className="action-card">
                   <div className="action-icon">
                     <i className="fas fa-history"></i>

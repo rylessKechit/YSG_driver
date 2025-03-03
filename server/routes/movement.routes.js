@@ -4,7 +4,7 @@ const router = express.Router();
 const Movement = require('../models/movement.model');
 const TimeLog = require('../models/timelog.model');
 const User = require('../models/user.model');
-const { verifyToken, isAdmin } = require('../middleware/auth.middleware');
+const { verifyToken, canCreateMovement, canAssignMovement } = require('../middleware/auth.middleware');
 const upload = require('../middleware/upload.middleware');
 const path = require('path');
 
@@ -19,7 +19,7 @@ const checkDriverActiveTimeLog = async (driverId) => {
 
 // Créer un nouveau mouvement (réservé aux admins)
 // Modifier la route de création du mouvement (POST /)
-router.post('/', verifyToken, isAdmin, async (req, res) => {
+router.post('/', verifyToken, canCreateMovement, async (req, res) => {
   try {
     const {
       userId, // ID du chauffeur à qui le mouvement sera assigné (optionnel maintenant)
@@ -96,10 +96,10 @@ router.post('/', verifyToken, isAdmin, async (req, res) => {
   }
 });
 
-router.get('/all-drivers', verifyToken, isAdmin, async (req, res) => {
+router.get('/all-drivers', verifyToken, canAssignMovement, async (req, res) => {
   try {
     // Trouver tous les utilisateurs avec le rôle "driver"
-    const drivers = await User.find({ role: 'driver' })
+    const drivers = await User.find({ role: ['driver', 'team-leader'] })
       .select('_id username fullName email phone');
     
     // Récupérer tous les pointages actifs pour déterminer quels chauffeurs sont en service
@@ -234,7 +234,7 @@ router.post('/:id/start', verifyToken, async (req, res) => {
 });
 
 // Ajouter une route pour assigner un chauffeur à un mouvement existant
-router.post('/:id/assign', verifyToken, isAdmin, async (req, res) => {
+router.post('/:id/assign', verifyToken, canAssignMovement, async (req, res) => {
   try {
     const { userId } = req.body;
     
@@ -289,7 +289,7 @@ router.post('/:id/assign', verifyToken, isAdmin, async (req, res) => {
 });
 
 // Récupérer les chauffeurs en service (pour les admins)
-router.get('/drivers-on-duty', verifyToken, isAdmin, async (req, res) => {
+router.get('/drivers-on-duty', verifyToken, canCreateMovement, async (req, res) => {
   try {
     // Trouver tous les chauffeurs en service actif
     const activeLogs = await TimeLog.find({
@@ -401,7 +401,7 @@ router.post('/:id/complete', verifyToken, async (req, res) => {
 });
 
 // Supprimer un mouvement (admin seulement, si non démarré)
-router.delete('/:id', verifyToken, isAdmin, async (req, res) => {
+router.delete('/:id', verifyToken, canAssignMovement, async (req, res) => {
   try {
     const movement = await Movement.findById(req.params.id);
     
@@ -491,7 +491,7 @@ router.post('/:id/photos', verifyToken, upload.array('photos', 5), async (req, r
 });
 
 // Annuler un mouvement (réservé aux admins)
-router.post('/:id/cancel', verifyToken, isAdmin, async (req, res) => {
+router.post('/:id/cancel', verifyToken, canCreateMovement, async (req, res) => {
   try {
     const movement = await Movement.findById(req.params.id);
     
@@ -521,7 +521,7 @@ router.post('/:id/cancel', verifyToken, isAdmin, async (req, res) => {
 });
 
 // Réassigner un mouvement à un autre chauffeur (réservé aux admins)
-router.post('/:id/reassign', verifyToken, isAdmin, async (req, res) => {
+router.post('/:id/reassign', verifyToken, canCreateMovement, async (req, res) => {
   try {
     const { userId } = req.body;
     
@@ -619,33 +619,6 @@ router.get('/', verifyToken, async (req, res) => {
   }
 });
 
-// Obtenir un mouvement spécifique
-router.get('/:id', verifyToken, async (req, res) => {
-  try {
-    const query = { _id: req.params.id };
-    
-    // Si c'est un chauffeur, vérifier que le mouvement lui est assigné
-    if (req.user.role === 'driver') {
-      query.userId = req.user._id;
-    }
-    
-    const movement = await Movement.findOne(query)
-      .populate('userId', 'username fullName')
-      .populate('assignedBy', 'username fullName');
-    
-    if (!movement) {
-      return res.status(404).json({
-        message: 'Mouvement non trouvé'
-      });
-    }
-    
-    res.json(movement);
-  } catch (error) {
-    console.error('Erreur lors de la récupération du mouvement:', error);
-    res.status(500).json({ message: 'Erreur serveur' });
-  }
-});
-
 // Rechercher des mouvements par plaque d'immatriculation
 router.get('/search', verifyToken, async (req, res) => {
   try {
@@ -675,6 +648,33 @@ router.get('/search', verifyToken, async (req, res) => {
     });
   } catch (error) {
     console.error('Erreur lors de la recherche de mouvements:', error);
+    res.status(500).json({ message: 'Erreur serveur' });
+  }
+});
+
+// Obtenir un mouvement spécifique
+router.get('/:id', verifyToken, async (req, res) => {
+  try {
+    const query = { _id: req.params.id };
+    
+    // Si c'est un chauffeur, vérifier que le mouvement lui est assigné
+    if (req.user.role === 'driver') {
+      query.userId = req.user._id;
+    }
+    
+    const movement = await Movement.findOne(query)
+      .populate('userId', 'username fullName')
+      .populate('assignedBy', 'username fullName');
+    
+    if (!movement) {
+      return res.status(404).json({
+        message: 'Mouvement non trouvé'
+      });
+    }
+    
+    res.json(movement);
+  } catch (error) {
+    console.error('Erreur lors de la récupération du mouvement:', error);
     res.status(500).json({ message: 'Erreur serveur' });
   }
 });

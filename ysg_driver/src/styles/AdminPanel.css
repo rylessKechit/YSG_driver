@@ -173,3 +173,8 @@
   background-color: #fef3c7;
   color: #d97706;
 }
+
+.team-leader-role {
+  background-color: #fce7f3; /* Fond rose clair */
+  color: #db2777;           /* Texte rose foncé */
+}

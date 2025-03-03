@@ -4,7 +4,7 @@ const router = express.Router();
 const Preparation = require('../models/preparation.model');
 const TimeLog = require('../models/timelog.model');
 const User = require('../models/user.model');
-const { verifyToken, isAdmin, isPreparator } = require('../middleware/auth.middleware');
+const { verifyToken, isAdmin, canCreatePreparation } = require('../middleware/auth.middleware');
 const upload = require('../middleware/upload.middleware');
 
 // Middleware pour vérifier si un préparateur a un service actif
@@ -17,15 +17,8 @@ const checkPreparatorActiveTimeLog = async (preparatorId) => {
 };
 
 // Créer une nouvelle préparation
-router.post('/', verifyToken, async (req, res) => {
+router.post('/', verifyToken, canCreatePreparation, async (req, res) => {
   try {
-    // Vérifier si l'utilisateur est admin ou préparateur
-    if (req.user.role !== 'admin' && req.user.role !== 'preparator') {
-      return res.status(403).json({
-        message: 'Vous n\'êtes pas autorisé à créer des préparations'
-      });
-    }
-
     const {
       licensePlate,
       vehicleModel,
@@ -41,7 +34,6 @@ router.post('/', verifyToken, async (req, res) => {
     
     // Déterminer l'utilisateur à qui assigner la préparation
     let userId = req.user._id;
-    let assignedBy = null;
     
     // Si c'est un admin qui crée et assigne à un préparateur
     if (req.user.role === 'admin' && req.body.userId) {
@@ -56,7 +48,6 @@ router.post('/', verifyToken, async (req, res) => {
       }
       
       userId = preparator._id;
-      assignedBy = req.user._id;
     }
 
     // Vérifier si le préparateur est en service
@@ -73,7 +64,6 @@ router.post('/', verifyToken, async (req, res) => {
     // Créer la préparation
     const preparation = new Preparation({
       userId, // Préparateur assigné
-      assignedBy,
       timeLogId,
       licensePlate,
       vehicleModel,
@@ -282,7 +272,6 @@ router.get('/', verifyToken, async (req, res) => {
       .skip(skip)
       .limit(parseInt(limit))
       .populate('userId', 'username fullName')
-      .populate('assignedBy', 'username fullName');
     
     const total = await Preparation.countDocuments(query);
     
@@ -305,7 +294,6 @@ router.get('/:id', verifyToken, async (req, res) => {
     
     const preparation = await Preparation.findById(id)
       .populate('userId', 'username fullName')
-      .populate('assignedBy', 'username fullName');
     
     if (!preparation) {
       return res.status(404).json({ message: 'Préparation non trouvée' });
@@ -342,7 +330,6 @@ router.get('/search/plate', verifyToken, async (req, res) => {
     const preparations = await Preparation.find(query)
       .sort({ createdAt: -1 })
       .populate('userId', 'username fullName')
-      .populate('assignedBy', 'username fullName');
     
     res.json({
       preparations,

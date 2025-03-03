@@ -97,7 +97,7 @@ const AppContent = () => {
         <Route 
           path="/movement/history" 
           element={
-            <ProtectedRoute requiredRoles={['admin', 'driver']}>
+            <ProtectedRoute requiredRoles={['admin', 'driver', 'team-leader']}>
               <MovementHistory />
             </ProtectedRoute>
           } 
@@ -105,7 +105,7 @@ const AppContent = () => {
         <Route 
           path="/movement/:id" 
           element={
-            <ProtectedRoute requiredRoles={['admin', 'driver']}>
+            <ProtectedRoute requiredRoles={['admin', 'driver', 'team-leader']}>
               <MovementDetail />
             </ProtectedRoute>
           } 
@@ -115,7 +115,7 @@ const AppContent = () => {
         <Route 
           path="/preparations" 
           element={
-            <ProtectedRoute requiredRoles={['admin', 'preparator']}>
+            <ProtectedRoute requiredRoles={['admin', 'preparator', 'driver', 'team-leader']}>
               <PreparationList />
             </ProtectedRoute>
           } 
@@ -123,7 +123,7 @@ const AppContent = () => {
         <Route 
           path="/preparations/:id" 
           element={
-            <ProtectedRoute requiredRoles={['admin', 'preparator']}>
+            <ProtectedRoute requiredRoles={['admin', 'preparator', 'driver', 'team-leader']}>
               <PreparationDetail />
             </ProtectedRoute>
           } 
@@ -131,7 +131,7 @@ const AppContent = () => {
         <Route 
           path="/preparations/create" 
           element={
-            <ProtectedRoute requiredRoles={['admin', 'preparator']}>
+            <ProtectedRoute requiredRoles={['admin', 'preparator', 'driver', 'team-leader']}>
               <PreparationCreate />
             </ProtectedRoute>
           } 
@@ -149,7 +149,7 @@ const AppContent = () => {
         <Route 
           path="/admin/movements/create" 
           element={
-            <ProtectedRoute requiredRoles={['admin']}>
+            <ProtectedRoute requiredRoles={['admin', 'team-leader']}>
               <AdminMovementCreate />
             </ProtectedRoute>
           } 

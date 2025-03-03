@@ -90,10 +90,37 @@ const Navigation = () => {
           visible: true
         }
       ],
+      'team-leader': [
+        {
+          name: 'Nouveau mouvement',
+          path: '/admin/movements/create',
+          visible: true
+        },
+        {
+          name: 'Mouvements',
+          path: '/movement/history',
+          visible: true
+        },
+        {
+          name: 'Préparations',
+          path: '/preparations',
+          visible: true
+        },
+        {
+          name: 'Nouvelle préparation',
+          path: '/preparations/create',
+          visible: true
+        }
+      ],
       driver: [
         {
           name: 'Mouvements',
           path: '/movement/history',
+          visible: true
+        },
+        {
+          name: 'Nouvelle préparation',
+          path: '/preparations/create',
           visible: true
         }
       ],

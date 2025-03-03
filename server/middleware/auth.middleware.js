@@ -84,3 +84,48 @@ exports.canAccessReports = (req, res, next) => {
     res.status(403).json({ message: 'Accès refusé. Droits insuffisants pour accéder aux rapports.' });
   }
 };
+
+exports.isTeamLeader = (req, res, next) => {
+  if (req.user && req.user.role === 'team-leader') {
+    next();
+  } else {
+    res.status(403).json({ message: 'Accès refusé. Rôle chef d\'équipe requis.' });
+  }
+};
+
+// Middleware pour vérifier si l'utilisateur peut créer un mouvement (admin ou chef d'équipe)
+exports.canCreateMovement = (req, res, next) => {
+  if (req.user && (req.user.role === 'admin' || req.user.role === 'team-leader')) {
+    next();
+  } else {
+    res.status(403).json({ message: 'Accès refusé. Droits insuffisants pour créer un mouvement.' });
+  }
+};
+
+// Middleware pour vérifier si l'utilisateur peut assigner un mouvement (admin ou chef d'équipe)
+exports.canAssignMovement = (req, res, next) => {
+  if (req.user && (req.user.role === 'admin' || req.user.role === 'team-leader')) {
+    next();
+  } else {
+    res.status(403).json({ message: 'Accès refusé. Droits insuffisants pour assigner un mouvement.' });
+  }
+};
+
+// Middleware pour vérifier si l'utilisateur est chauffeur ou chef d'équipe
+exports.isDriverOrTeamLeader = (req, res, next) => {
+  if (req.user && (req.user.role === 'driver' || req.user.role === 'team-leader')) {
+    next();
+  } else {
+    res.status(403).json({ message: 'Accès refusé. Rôle chauffeur ou chef d\'équipe requis.' });
+  }
+};
+
+// Middleware pour vérifier si l'utilisateur peut créer une préparation
+exports.canCreatePreparation = (req, res, next) => {
+  if (req.user && (req.user.role === 'admin' || req.user.role === 'preparator' || 
+                   req.user.role === 'driver' || req.user.role === 'team-leader')) {
+    next();
+  } else {
+    res.status(403).json({ message: 'Accès refusé. Vous n\'êtes pas autorisé à créer des préparations.' });
+  }
+};

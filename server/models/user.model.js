@@ -31,7 +31,7 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['driver', 'admin', 'preparator', 'direction'], // Mise à jour pour inclure tous les rôles
+    enum: ['driver', 'admin', 'preparator', 'direction', 'team-leader'], // Mise à jour pour inclure tous les rôles
     default: 'driver'
   }
 }, {

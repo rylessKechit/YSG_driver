@@ -34,7 +34,7 @@ const AdminMovementCreate = () => {
 
   // Vérifier que l'utilisateur est admin
   useEffect(() => {
-    if (currentUser && currentUser.role !== 'admin') {
+    if (currentUser && currentUser.role !== 'admin' && currentUser.role !== 'team-leader') {
       navigate('/dashboard');
     }
   }, [currentUser, navigate]);
@@ -374,7 +374,7 @@ const AdminMovementCreate = () => {
                 <div className="form-actions">
                   <button 
                     type="button" 
-                    onClick={() => navigate('/admin/movements')}
+                    onClick={() => navigate('/movement/history')}
                     className="btn btn-secondary"
                   >
                     Annuler

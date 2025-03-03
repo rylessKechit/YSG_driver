@@ -293,6 +293,7 @@ const AdminPanel = () => {
                   >
                     <option value="driver">Chauffeur</option>
                     <option value="preparator">Préparateur</option>
+                    <option value="team-leader">Chef d'équipe</option>
                     <option value="direction">Direction</option>
                     <option value="admin">Administrateur</option>
                   </select>
@@ -349,11 +350,13 @@ const AdminPanel = () => {
                         user.role === 'admin' ? 'admin-role' : 
                         user.role === 'driver' ? 'driver-role' : 
                         user.role === 'preparator' ? 'preparator-role' : 
+                        user.role === 'team-leader' ? 'team-leader-role' : 
                         'direction-role'
                       }`}>
                         {user.role === 'admin' ? 'Admin' : 
                         user.role === 'driver' ? 'Chauffeur' : 
                         user.role === 'preparator' ? 'Préparateur' : 
+                        user.role === 'team-leader' ? 'Chef d\'équipe' : 
                         'Direction'}
                       </span>
                     </td>

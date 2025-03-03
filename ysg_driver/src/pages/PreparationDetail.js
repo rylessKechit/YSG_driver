@@ -274,12 +274,6 @@ const PreparationDetail = () => {
                 {preparation.userId ? preparation.userId.fullName : 'Non assigné'}
               </span>
             </div>
-            {preparation.assignedBy && (
-              <div className="info-item">
-                <span className="info-label">Assigné par:</span>
-                <span className="info-value">{preparation.assignedBy.fullName}</span>
-              </div>
-            )}
           </div>
           
           <div className="detail-section tasks-section">
