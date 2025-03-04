@@ -18,7 +18,7 @@ dotenv.config();
 
 // Initialisation de l'application Express
 const app = express();
-const PORT = 4000;
+const PORT = process.env.PORT;
 
 // Connexion à la base de données
 connectDB();

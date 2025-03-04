@@ -1,5 +1,6 @@
-export const API_URL = 'https://ysg-driver-backend.onrender.com/api';
-//export const API_URL = 'http://localhost:4000/api';
+export const API_URL = process.env.REACT_APP_API_URL;
+
+console.log(process.env.API_URL)
 
 // Configuration des endpoints de l'API
 export const ENDPOINTS = {
