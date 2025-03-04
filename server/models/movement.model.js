@@ -15,7 +15,7 @@ const photoSchema = new mongoose.Schema({
     enum: [
       'departure', 'arrival', 'damage', 'other',
       // Nouveaux types de photos
-      'front', 'passenger', 'driver', 'rear', 'windshield', 'roof'
+      'front', 'passenger', 'driver', 'rear', 'windshield', 'roof', 'meter'
     ],
     default: 'other'
   }

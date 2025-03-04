@@ -174,7 +174,7 @@ const Navigation = () => {
             className="nav-logo" 
             onClick={() => goTo('/dashboard')}
           >
-            GestionChauffeurs
+            YSG
           </div>
           
           {/* Hamburger button (visible only on mobile) */}

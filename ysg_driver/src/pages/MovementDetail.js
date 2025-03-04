@@ -26,7 +26,8 @@ const MovementDetail = () => {
     driver: false,  // Côté conducteur
     rear: false,    // Face arrière
     windshield: false, // Pare-brise
-    roof: false     // Toit
+    roof: false,     // Toit
+    meter: false    // Compteur kilométrique
   });
   const [success, setSuccess] = useState(null);
 
@@ -37,7 +38,8 @@ const [selectedPhotoFiles, setSelectedPhotoFiles] = useState({
   driver: null,
   rear: null,
   windshield: null,
-  roof: null
+  roof: null,
+  meter: null
 });
   
   const { currentUser } = useAuth();
@@ -423,6 +425,7 @@ const handleMultipleUpload = async () => {
       case 'rear': return 'Face arrière';
       case 'windshield': return 'Pare-brise';
       case 'roof': return 'Toit';
+      case 'meter': return 'Compteur';
       case 'departure': return 'Départ';
       case 'arrival': return 'Arrivée';
       case 'damage': return 'Dommage';
@@ -1110,9 +1113,76 @@ const handleMultipleUpload = async () => {
                   </div>
                 )}
               </div>
+              
+              {/* NOUVEL ITEM 7: Compteur */}
+              <div className="photo-accordion-item">
+                <div className={`photo-accordion-header ${photosStatus.meter ? 'completed' : ''}`} onClick={() => togglePhotoSection('meter')}>
+                  <div className="photo-section-title">
+                    <span className="status-icon">
+                      {photosStatus.meter ? <i className="fas fa-check-circle"></i> : <i className="fas fa-circle"></i>}
+                    </span>
+                    <span>Compteur</span>
+                  </div>
+                  <div className="photo-section-actions">
+                    {photosStatus.meter ? (
+                      <span className="photo-status-text">Complété</span>
+                    ) : (
+                      <span className="photo-status-text">À photographier</span>
+                    )}
+                    <i className={`fas fa-chevron-${expandedPhotoSection === 'meter' ? 'up' : 'down'}`}></i>
+                  </div>
+                </div>
+                
+                {expandedPhotoSection === 'meter' && (
+                  <div className="photo-accordion-content">
+                    {photosStatus.meter ? (
+                      <div className="completed-photo">
+                        <img 
+                          src={getPhotoUrlByType('meter')} 
+                          alt="Compteur" 
+                          className="preview-image"
+                          onClick={() => openFullScreenImage(getPhotoUrlByType('meter'))} 
+                        />
+                        <button className="btn btn-secondary photo-replace-btn" onClick={() => handleResetPhotoStatus('meter')}>
+                          Remplacer la photo
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="photo-upload-container">
+                        <p className="photo-instruction">Prenez une photo du compteur kilométrique du véhicule. Assurez-vous que les chiffres soient bien lisibles.</p>
+                        <div className="file-upload-wrapper">
+                          <input 
+                            type="file" 
+                            accept="image/*"
+                            capture="environment"
+                            onChange={(e) => handlePhotoSelect(e, 'meter')}
+                            className="photo-input" 
+                          />
+                          {selectedPhotoFiles.meter && (
+                            <div className="photo-preview-wrapper">
+                              <img 
+                                src={URL.createObjectURL(selectedPhotoFiles.meter)} 
+                                alt="Prévisualisation" 
+                                className="preview-image"
+                              />
+                            </div>
+                          )}
+                          <button 
+                            className="btn btn-primary upload-photo-btn"
+                            disabled={!selectedPhotoFiles.meter || uploadingPhoto}
+                            onClick={() => handleUploadSinglePhoto('meter')}
+                          >
+                            {uploadingPhoto ? 'Chargement...' : 'Valider la photo'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
             
-            {/* Bouton de confirmation principal */}
+            {/* Section de statut des photos - Suppression du bouton "Commencer le trajet" */}
             <div className="photos-confirmation-section">
               {allRequiredPhotosTaken() ? (
                 <div className="photos-complete-message">
@@ -1126,13 +1196,7 @@ const handleMultipleUpload = async () => {
                 </div>
               )}
               
-              <button 
-                onClick={handleStartMovement}
-                className="btn btn-success btn-lg btn-block start-movement-btn"
-                disabled={!allRequiredPhotosTaken() || updateLoading}
-              >
-                {updateLoading ? 'Traitement en cours...' : 'Commencer le trajet'}
-              </button>
+              {/* Le bouton "Commencer le trajet" a été supprimé car redondant */}
             </div>
           </div>
         )}
