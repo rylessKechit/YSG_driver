@@ -721,6 +721,7 @@ const handleMultipleUpload = async () => {
                       type="file" 
                       id="photo-upload" 
                       accept="image/*" 
+                      capture="environment"
                       onChange={handleFileChange}
                       className="form-input"
                     />

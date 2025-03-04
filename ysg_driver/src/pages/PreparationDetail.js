@@ -543,6 +543,7 @@ const PreparationDetail = () => {
                               <input 
                                 type="file"
                                 accept="image/*"
+                                capture="environment"
                                 onChange={handlePhotoBeforeChange}
                                 className="form-input"
                               />
@@ -589,6 +590,7 @@ const PreparationDetail = () => {
                               <input 
                                 type="file"
                                 accept="image/*"
+                                capture="environment"
                                 onChange={handlePhotoAfterChange}
                                 className="form-input"
                               />
@@ -634,6 +636,7 @@ const PreparationDetail = () => {
                               <input 
                                 type="file"
                                 accept="image/*"
+                                capture="environment"
                                 onChange={handleAdditionalPhotoChange}
                                 className="form-input"
                               />
@@ -793,6 +796,7 @@ const PreparationDetail = () => {
                               <input 
                                 type="file"
                                 accept="image/*"
+                                capture="environment"
                                 onChange={handlePhotoBeforeChange}
                                 className="form-input"
                               />
@@ -839,6 +843,7 @@ const PreparationDetail = () => {
                               <input 
                                 type="file"
                                 accept="image/*"
+                                capture="environment"
                                 onChange={handlePhotoAfterChange}
                                 className="form-input"
                               />
@@ -884,6 +889,7 @@ const PreparationDetail = () => {
                               <input 
                                 type="file"
                                 accept="image/*"
+                                capture="environment"
                                 onChange={handleAdditionalPhotoChange}
                                 className="form-input"
                               />
@@ -1049,6 +1055,7 @@ const PreparationDetail = () => {
                               <input 
                                 type="file"
                                 accept="image/*"
+                                capture="environment"
                                 onChange={handlePhotoBeforeChange}
                                 className="form-input"
                               />
@@ -1095,6 +1102,7 @@ const PreparationDetail = () => {
                               <input 
                                 type="file"
                                 accept="image/*"
+                                capture="environment"
                                 onChange={handlePhotoAfterChange}
                                 className="form-input"
                               />
@@ -1154,6 +1162,7 @@ const PreparationDetail = () => {
                               <input 
                                 type="file"
                                 accept="image/*"
+                                capture="environment"
                                 onChange={handleAdditionalPhotoChange}
                                 className="form-input"
                               />
@@ -1325,6 +1334,7 @@ const PreparationDetail = () => {
                               <input 
                                 type="file"
                                 accept="image/*"
+                                capture="environment"
                                 onChange={handlePhotoBeforeChange}
                                 className="form-input"
                               />
@@ -1382,6 +1392,7 @@ const PreparationDetail = () => {
                               <input 
                                 type="file"
                                 accept="image/*"
+                                capture="environment"
                                 onChange={handlePhotoAfterChange}
                                 className="form-input"
                               />
@@ -1439,6 +1450,7 @@ const PreparationDetail = () => {
                               <input 
                                 type="file"
                                 accept="image/*"
+                                capture="environment"
                                 onChange={handleAdditionalPhotoChange}
                                 className="form-input"
                               />
