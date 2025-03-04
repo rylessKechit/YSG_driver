@@ -343,7 +343,6 @@ const AdminPanel = () => {
                   <tr key={user._id}>
                     <td>{user.username}</td>
                     <td>{user.fullName}</td>
-                    <td>{user.email}</td>
                     <td>{user.phone}</td>
                     <td>
                       <span className={`role-badge ${
