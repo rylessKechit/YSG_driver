@@ -462,7 +462,7 @@ router.post('/:id/photos', verifyToken, upload.array('photos', 5), async (req, r
     }
     
     // Type de photo (valider les types autorisés)
-    const allowedTypes = ['front', 'passenger', 'driver', 'rear', 'windshield', 'roof', 'departure', 'arrival', 'damage', 'other'];
+    const allowedTypes = ['front', 'passenger', 'driver', 'rear', 'windshield', 'roof', 'meter', 'departure', 'arrival', 'damage', 'other'];
     const { type = 'other' } = req.body;
     
     if (!allowedTypes.includes(type)) {
