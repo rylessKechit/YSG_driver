@@ -30,8 +30,6 @@ const PreparationDetail = () => {
   
   // États pour les données spécifiques aux tâches
   const [refuelingAmount, setRefuelingAmount] = useState('');
-  const [transferDeparture, setTransferDeparture] = useState('');
-  const [transferArrival, setTransferArrival] = useState('');
   
   const { currentUser } = useAuth();
   const navigate = useNavigate();
@@ -163,15 +161,6 @@ const PreparationDetail = () => {
         additionalData.amount = refuelingAmount;
       }
       
-      if (taskType === 'vehicleTransfer') {
-        if (transferDeparture) {
-          additionalData.departureLocation = transferDeparture;
-        }
-        if (transferArrival) {
-          additionalData.arrivalLocation = transferArrival;
-        }
-      }
-      
       await preparationService.completeTask(id, taskType, photoAfterFile, additionalData);
       
       setSuccess(`Tâche ${getTaskLabel(taskType)} terminée avec succès`);
@@ -181,8 +170,6 @@ const PreparationDetail = () => {
       setPhotoAfterPreview(null);
       setTaskNotes('');
       setRefuelingAmount('');
-      setTransferDeparture('');
-      setTransferArrival('');
       
       // Recharger la préparation pour afficher les changements
       await loadPreparation();
@@ -268,7 +255,6 @@ const PreparationDetail = () => {
       case 'exteriorWashing': return 'Lavage extérieur';
       case 'interiorCleaning': return 'Nettoyage intérieur';
       case 'refueling': return 'Mise de carburant';
-      case 'vehicleTransfer': return 'Transfert de véhicule';
       default: return 'Tâche inconnue';
     }
   };
@@ -1188,294 +1174,6 @@ const PreparationDetail = () => {
                               
                               <button 
                                 onClick={() => handleAddAdditionalPhoto('refueling')}
-                                className="btn btn-photo"
-                                disabled={!additionalPhotoFile || taskLoading}
-                              >
-                                {taskLoading ? 'Traitement...' : 'Ajouter la photo'}
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-              
-              {/* Transfert de véhicule */}
-              <div className="task-card">
-                <div 
-                  className={`task-header ${expandedTask === 'vehicleTransfer' ? 'expanded' : ''}`}
-                  onClick={() => toggleTaskExpansion('vehicleTransfer')}
-                >
-                  <h3 className="task-title">Transfert de véhicule</h3>
-                  <div className="task-header-info">
-                    <span className={`task-status ${preparation.tasks.vehicleTransfer.status}`}>
-                      {getTaskStatusLabel(preparation.tasks.vehicleTransfer.status)}
-                    </span>
-                    <i className={`fas fa-chevron-${expandedTask === 'vehicleTransfer' ? 'up' : 'down'}`}></i>
-                  </div>
-                </div>
-                
-                {expandedTask === 'vehicleTransfer' && (
-                  <div className="task-content">
-                    {preparation.tasks.vehicleTransfer.startedAt && (
-                      <div className="task-info">
-                        <i className="fas fa-clock"></i> Commencé: {formatDate(preparation.tasks.vehicleTransfer.startedAt)}
-                      </div>
-                    )}
-                    
-                    {preparation.tasks.vehicleTransfer.completedAt && (
-                      <div className="task-info">
-                        <i className="fas fa-check-circle"></i> Terminé: {formatDate(preparation.tasks.vehicleTransfer.completedAt)}
-                      </div>
-                    )}
-                    
-                    {preparation.tasks.vehicleTransfer.departureLocation && (
-                      <div className="task-info">
-                        <i className="fas fa-map-marker-alt"></i> Départ: {preparation.tasks.vehicleTransfer.departureLocation.name}
-                      </div>
-                    )}
-                    
-                    {preparation.tasks.vehicleTransfer.arrivalLocation && (
-                      <div className="task-info">
-                        <i className="fas fa-flag-checkered"></i> Arrivée: {preparation.tasks.vehicleTransfer.arrivalLocation.name}
-                      </div>
-                    )}
-                    
-                    {preparation.tasks.vehicleTransfer.notes && (
-                      <div className="task-notes">
-                        <strong>Notes:</strong> {preparation.tasks.vehicleTransfer.notes}
-                      </div>
-                    )}
-                    
-                    {/* Photos avant/après si complétées */}
-                    {(preparation.tasks.vehicleTransfer.photos?.before || preparation.tasks.vehicleTransfer.photos?.after) && (
-                      <div className="task-photos">
-                        {preparation.tasks.vehicleTransfer.photos.before && (
-                          <div className="photo-container">
-                            <div className="photo-header">Photo avant</div>
-                            <img 
-                              src={preparation.tasks.vehicleTransfer.photos.before.url} 
-                              alt="Lieu de départ" 
-                              className="photo-image"
-                              onClick={() => openFullScreenImage(preparation.tasks.vehicleTransfer.photos.before.url)}
-                            />
-                            <div className="photo-timestamp">
-                              {formatDate(preparation.tasks.vehicleTransfer.photos.before.timestamp)}
-                            </div>
-                          </div>
-                        )}
-                        
-                        {preparation.tasks.vehicleTransfer.photos.after && (
-                          <div className="photo-container">
-                            <div className="photo-header">Photo après</div>
-                            <img 
-                              src={preparation.tasks.vehicleTransfer.photos.after.url} 
-                              alt="Lieu d'arrivée" 
-                              className="photo-image" 
-                              onClick={() => openFullScreenImage(preparation.tasks.vehicleTransfer.photos.after.url)}
-                            />
-                            <div className="photo-timestamp">
-                              {formatDate(preparation.tasks.vehicleTransfer.photos.after.timestamp)}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    
-                    {/* Photos additionnelles */}
-                    {preparation.tasks.vehicleTransfer.photos?.additional && 
-                     preparation.tasks.vehicleTransfer.photos.additional.length > 0 && (
-                      <div className="additional-photos">
-                        <div className="additional-photos-title">Photos additionnelles ({preparation.tasks.vehicleTransfer.photos.additional.length})</div>
-                        <div className="additional-photos-grid">
-                          {preparation.tasks.vehicleTransfer.photos.additional.map((photo, index) => (
-                            <div key={index} className="additional-photo-item">
-                              <img 
-                                src={photo.url} 
-                                alt={`Photo additionnelle ${index + 1}`} 
-                                className="additional-photo-img" 
-                                onClick={() => openFullScreenImage(photo.url)}
-                              />
-                              {photo.description && (
-                                <div className="additional-photo-description">
-                                  {photo.description}
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* Message pour tâche non démarrée */}
-                    {preparation.tasks.vehicleTransfer.status === 'not_started' && 
-                     !preparation.tasks.vehicleTransfer.startedAt && (
-                      <div className="task-not-started-message">
-                        <i className="fas fa-info-circle"></i>
-                        <span>Cette tâche n'a pas encore été démarrée.</span>
-                      </div>
-                    )}
-                    
-                    {/* Actions selon le statut de la tâche */}
-                    {canEdit() && preparation.status !== 'completed' && (
-                      <div className="task-actions">
-                        {preparation.tasks.vehicleTransfer.status === 'not_started' && (
-                          <div className="task-step">
-                            <div className="task-step-header">
-                              <span className="step-number">1</span>
-                              <span>Commencer le transfert de véhicule</span>
-                            </div>
-                            
-                            <p>Prenez une photo du véhicule à son emplacement de départ.</p>
-                            
-                            <div className="task-photo-upload">
-                              <input 
-                                type="file"
-                                accept="image/*"
-                                capture="environment"
-                                onChange={handlePhotoBeforeChange}
-                                className="form-input"
-                              />
-                              
-                              {photoBeforePreview && (
-                                <div className="photo-preview-container">
-                                  <div className="photo-preview">
-                                    <img src={photoBeforePreview} alt="Prévisualisation avant" />
-                                  </div>
-                                </div>
-                              )}
-                              
-                              <div className="form-group">
-                                <label className="form-label">Lieu de départ</label>
-                                <input
-                                  type="text"
-                                  value={transferDeparture}
-                                  onChange={(e) => setTransferDeparture(e.target.value)}
-                                  className="form-input"
-                                  placeholder="Ex: Parking P3, Zone A"
-                                />
-                              </div>
-                              
-                              <div className="form-group">
-                                <label className="form-label">Notes (optionnel)</label>
-                                <textarea
-                                  value={taskNotes}
-                                  onChange={(e) => setTaskNotes(e.target.value)}
-                                  className="form-textarea"
-                                  placeholder="Observations sur le lieu de départ..."
-                                />
-                              </div>
-                              
-                              <button 
-                                onClick={() => handleStartTask('vehicleTransfer')}
-                                className="btn btn-primary"
-                                disabled={!photoBeforeFile || taskLoading}
-                              >
-                                {taskLoading ? 'Traitement...' : 'Commencer le transfert'}
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                        
-                        {preparation.tasks.vehicleTransfer.status === 'in_progress' && (
-                          <div className="task-step">
-                            <div className="task-step-header">
-                              <span className="step-number">2</span>
-                              <span>Terminer le transfert de véhicule</span>
-                            </div>
-                            
-                            <p>Prenez une photo du véhicule à son emplacement d'arrivée.</p>
-                            
-                            <div className="task-photo-upload">
-                              <input 
-                                type="file"
-                                accept="image/*"
-                                capture="environment"
-                                onChange={handlePhotoAfterChange}
-                                className="form-input"
-                              />
-                              
-                              {photoAfterPreview && (
-                                <div className="photo-preview-container">
-                                  <div className="photo-preview">
-                                    <img src={photoAfterPreview} alt="Prévisualisation après" />
-                                  </div>
-                                </div>
-                              )}
-                              
-                              <div className="form-group">
-                                <label className="form-label">Lieu d'arrivée *</label>
-                                <input
-                                  type="text"
-                                  value={transferArrival}
-                                  onChange={(e) => setTransferArrival(e.target.value)}
-                                  className="form-input"
-                                  placeholder="Ex: Parking P2, Zone B"
-                                  required
-                                />
-                              </div>
-                              
-                              <div className="form-group">
-                                <label className="form-label">Notes (optionnel)</label>
-                                <textarea
-                                  value={taskNotes}
-                                  onChange={(e) => setTaskNotes(e.target.value)}
-                                  className="form-textarea"
-                                  placeholder="Observations sur le transfert..."
-                                />
-                              </div>
-                              
-                              <button 
-                                onClick={() => handleCompleteTask('vehicleTransfer')}
-                                className="btn btn-success"
-                                disabled={!photoAfterFile || !transferArrival || taskLoading}
-                              >
-                                {taskLoading ? 'Traitement...' : 'Terminer le transfert'}
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                        
-                        {/* Formulaire pour ajouter une photo additionnelle (disponible si la tâche est en cours ou terminée) */}
-                        {(preparation.tasks.vehicleTransfer.status === 'in_progress' || preparation.tasks.vehicleTransfer.status === 'completed') && (
-                          <div className="task-step">
-                            <div className="task-step-header">
-                              <span className="step-number">+</span>
-                              <span>Ajouter une photo additionnelle (optionnel)</span>
-                            </div>
-                            
-                            <div className="task-photo-upload">
-                              <input 
-                                type="file"
-                                accept="image/*"
-                                capture="environment"
-                                onChange={handleAdditionalPhotoChange}
-                                className="form-input"
-                              />
-                              
-                              {additionalPhotoPreview && (
-                                <div className="photo-preview-container">
-                                  <div className="photo-preview">
-                                    <img src={additionalPhotoPreview} alt="Prévisualisation additionnelle" />
-                                  </div>
-                                </div>
-                              )}
-                              
-                              <div className="form-group">
-                                <label className="form-label">Description</label>
-                                <input
-                                  type="text"
-                                  value={additionalPhotoDescription}
-                                  onChange={(e) => setAdditionalPhotoDescription(e.target.value)}
-                                  className="form-input"
-                                  placeholder="Description de la photo..."
-                                />
-                              </div>
-                              
-                              <button 
-                                onClick={() => handleAddAdditionalPhoto('vehicleTransfer')}
                                 className="btn btn-photo"
                                 disabled={!additionalPhotoFile || taskLoading}
                               >

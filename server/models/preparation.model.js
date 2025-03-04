@@ -100,10 +100,6 @@ const preparationSchema = new mongoose.Schema({
       type: taskSchema,
       default: () => ({})
     },
-    vehicleTransfer: {
-      type: taskSchema,
-      default: () => ({})
-    }
   },
   status: {
     type: String,
