@@ -300,7 +300,7 @@ router.get('/:id', verifyToken, async (req, res) => {
     }
     
     // Si c'est un préparateur, vérifier qu'il est assigné à cette préparation
-    if (req.user.role === 'preparator' && preparation.userId.toString() !== req.user._id.toString()) {
+    if (req.user.role === 'preparator' && preparation.userId._id.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: 'Vous n\'êtes pas autorisé à accéder à cette préparation' });
     }
     
