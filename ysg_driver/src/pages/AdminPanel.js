@@ -332,7 +332,6 @@ const AdminPanel = () => {
                 <tr>
                   <th>Utilisateur</th>
                   <th>Nom complet</th>
-                  <th>Email</th>
                   <th>Téléphone</th>
                   <th>Rôle</th>
                   <th>Actions</th>
