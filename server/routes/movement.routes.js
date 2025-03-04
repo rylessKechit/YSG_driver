@@ -22,7 +22,7 @@ const checkDriverActiveTimeLog = async (driverId) => {
 router.post('/', verifyToken, canCreateMovement, async (req, res) => {
   try {
     const {
-      userId, // ID du chauffeur à qui le mouvement sera assigné (optionnel maintenant)
+      userId, // ID du chauffeur à qui le mouvement sera assigné (optionnel)
       licensePlate,
       vehicleModel,
       departureLocation,
@@ -62,6 +62,11 @@ router.post('/', verifyToken, canCreateMovement, async (req, res) => {
     // Déterminer le statut initial
     let status = 'pending'; // Par défaut sans chauffeur ou chauffeur hors service
     
+    // Si un chauffeur est fourni et est en service, changer le statut à 'assigned'
+    if (userId && timeLogId) {
+      status = 'assigned';
+    }
+    
     // Créer le mouvement
     const movement = new Movement({
       assignedBy: req.user._id, // Admin qui assigne
@@ -83,7 +88,11 @@ router.post('/', verifyToken, canCreateMovement, async (req, res) => {
     
     let message = 'Mouvement créé sans chauffeur assigné';
     if (userId) {
-      message = 'Mouvement créé et assigné au chauffeur';
+      if (timeLogId) {
+        message = 'Mouvement créé et assigné au chauffeur en service';
+      } else {
+        message = 'Mouvement créé et assigné au chauffeur (hors service)';
+      }
     }
     
     res.status(201).json({

@@ -28,6 +28,17 @@ const MovementDetail = () => {
     windshield: false, // Pare-brise
     roof: false     // Toit
   });
+  const [success, setSuccess] = useState(null);
+
+const [expandedPhotoSection, setExpandedPhotoSection] = useState(null);
+const [selectedPhotoFiles, setSelectedPhotoFiles] = useState({
+  front: null,
+  passenger: null,
+  driver: null,
+  rear: null,
+  windshield: null,
+  roof: null
+});
   
   const { currentUser } = useAuth();
   const navigate = useNavigate();
@@ -45,6 +56,88 @@ const handleMultipleFilesChange = (e) => {
   if (e.target.files && e.target.files.length > 0) {
     setSelectedFiles(Array.from(e.target.files));
   }
+};
+
+// Fonction pour basculer l'ouverture/fermeture d'une section de photo
+const togglePhotoSection = (section) => {
+  if (expandedPhotoSection === section) {
+    setExpandedPhotoSection(null);
+  } else {
+    setExpandedPhotoSection(section);
+  }
+};
+
+// Gérer la sélection d'une photo pour une section spécifique
+const handlePhotoSelect = (e, photoType) => {
+  if (e.target.files && e.target.files[0]) {
+    const file = e.target.files[0];
+    setSelectedPhotoFiles(prev => ({
+      ...prev,
+      [photoType]: file
+    }));
+  }
+};
+
+// Télécharger une seule photo et mettre à jour le statut
+const handleUploadSinglePhoto = async (photoType) => {
+  try {
+    setUploadingPhoto(true);
+    setError(null);
+    
+    const file = selectedPhotoFiles[photoType];
+    if (!file) {
+      setError(`Veuillez sélectionner une photo pour ${getPhotoTypeLabel(photoType)}`);
+      return;
+    }
+    
+    const formData = new FormData();
+    formData.append('photos', file);
+    formData.append('type', photoType);
+    
+    await movementService.uploadPhotos(id, formData);
+    
+    // Mettre à jour le statut de la photo
+    setPhotosStatus(prev => ({
+      ...prev,
+      [photoType]: true
+    }));
+    
+    // Réinitialiser le fichier sélectionné
+    setSelectedPhotoFiles(prev => ({
+      ...prev,
+      [photoType]: null
+    }));
+    
+    // Afficher un message de succès et recharger le mouvement
+    setSuccess(`Photo ${getPhotoTypeLabel(photoType)} téléchargée avec succès`);
+    setTimeout(() => setSuccess(null), 3000);
+    
+    await loadMovement();
+  } catch (err) {
+    console.error(`Erreur lors du téléchargement de la photo ${photoType}:`, err);
+    setError(err.response?.data?.message || `Erreur lors du téléchargement de la photo ${getPhotoTypeLabel(photoType)}`);
+  } finally {
+    setUploadingPhoto(false);
+  }
+};
+
+// Réinitialiser le statut d'une photo pour permettre le remplacement
+const handleResetPhotoStatus = (photoType) => {
+  setPhotosStatus(prev => ({
+    ...prev,
+    [photoType]: false
+  }));
+  
+  // Ouvrir la section correspondante
+  setExpandedPhotoSection(photoType);
+};
+
+// Obtenir l'URL d'une photo à partir de son type
+const getPhotoUrlByType = (photoType) => {
+  if (!movement || !movement.photos) return '';
+  
+  const photo = movement.photos.find(photo => photo.type === photoType);
+  return photo ? photo.url : '';
 };
 
 // Uploader plusieurs photos à la fois
@@ -603,173 +696,446 @@ const handleMultipleUpload = async () => {
           
           {/* Section pour l'upload de photos guidé - Visible uniquement pour le chauffeur assigné et en préparation */}
           {canEditMovement() && (movement.status === 'preparing') && (
-            <div className="detail-section photo-upload-section">
-              <h2 className="section-title">
-                <i className="fas fa-camera"></i> Photos du véhicule
-              </h2>
-              
-              <div className="photo-guidelines">
-                <p className="guidelines-intro">
-                  Pour continuer ce mouvement, vous devez prendre les photos suivantes du véhicule:
-                </p>
-                
-                <div className="photo-checklist">
-                  <div className={`checklist-item ${photosStatus.front ? 'completed' : ''}`}>
+          <div className="detail-section photo-upload-section">
+            <h2 className="section-title">
+              <i className="fas fa-camera"></i> Photos du véhicule
+            </h2>
+            
+            <div className="photo-guidelines">
+              <p className="guidelines-intro">
+                Pour continuer ce mouvement, vous devez prendre les photos suivantes du véhicule. Chaque section doit être complétée.
+              </p>
+            </div>
+            
+            {/* Accordéon des zones à photographier */}
+            <div className="photo-accordion">
+              {/* Item 1: Face avant */}
+              <div className="photo-accordion-item">
+                <div className={`photo-accordion-header ${photosStatus.front ? 'completed' : ''}`} onClick={() => togglePhotoSection('front')}>
+                  <div className="photo-section-title">
                     <span className="status-icon">
-                      {photosStatus.front ? '✓' : '○'}
+                      {photosStatus.front ? <i className="fas fa-check-circle"></i> : <i className="fas fa-circle"></i>}
                     </span>
-                    <span className="item-label">Face avant (avec plaque visible)</span>
+                    <span>Face avant avec plaque</span>
                   </div>
-                  <div className={`checklist-item ${photosStatus.passenger ? 'completed' : ''}`}>
-                    <span className="status-icon">
-                      {photosStatus.passenger ? '✓' : '○'}
-                    </span>
-                    <span className="item-label">Côté passager</span>
-                  </div>
-                  <div className={`checklist-item ${photosStatus.driver ? 'completed' : ''}`}>
-                    <span className="status-icon">
-                      {photosStatus.driver ? '✓' : '○'}
-                    </span>
-                    <span className="item-label">Côté conducteur</span>
-                  </div>
-                  <div className={`checklist-item ${photosStatus.rear ? 'completed' : ''}`}>
-                    <span className="status-icon">
-                      {photosStatus.rear ? '✓' : '○'}
-                    </span>
-                    <span className="item-label">Face arrière</span>
-                  </div>
-                  <div className={`checklist-item ${photosStatus.windshield ? 'completed' : ''}`}>
-                    <span className="status-icon">
-                      {photosStatus.windshield ? '✓' : '○'}
-                    </span>
-                    <span className="item-label">Pare-brise</span>
-                  </div>
-                  <div className={`checklist-item ${photosStatus.roof ? 'completed' : ''}`}>
-                    <span className="status-icon">
-                      {photosStatus.roof ? '✓' : '○'}
-                    </span>
-                    <span className="item-label">Toit</span>
+                  <div className="photo-section-actions">
+                    {photosStatus.front ? (
+                      <span className="photo-status-text">Complété</span>
+                    ) : (
+                      <span className="photo-status-text">À photographier</span>
+                    )}
+                    <i className={`fas fa-chevron-${expandedPhotoSection === 'front' ? 'up' : 'down'}`}></i>
                   </div>
                 </div>
+                
+                {expandedPhotoSection === 'front' && (
+                  <div className="photo-accordion-content">
+                    {photosStatus.front ? (
+                      <div className="completed-photo">
+                        <img 
+                          src={getPhotoUrlByType('front')} 
+                          alt="Face avant" 
+                          className="preview-image"
+                          onClick={() => openFullScreenImage(getPhotoUrlByType('front'))} 
+                        />
+                        <button className="btn btn-secondary photo-replace-btn" onClick={() => handleResetPhotoStatus('front')}>
+                          Remplacer la photo
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="photo-upload-container">
+                        <p className="photo-instruction">Prenez une photo de la face avant du véhicule. Assurez-vous que la plaque d'immatriculation soit bien visible.</p>
+                        <div className="file-upload-wrapper">
+                          <input 
+                            type="file" 
+                            accept="image/*"
+                            capture="environment"
+                            onChange={(e) => handlePhotoSelect(e, 'front')}
+                            className="photo-input" 
+                          />
+                          {selectedPhotoFiles.front && (
+                            <div className="photo-preview-wrapper">
+                              <img 
+                                src={URL.createObjectURL(selectedPhotoFiles.front)} 
+                                alt="Prévisualisation" 
+                                className="preview-image"
+                              />
+                            </div>
+                          )}
+                          <button 
+                            className="btn btn-primary upload-photo-btn"
+                            disabled={!selectedPhotoFiles.front || uploadingPhoto}
+                            onClick={() => handleUploadSinglePhoto('front')}
+                          >
+                            {uploadingPhoto ? 'Chargement...' : 'Valider la photo'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
               
-              <div className="multi-upload-section">
-                <h3 className="subsection-title">Charger toutes les photos</h3>
-                
-                <div className="upload-instructions">
-                  <p>Pour gagner du temps, vous pouvez charger toutes les photos à la fois :</p>
-                  <ol>
-                    <li>Prenez les 6 photos requises dans cet ordre : <strong>face avant, côté passager, côté conducteur, face arrière, pare-brise, toit</strong></li>
-                    <li>Sélectionnez toutes les photos dans le sélecteur ci-dessous</li>
-                    <li>Cliquez sur "Charger les photos"</li>
-                  </ol>
-                </div>
-                
-                <div className="upload-form">
-                  <input 
-                    type="file" 
-                    id="multi-photos" 
-                    accept="image/*" 
-                    onChange={(e) => handleMultipleFilesChange(e)}
-                    className="form-input"
-                    multiple
-                  />
-                  <button 
-                    onClick={handleMultipleUpload}
-                    className="btn btn-primary"
-                    disabled={uploadingPhoto || selectedFiles.length === 0}
-                  >
-                    {uploadingPhoto ? 'Chargement en cours...' : 'Charger les photos'}
-                  </button>
-                </div>
-                
-                <div className="upload-status">
-                  {selectedFiles.length > 0 && (
-                    <p>{selectedFiles.length} photo(s) sélectionnée(s)</p>
-                  )}
-                </div>
-                
-                <div className="divider">
-                  <span>OU</span>
-                </div>
-                
-                <h3 className="subsection-title">Charger une photo spécifique</h3>
-                
-                <form onSubmit={handleUploadPhoto} className="photo-upload-form">
-                  <div className="form-group">
-                    <label htmlFor="photoType" className="form-label">Type de photo</label>
-                    <select 
-                      id="photoType" 
-                      value={photoType} 
-                      onChange={(e) => setPhotoType(e.target.value)}
-                      className="form-select"
-                    >
-                      <option value="front" disabled={photosStatus.front}>Face avant (avec plaque)</option>
-                      <option value="passenger" disabled={photosStatus.passenger}>Côté passager</option>
-                      <option value="driver" disabled={photosStatus.driver}>Côté conducteur</option>
-                      <option value="rear" disabled={photosStatus.rear}>Face arrière</option>
-                      <option value="windshield" disabled={photosStatus.windshield}>Pare-brise</option>
-                      <option value="roof" disabled={photosStatus.roof}>Toit</option>
-                      <option value="damage">Dommages (si présents)</option>
-                      <option value="other">Autre photo</option>
-                    </select>
+              {/* Item 2: Côté passager */}
+              <div className="photo-accordion-item">
+                <div className={`photo-accordion-header ${photosStatus.passenger ? 'completed' : ''}`} onClick={() => togglePhotoSection('passenger')}>
+                  <div className="photo-section-title">
+                    <span className="status-icon">
+                      {photosStatus.passenger ? <i className="fas fa-check-circle"></i> : <i className="fas fa-circle"></i>}
+                    </span>
+                    <span>Côté passager</span>
                   </div>
-                  
-                  <div className="form-group">
-                    <label htmlFor="photo-upload" className="form-label">Sélectionner une photo</label>
-                    <input 
-                      type="file" 
-                      id="photo-upload" 
-                      accept="image/*" 
-                      capture="environment"
-                      onChange={handleFileChange}
-                      className="form-input"
-                    />
+                  <div className="photo-section-actions">
+                    {photosStatus.passenger ? (
+                      <span className="photo-status-text">Complété</span>
+                    ) : (
+                      <span className="photo-status-text">À photographier</span>
+                    )}
+                    <i className={`fas fa-chevron-${expandedPhotoSection === 'passenger' ? 'up' : 'down'}`}></i>
                   </div>
-                  
-                  <button 
-                    type="submit"
-                    className="btn btn-primary"
-                    disabled={!selectedFile || uploadingPhoto}
-                  >
-                    {uploadingPhoto ? 'Envoi en cours...' : 'Télécharger la photo'}
-                  </button>
-                </form>
+                </div>
                 
-                {allRequiredPhotosTaken() && (
-                  <div className="photo-confirmation">
-                    <div className="confirmation-message">
-                      <i className="fas fa-check-circle"></i>
-                      <span>Toutes les photos requises ont été prises !</span>
-                    </div>
+                {expandedPhotoSection === 'passenger' && (
+                  <div className="photo-accordion-content">
+                    {photosStatus.passenger ? (
+                      <div className="completed-photo">
+                        <img 
+                          src={getPhotoUrlByType('passenger')} 
+                          alt="Côté passager" 
+                          className="preview-image"
+                          onClick={() => openFullScreenImage(getPhotoUrlByType('passenger'))} 
+                        />
+                        <button className="btn btn-secondary photo-replace-btn" onClick={() => handleResetPhotoStatus('passenger')}>
+                          Remplacer la photo
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="photo-upload-container">
+                        <p className="photo-instruction">Prenez une photo du côté passager du véhicule.</p>
+                        <div className="file-upload-wrapper">
+                          <input 
+                            type="file" 
+                            accept="image/*"
+                            capture="environment"
+                            onChange={(e) => handlePhotoSelect(e, 'passenger')}
+                            className="photo-input" 
+                          />
+                          {selectedPhotoFiles.passenger && (
+                            <div className="photo-preview-wrapper">
+                              <img 
+                                src={URL.createObjectURL(selectedPhotoFiles.passenger)} 
+                                alt="Prévisualisation" 
+                                className="preview-image"
+                              />
+                            </div>
+                          )}
+                          <button 
+                            className="btn btn-primary upload-photo-btn"
+                            disabled={!selectedPhotoFiles.passenger || uploadingPhoto}
+                            onClick={() => handleUploadSinglePhoto('passenger')}
+                          >
+                            {uploadingPhoto ? 'Chargement...' : 'Valider la photo'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              
+              {/* Item 3: Côté conducteur */}
+              <div className="photo-accordion-item">
+                <div className={`photo-accordion-header ${photosStatus.driver ? 'completed' : ''}`} onClick={() => togglePhotoSection('driver')}>
+                  <div className="photo-section-title">
+                    <span className="status-icon">
+                      {photosStatus.driver ? <i className="fas fa-check-circle"></i> : <i className="fas fa-circle"></i>}
+                    </span>
+                    <span>Côté conducteur</span>
+                  </div>
+                  <div className="photo-section-actions">
+                    {photosStatus.driver ? (
+                      <span className="photo-status-text">Complété</span>
+                    ) : (
+                      <span className="photo-status-text">À photographier</span>
+                    )}
+                    <i className={`fas fa-chevron-${expandedPhotoSection === 'driver' ? 'up' : 'down'}`}></i>
+                  </div>
+                </div>
+                
+                {expandedPhotoSection === 'driver' && (
+                  <div className="photo-accordion-content">
+                    {photosStatus.driver ? (
+                      <div className="completed-photo">
+                        <img 
+                          src={getPhotoUrlByType('driver')} 
+                          alt="Côté conducteur" 
+                          className="preview-image"
+                          onClick={() => openFullScreenImage(getPhotoUrlByType('driver'))} 
+                        />
+                        <button className="btn btn-secondary photo-replace-btn" onClick={() => handleResetPhotoStatus('driver')}>
+                          Remplacer la photo
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="photo-upload-container">
+                        <p className="photo-instruction">Prenez une photo du côté conducteur du véhicule.</p>
+                        <div className="file-upload-wrapper">
+                          <input 
+                            type="file" 
+                            accept="image/*"
+                            capture="environment"
+                            onChange={(e) => handlePhotoSelect(e, 'driver')}
+                            className="photo-input" 
+                          />
+                          {selectedPhotoFiles.driver && (
+                            <div className="photo-preview-wrapper">
+                              <img 
+                                src={URL.createObjectURL(selectedPhotoFiles.driver)} 
+                                alt="Prévisualisation" 
+                                className="preview-image"
+                              />
+                            </div>
+                          )}
+                          <button 
+                            className="btn btn-primary upload-photo-btn"
+                            disabled={!selectedPhotoFiles.driver || uploadingPhoto}
+                            onClick={() => handleUploadSinglePhoto('driver')}
+                          >
+                            {uploadingPhoto ? 'Chargement...' : 'Valider la photo'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              
+              {/* Item 4: Face arrière */}
+              <div className="photo-accordion-item">
+                <div className={`photo-accordion-header ${photosStatus.rear ? 'completed' : ''}`} onClick={() => togglePhotoSection('rear')}>
+                  <div className="photo-section-title">
+                    <span className="status-icon">
+                      {photosStatus.rear ? <i className="fas fa-check-circle"></i> : <i className="fas fa-circle"></i>}
+                    </span>
+                    <span>Face arrière</span>
+                  </div>
+                  <div className="photo-section-actions">
+                    {photosStatus.rear ? (
+                      <span className="photo-status-text">Complété</span>
+                    ) : (
+                      <span className="photo-status-text">À photographier</span>
+                    )}
+                    <i className={`fas fa-chevron-${expandedPhotoSection === 'rear' ? 'up' : 'down'}`}></i>
+                  </div>
+                </div>
+                
+                {expandedPhotoSection === 'rear' && (
+                  <div className="photo-accordion-content">
+                    {photosStatus.rear ? (
+                      <div className="completed-photo">
+                        <img 
+                          src={getPhotoUrlByType('rear')} 
+                          alt="Face arrière" 
+                          className="preview-image"
+                          onClick={() => openFullScreenImage(getPhotoUrlByType('rear'))} 
+                        />
+                        <button className="btn btn-secondary photo-replace-btn" onClick={() => handleResetPhotoStatus('rear')}>
+                          Remplacer la photo
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="photo-upload-container">
+                        <p className="photo-instruction">Prenez une photo de l'arrière du véhicule.</p>
+                        <div className="file-upload-wrapper">
+                          <input 
+                            type="file" 
+                            accept="image/*"
+                            capture="environment"
+                            onChange={(e) => handlePhotoSelect(e, 'rear')}
+                            className="photo-input" 
+                          />
+                          {selectedPhotoFiles.rear && (
+                            <div className="photo-preview-wrapper">
+                              <img 
+                                src={URL.createObjectURL(selectedPhotoFiles.rear)} 
+                                alt="Prévisualisation" 
+                                className="preview-image"
+                              />
+                            </div>
+                          )}
+                          <button 
+                            className="btn btn-primary upload-photo-btn"
+                            disabled={!selectedPhotoFiles.rear || uploadingPhoto}
+                            onClick={() => handleUploadSinglePhoto('rear')}
+                          >
+                            {uploadingPhoto ? 'Chargement...' : 'Valider la photo'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              
+              {/* Item 5: Pare-brise */}
+              <div className="photo-accordion-item">
+                <div className={`photo-accordion-header ${photosStatus.windshield ? 'completed' : ''}`} onClick={() => togglePhotoSection('windshield')}>
+                  <div className="photo-section-title">
+                    <span className="status-icon">
+                      {photosStatus.windshield ? <i className="fas fa-check-circle"></i> : <i className="fas fa-circle"></i>}
+                    </span>
+                    <span>Pare-brise</span>
+                  </div>
+                  <div className="photo-section-actions">
+                    {photosStatus.windshield ? (
+                      <span className="photo-status-text">Complété</span>
+                    ) : (
+                      <span className="photo-status-text">À photographier</span>
+                    )}
+                    <i className={`fas fa-chevron-${expandedPhotoSection === 'windshield' ? 'up' : 'down'}`}></i>
+                  </div>
+                </div>
+                
+                {expandedPhotoSection === 'windshield' && (
+                  <div className="photo-accordion-content">
+                    {photosStatus.windshield ? (
+                      <div className="completed-photo">
+                        <img 
+                          src={getPhotoUrlByType('windshield')} 
+                          alt="Pare-brise" 
+                          className="preview-image"
+                          onClick={() => openFullScreenImage(getPhotoUrlByType('windshield'))} 
+                        />
+                        <button className="btn btn-secondary photo-replace-btn" onClick={() => handleResetPhotoStatus('windshield')}>
+                          Remplacer la photo
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="photo-upload-container">
+                        <p className="photo-instruction">Prenez une photo du pare-brise du véhicule.</p>
+                        <div className="file-upload-wrapper">
+                          <input 
+                            type="file" 
+                            accept="image/*"
+                            capture="environment"
+                            onChange={(e) => handlePhotoSelect(e, 'windshield')}
+                            className="photo-input" 
+                          />
+                          {selectedPhotoFiles.windshield && (
+                            <div className="photo-preview-wrapper">
+                              <img 
+                                src={URL.createObjectURL(selectedPhotoFiles.windshield)} 
+                                alt="Prévisualisation" 
+                                className="preview-image"
+                              />
+                            </div>
+                          )}
+                          <button 
+                            className="btn btn-primary upload-photo-btn"
+                            disabled={!selectedPhotoFiles.windshield || uploadingPhoto}
+                            onClick={() => handleUploadSinglePhoto('windshield')}
+                          >
+                            {uploadingPhoto ? 'Chargement...' : 'Valider la photo'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              
+              {/* Item 6: Toit */}
+              <div className="photo-accordion-item">
+                <div className={`photo-accordion-header ${photosStatus.roof ? 'completed' : ''}`} onClick={() => togglePhotoSection('roof')}>
+                  <div className="photo-section-title">
+                    <span className="status-icon">
+                      {photosStatus.roof ? <i className="fas fa-check-circle"></i> : <i className="fas fa-circle"></i>}
+                    </span>
+                    <span>Toit</span>
+                  </div>
+                  <div className="photo-section-actions">
+                    {photosStatus.roof ? (
+                      <span className="photo-status-text">Complété</span>
+                    ) : (
+                      <span className="photo-status-text">À photographier</span>
+                    )}
+                    <i className={`fas fa-chevron-${expandedPhotoSection === 'roof' ? 'up' : 'down'}`}></i>
+                  </div>
+                </div>
+                
+                {expandedPhotoSection === 'roof' && (
+                  <div className="photo-accordion-content">
+                    {photosStatus.roof ? (
+                      <div className="completed-photo">
+                        <img 
+                          src={getPhotoUrlByType('roof')} 
+                          alt="Toit" 
+                          className="preview-image"
+                          onClick={() => openFullScreenImage(getPhotoUrlByType('roof'))} 
+                        />
+                        <button className="btn btn-secondary photo-replace-btn" onClick={() => handleResetPhotoStatus('roof')}>
+                          Remplacer la photo
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="photo-upload-container">
+                        <p className="photo-instruction">Prenez une photo du toit du véhicule.</p>
+                        <div className="file-upload-wrapper">
+                          <input 
+                            type="file" 
+                            accept="image/*"
+                            capture="environment"
+                            onChange={(e) => handlePhotoSelect(e, 'roof')}
+                            className="photo-input" 
+                          />
+                          {selectedPhotoFiles.roof && (
+                            <div className="photo-preview-wrapper">
+                              <img 
+                                src={URL.createObjectURL(selectedPhotoFiles.roof)} 
+                                alt="Prévisualisation" 
+                                className="preview-image"
+                              />
+                            </div>
+                          )}
+                          <button 
+                            className="btn btn-primary upload-photo-btn"
+                            disabled={!selectedPhotoFiles.roof || uploadingPhoto}
+                            onClick={() => handleUploadSinglePhoto('roof')}
+                          >
+                            {uploadingPhoto ? 'Chargement...' : 'Valider la photo'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
             </div>
-          )}
-          
-          <div className="detail-section photos-section">
-            <h2 className="section-title">Photos</h2>
-            {movement.photos && movement.photos.length > 0 ? (
-              <div className="photos-grid">
-                {movement.photos.map((photo, index) => (
-                  <div key={index} className="photo-item" onClick={() => openFullScreenImage(photo.url)}>
-                    <img src={photo.url} alt={`Photo ${index + 1}`} className="movement-photo" />
-                    <div className="photo-info">
-                      <span className={`photo-type ${photo.type}`}>
-                        {getPhotoTypeLabel(photo.type)}
-                      </span>
-                      <span className="photo-time">
-                        {formatDate(photo.timestamp)}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="no-photos-message">Aucune photo disponible</p>
-            )}
+            
+            {/* Bouton de confirmation principal */}
+            <div className="photos-confirmation-section">
+              {allRequiredPhotosTaken() ? (
+                <div className="photos-complete-message">
+                  <i className="fas fa-check-circle"></i>
+                  <span>Toutes les photos requises ont été prises</span>
+                </div>
+              ) : (
+                <div className="photos-incomplete-message">
+                  <i className="fas fa-info-circle"></i>
+                  <span>Veuillez prendre toutes les photos requises pour continuer</span>
+                </div>
+              )}
+              
+              <button 
+                onClick={handleStartMovement}
+                className="btn btn-success btn-lg btn-block start-movement-btn"
+                disabled={!allRequiredPhotosTaken() || updateLoading}
+              >
+                {updateLoading ? 'Traitement en cours...' : 'Commencer le trajet'}
+              </button>
+            </div>
           </div>
+        )}
           
           <div className="detail-section notes-section">
             <h2 className="section-title">Notes</h2>

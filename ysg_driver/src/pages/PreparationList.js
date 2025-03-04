@@ -80,10 +80,10 @@ const PreparationList = () => {
   const getTasksProgress = (preparation) => {
     const tasks = preparation.tasks;
     const completedTasks = [
-      tasks.exteriorWashing?.completed || false,
-      tasks.interiorCleaning?.completed || false,
-      tasks.refueling?.completed || false,
-      tasks.vehicleTransfer?.completed || false
+      tasks.exteriorWashing.status === 'completed',
+      tasks.interiorCleaning.status === 'completed',
+      tasks.refueling.status === 'completed',
+      tasks.parking.status === 'completed'
     ].filter(Boolean).length;
     
     return `${completedTasks}/4 tâches`;
@@ -181,24 +181,24 @@ const PreparationList = () => {
                 </div>
                 
                 <div className="preparation-tasks">
-                  <div className={`task-item ${preparation.tasks.exteriorWashing?.completed ? 'completed' : ''}`}>
-                    <i className={`fas ${preparation.tasks.exteriorWashing?.completed ? 'fa-check-circle' : 'fa-circle'}`}></i>
+                  <div className={`task-item ${preparation.tasks.exteriorWashing?.status === 'completed' ? 'completed' : ''}`}>
+                    <i className={`fas ${preparation.tasks.exteriorWashing?.status === 'completed' ? 'fa-check-circle' : 'fa-circle'}`}></i>
                     <span>Lavage extérieur</span>
                   </div>
                   
-                  <div className={`task-item ${preparation.tasks.interiorCleaning?.completed ? 'completed' : ''}`}>
-                    <i className={`fas ${preparation.tasks.interiorCleaning?.completed ? 'fa-check-circle' : 'fa-circle'}`}></i>
+                  <div className={`task-item ${preparation.tasks.interiorCleaning?.status === 'completed' ? 'completed' : ''}`}>
+                    <i className={`fas ${preparation.tasks.interiorCleaning?.status === 'completed' ? 'fa-check-circle' : 'fa-circle'}`}></i>
                     <span>Nettoyage intérieur</span>
                   </div>
                   
-                  <div className={`task-item ${preparation.tasks.refueling?.completed ? 'completed' : ''}`}>
-                    <i className={`fas ${preparation.tasks.refueling?.completed ? 'fa-check-circle' : 'fa-circle'}`}></i>
+                  <div className={`task-item ${preparation.tasks.refueling?.status === 'completed' ? 'completed' : ''}`}>
+                    <i className={`fas ${preparation.tasks.refueling?.status === 'completed' ? 'fa-check-circle' : 'fa-circle'}`}></i>
                     <span>Carburant</span>
                   </div>
                   
-                  <div className={`task-item ${preparation.tasks.vehicleTransfer?.completed ? 'completed' : ''}`}>
-                    <i className={`fas ${preparation.tasks.vehicleTransfer?.completed ? 'fa-check-circle' : 'fa-circle'}`}></i>
-                    <span>Transfert</span>
+                  <div className={`task-item ${preparation.tasks.parking?.status === 'completed' ? 'completed' : ''}`}>
+                    <i className={`fas ${preparation.tasks.parking?.status === 'completed' ? 'fa-check-circle' : 'fa-circle'}`}></i>
+                    <span>Stationnement</span>
                   </div>
                 </div>
                 

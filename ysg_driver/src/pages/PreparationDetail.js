@@ -255,6 +255,7 @@ const PreparationDetail = () => {
       case 'exteriorWashing': return 'Lavage extérieur';
       case 'interiorCleaning': return 'Nettoyage intérieur';
       case 'refueling': return 'Mise de carburant';
+      case 'parking': return 'Stationnement';
       default: return 'Tâche inconnue';
     }
   };
@@ -1174,6 +1175,212 @@ const PreparationDetail = () => {
                               
                               <button 
                                 onClick={() => handleAddAdditionalPhoto('refueling')}
+                                className="btn btn-photo"
+                                disabled={!additionalPhotoFile || taskLoading}
+                              >
+                                {taskLoading ? 'Traitement...' : 'Ajouter la photo'}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Tâche Stationnement */}
+              <div className="task-card">
+                <div 
+                  className={`task-header ${expandedTask === 'parking' ? 'expanded' : ''}`}
+                  onClick={() => toggleTaskExpansion('parking')}
+                >
+                  <h3 className="task-title">Stationnement</h3>
+                  <div className="task-header-info">
+                    <span className={`task-status ${preparation.tasks.parking?.status || 'not_started'}`}>
+                      {getTaskStatusLabel(preparation.tasks.parking?.status || 'not_started')}
+                    </span>
+                    <i className={`fas fa-chevron-${expandedTask === 'parking' ? 'up' : 'down'}`}></i>
+                  </div>
+                </div>
+                
+                {expandedTask === 'parking' && (
+                  <div className="task-content">
+                    {preparation.tasks.parking?.startedAt && (
+                      <div className="task-info">
+                        <i className="fas fa-clock"></i> Commencée: {formatDate(preparation.tasks.parking.startedAt)}
+                      </div>
+                    )}
+                    
+                    {preparation.tasks.parking?.completedAt && (
+                      <div className="task-info">
+                        <i className="fas fa-check-circle"></i> Terminée: {formatDate(preparation.tasks.parking.completedAt)}
+                      </div>
+                    )}
+                    
+                    {preparation.tasks.parking?.notes && (
+                      <div className="task-notes">
+                        <strong>Notes:</strong> {preparation.tasks.parking.notes}
+                      </div>
+                    )}
+                    
+                    {/* Photos avant/après si complétées */}
+                    {(preparation.tasks.parking?.photos?.before || preparation.tasks.parking?.photos?.after) && (
+                      <div className="task-photos">
+                        {preparation.tasks.parking?.photos?.before && (
+                          <div className="photo-container">
+                            <div className="photo-header">Photo avant</div>
+                            <img 
+                              src={preparation.tasks.parking.photos.before.url} 
+                              alt="Avant stationnement" 
+                              className="photo-image"
+                              onClick={() => openFullScreenImage(preparation.tasks.parking.photos.before.url)}
+                            />
+                            <div className="photo-timestamp">
+                              {formatDate(preparation.tasks.parking.photos.before.timestamp)}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {preparation.tasks.parking?.photos?.after && (
+                          <div className="photo-container">
+                            <div className="photo-header">Photo après</div>
+                            <img 
+                              src={preparation.tasks.parking.photos.after.url} 
+                              alt="Après stationnement" 
+                              className="photo-image" 
+                              onClick={() => openFullScreenImage(preparation.tasks.parking.photos.after.url)}
+                            />
+                            <div className="photo-timestamp">
+                              {formatDate(preparation.tasks.parking.photos.after.timestamp)}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* Photos additionnelles */}
+                    {preparation.tasks.parking?.photos?.additional && 
+                    preparation.tasks.parking.photos.additional.length > 0 && (
+                      <div className="additional-photos">
+                        <div className="additional-photos-title">Photos additionnelles ({preparation.tasks.parking.photos.additional.length})</div>
+                        <div className="additional-photos-grid">
+                          {preparation.tasks.parking.photos.additional.map((photo, index) => (
+                            <div key={index} className="additional-photo-item">
+                              <img 
+                                src={photo.url} 
+                                alt={`Photo additionnelle ${index + 1}`} 
+                                className="additional-photo-img" 
+                                onClick={() => openFullScreenImage(photo.url)}
+                              />
+                              {photo.description && (
+                                <div className="additional-photo-description">
+                                  {photo.description}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Message pour tâche non démarrée */}
+                    {(!preparation.tasks.parking || preparation.tasks.parking.status === 'not_started') && 
+                    !preparation.tasks.parking?.startedAt && (
+                      <div className="task-not-started-message">
+                        <i className="fas fa-info-circle"></i>
+                        <span>Cette tâche facultative n'a pas encore été démarrée.</span>
+                      </div>
+                    )}
+                    
+                    {/* Actions selon le statut de la tâche */}
+                    {canEdit() && preparation.status !== 'completed' && (
+                      <div className="task-actions">
+                        {(!preparation.tasks.parking || preparation.tasks.parking.status === 'not_started') && (
+                          <div className="task-step">
+                            <div className="task-step-header">
+                              <span className="step-number">1</span>
+                              <span>Valider le stationnement</span>
+                            </div>
+                            
+                            <p>Prenez une photo du véhicule garé correctement pour valider cette tâche.</p>
+                            
+                            <div className="task-photo-upload">
+                              <input 
+                                type="file"
+                                accept="image/*"
+                                capture="environment"
+                                onChange={handlePhotoAfterChange}
+                                className="form-input"
+                              />
+                              
+                              {photoAfterPreview && (
+                                <div className="photo-preview-container">
+                                  <div className="photo-preview">
+                                    <img src={photoAfterPreview} alt="Prévisualisation du stationnement" />
+                                  </div>
+                                </div>
+                              )}
+                              
+                              <div className="form-group">
+                                <label className="form-label">Notes (optionnel)</label>
+                                <textarea
+                                  value={taskNotes}
+                                  onChange={(e) => setTaskNotes(e.target.value)}
+                                  className="form-textarea"
+                                  placeholder="Observations sur le stationnement effectué..."
+                                />
+                              </div>
+                              
+                              <button 
+                                onClick={() => handleCompleteTask('parking')}
+                                className="btn btn-success"
+                                disabled={!photoAfterFile || taskLoading}
+                              >
+                                {taskLoading ? 'Traitement...' : 'Valider le stationnement'}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Formulaire pour ajouter une photo additionnelle (disponible si la tâche est en cours ou terminée) */}
+                        {preparation.tasks.parking && (preparation.tasks.parking.status === 'in_progress' || preparation.tasks.parking.status === 'completed') && (
+                          <div className="task-step">
+                            <div className="task-step-header">
+                              <span className="step-number">+</span>
+                              <span>Ajouter une photo additionnelle (optionnel)</span>
+                            </div>
+                            
+                            <div className="task-photo-upload">
+                              <input 
+                                type="file"
+                                accept="image/*"
+                                capture="environment"
+                                onChange={handleAdditionalPhotoChange}
+                                className="form-input"
+                              />
+                              
+                              {additionalPhotoPreview && (
+                                <div className="photo-preview-container">
+                                  <div className="photo-preview">
+                                    <img src={additionalPhotoPreview} alt="Prévisualisation additionnelle" />
+                                  </div>
+                                </div>
+                              )}
+                              
+                              <div className="form-group">
+                                <label className="form-label">Description</label>
+                                <input
+                                  type="text"
+                                  value={additionalPhotoDescription}
+                                  onChange={(e) => setAdditionalPhotoDescription(e.target.value)}
+                                  className="form-input"
+                                  placeholder="Description de la photo..."
+                                />
+                              </div>
+                              
+                              <button 
+                                onClick={() => handleAddAdditionalPhoto('parking')}
                                 className="btn btn-photo"
                                 disabled={!additionalPhotoFile || taskLoading}
                               >

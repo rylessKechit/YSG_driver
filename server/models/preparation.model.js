@@ -100,6 +100,11 @@ const preparationSchema = new mongoose.Schema({
       type: taskSchema,
       default: () => ({})
     },
+    // Ajout de la nouvelle tâche "stationnement"
+    parking: {
+      type: taskSchema,
+      default: () => ({})
+    }
   },
   status: {
     type: String,

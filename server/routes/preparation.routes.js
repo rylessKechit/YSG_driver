@@ -128,7 +128,7 @@ router.post('/:id/tasks/:taskType/start', verifyToken, upload.single('photo'), a
     }
     
     // Vérifier que la tâche existe
-    const validTasks = ['exteriorWashing', 'interiorCleaning', 'refueling', 'vehicleTransfer'];
+    const validTasks = ['exteriorWashing', 'interiorCleaning', 'refueling', 'parking'];
     if (!validTasks.includes(taskType)) {
       return res.status(400).json({ message: 'Type de tâche invalide' });
     }
@@ -209,7 +209,7 @@ router.post('/:id/tasks/:taskType/complete', verifyToken, upload.single('photo')
     }
     
     // Vérifier que la tâche existe
-    const validTasks = ['exteriorWashing', 'interiorCleaning', 'refueling', 'vehicleTransfer'];
+    const validTasks = ['exteriorWashing', 'interiorCleaning', 'refueling', 'parking'];
     if (!validTasks.includes(taskType)) {
       return res.status(400).json({ message: 'Type de tâche invalide' });
     }
@@ -308,7 +308,7 @@ router.post('/:id/tasks/:taskType/photos', verifyToken, upload.single('photo'), 
     }
     
     // Vérifier que la tâche existe
-    const validTasks = ['exteriorWashing', 'interiorCleaning', 'refueling', 'vehicleTransfer'];
+    const validTasks = ['exteriorWashing', 'interiorCleaning', 'refueling', 'parking'];
     if (!validTasks.includes(taskType)) {
       return res.status(400).json({ message: 'Type de tâche invalide' });
     }

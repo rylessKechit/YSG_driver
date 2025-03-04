@@ -624,6 +624,218 @@
   font-weight: 600;
 }
 
+/* Styles pour l'accordéon de photos - à ajouter à MovementDetail.css */
+
+/* Conteneur principal de l'accordéon */
+.photo-accordion {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 20px;
+  margin-bottom: 30px;
+}
+
+/* Style pour chaque item de l'accordéon */
+.photo-accordion-item {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* En-tête de l'accordéon (cliquable) */
+.photo-accordion-header {
+  padding: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  background-color: #f9fafb;
+  transition: background-color 0.2s;
+  user-select: none;
+}
+
+.photo-accordion-header:hover {
+  background-color: #f3f4f6;
+}
+
+/* Style pour les items complétés */
+.photo-accordion-header.completed {
+  background-color: #d1fae5;
+  border-left: 4px solid #10b981;
+}
+
+/* Titre de la section de photo */
+.photo-section-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+/* Indicateurs d'état */
+.status-icon {
+  color: #6b7280;
+  font-size: 1.125rem;
+}
+
+.photo-accordion-header.completed .status-icon {
+  color: #10b981;
+}
+
+/* Actions dans l'en-tête */
+.photo-section-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.photo-status-text {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.photo-accordion-header.completed .photo-status-text {
+  color: #10b981;
+  font-weight: 500;
+}
+
+/* Contenu de l'accordéon */
+.photo-accordion-content {
+  padding: 20px;
+  border-top: 1px solid #e5e7eb;
+  animation: fadeIn 0.3s ease-in;
+}
+
+/* Conteneur pour les photos déjà complétées */
+.completed-photo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+
+/* Conteneur pour l'upload de photo */
+.photo-upload-container {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+/* Instructions pour prendre une photo */
+.photo-instruction {
+  color: #4b5563;
+  margin-bottom: 10px;
+}
+
+/* Wrapper pour l'input de fichier et la prévisualisation */
+.file-upload-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+/* Preview de l'image */
+.preview-image {
+  max-width: 100%;
+  height: auto;
+  max-height: 300px;
+  border-radius: 6px;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s;
+}
+
+.preview-image:hover {
+  transform: scale(1.02);
+}
+
+.photo-preview-wrapper {
+  margin: 10px 0;
+  text-align: center;
+}
+
+/* Bouton pour remplacer une photo */
+.photo-replace-btn {
+  max-width: 200px;
+}
+
+/* Section de confirmation des photos */
+.photos-confirmation-section {
+  margin-top: 30px;
+  padding: 20px;
+  border-radius: 8px;
+  background-color: #f9fafb;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  text-align: center;
+}
+
+.photos-complete-message {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #10b981;
+  font-weight: 500;
+}
+
+.photos-incomplete-message {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #f59e0b;
+  font-weight: 500;
+}
+
+.photos-complete-message i, 
+.photos-incomplete-message i {
+  font-size: 1.25rem;
+}
+
+/* Grand bouton pour commencer le trajet */
+.start-movement-btn {
+  width: 100%;
+  max-width: 400px;
+  padding: 15px 20px;
+  font-size: 1.125rem;
+  margin-top: 10px;
+}
+
+.btn-lg {
+  padding: 12px 20px;
+  font-size: 1.125rem;
+}
+
+.btn-block {
+  display: block;
+  width: 100%;
+}
+
+/* Animation de fondu */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .photo-accordion-header {
+    padding: 12px;
+  }
+  
+  .photo-section-title {
+    font-size: 0.9375rem;
+  }
+  
+  .photo-accordion-content {
+    padding: 15px;
+  }
+}
+
 @media (min-width: 768px) {
   .upload-form {
     flex-direction: row;
