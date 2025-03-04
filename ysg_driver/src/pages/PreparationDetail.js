@@ -285,6 +285,45 @@ const PreparationDetail = () => {
     );
   };
 
+  const handleParkingTask = async () => {
+    if (!photoAfterFile) {
+      setError('Vous devez prendre une photo pour valider le stationnement');
+      return;
+    }
+    
+    try {
+      setTaskLoading(true);
+      setError(null);
+      
+      // ÉTAPE 1: Démarrer la tâche de parking (passer à "in_progress")
+      await preparationService.startTask(id, 'parking', photoAfterFile, taskNotes);
+      
+      // Brève pause pour s'assurer que la première requête est traitée
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // ÉTAPE 2: Compléter immédiatement la tâche (passer à "completed")
+      const additionalData = { notes: taskNotes };
+      await preparationService.completeTask(id, 'parking', photoAfterFile, additionalData);
+      
+      setSuccess('Stationnement validé avec succès');
+      
+      // Réinitialiser les états
+      setPhotoAfterFile(null);
+      setPhotoAfterPreview(null);
+      setTaskNotes('');
+      
+      // Recharger la préparation pour afficher les changements
+      await loadPreparation();
+      
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err) {
+      console.error('Erreur lors de la validation du stationnement:', err);
+      setError(err.response?.data?.message || 'Erreur lors de la validation du stationnement');
+    } finally {
+      setTaskLoading(false);
+    }
+  };
+
   // Vérifier si au moins une tâche est complétée
   const hasCompletedTasks = () => {
     if (!preparation) return false;
@@ -1227,24 +1266,9 @@ const PreparationDetail = () => {
                     {/* Photos avant/après si complétées */}
                     {(preparation.tasks.parking?.photos?.before || preparation.tasks.parking?.photos?.after) && (
                       <div className="task-photos">
-                        {preparation.tasks.parking?.photos?.before && (
-                          <div className="photo-container">
-                            <div className="photo-header">Photo avant</div>
-                            <img 
-                              src={preparation.tasks.parking.photos.before.url} 
-                              alt="Avant stationnement" 
-                              className="photo-image"
-                              onClick={() => openFullScreenImage(preparation.tasks.parking.photos.before.url)}
-                            />
-                            <div className="photo-timestamp">
-                              {formatDate(preparation.tasks.parking.photos.before.timestamp)}
-                            </div>
-                          </div>
-                        )}
-                        
                         {preparation.tasks.parking?.photos?.after && (
                           <div className="photo-container">
-                            <div className="photo-header">Photo après</div>
+                            <div className="photo-header">Photo du véhicule stationné</div>
                             <img 
                               src={preparation.tasks.parking.photos.after.url} 
                               alt="Après stationnement" 
@@ -1333,7 +1357,7 @@ const PreparationDetail = () => {
                               </div>
                               
                               <button 
-                                onClick={() => handleCompleteTask('parking')}
+                                onClick={handleParkingTask}  // Utilisez la nouvelle fonction au lieu de handleCompleteTask
                                 className="btn btn-success"
                                 disabled={!photoAfterFile || taskLoading}
                               >
