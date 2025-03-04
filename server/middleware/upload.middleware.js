@@ -1,31 +1,29 @@
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
-// Créer le dossier d'upload s'il n'existe pas
-const uploadDir = path.join(__dirname, '../uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
+// Configuration de Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
 
-// Configuration du stockage
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const userId = req.user._id;
-    const userDir = path.join(uploadDir, userId.toString());
-    
-    // Créer un dossier pour l'utilisateur s'il n'existe pas
-    if (!fs.existsSync(userDir)) {
-      fs.mkdirSync(userDir, { recursive: true });
+// Configuration du stockage Cloudinary
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'ysg-driver-app',
+    format: async (req, file) => {
+      // Convertir en jpg pour optimiser la taille
+      return 'jpg';
+    },
+    public_id: (req, file) => {
+      const userId = req.user ? req.user._id : 'unknown';
+      const taskType = req.params ? req.params.taskType || 'general' : 'general';
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      return `user-${userId}-${taskType}-${uniqueSuffix}`;
     }
-    
-    cb(null, userDir);
-  },
-  filename: (req, file, cb) => {
-    // Générer un nom de fichier unique
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const ext = path.extname(file.originalname);
-    cb(null, uniqueSuffix + ext);
   }
 });
 

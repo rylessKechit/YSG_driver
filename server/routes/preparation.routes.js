@@ -114,6 +114,8 @@ router.post('/:id/tasks/:taskType/start', verifyToken, upload.single('photo'), a
     const { id, taskType } = req.params;
     const { notes } = req.body;
     
+    console.log(`Démarrage de la tâche ${taskType} pour préparation ${id}`);
+    
     // Vérifier que la préparation existe
     const preparation = await Preparation.findById(id);
     if (!preparation) {
@@ -131,6 +133,14 @@ router.post('/:id/tasks/:taskType/start', verifyToken, upload.single('photo'), a
       return res.status(400).json({ message: 'Type de tâche invalide' });
     }
     
+    // S'assurer que la tâche est initialisée correctement
+    if (!preparation.tasks[taskType]) {
+      preparation.tasks[taskType] = {
+        status: 'not_started',
+        photos: { additional: [] }
+      };
+    }
+    
     // Vérifier que la tâche n'est pas déjà commencée ou terminée
     if (preparation.tasks[taskType].status !== 'not_started') {
       return res.status(400).json({ message: `La tâche ${taskType} est déjà ${preparation.tasks[taskType].status === 'in_progress' ? 'en cours' : 'terminée'}` });
@@ -141,15 +151,21 @@ router.post('/:id/tasks/:taskType/start', verifyToken, upload.single('photo'), a
       return res.status(400).json({ message: 'Une photo "before" est requise pour commencer la tâche' });
     }
     
-    // Préparer l'URL de la photo
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
-    const photoUrl = `${baseUrl}/uploads/${req.user._id}/${req.file.filename}`;
+    console.log(`Photo reçue: ${req.file.path}`);
+    
+    // Utiliser l'URL Cloudinary
+    const photoUrl = req.file.path;
     
     // Mettre à jour le statut de la tâche
     preparation.tasks[taskType].status = 'in_progress';
     preparation.tasks[taskType].startedAt = new Date();
     preparation.tasks[taskType].notes = notes || preparation.tasks[taskType].notes;
-    preparation.tasks[taskType].photos = preparation.tasks[taskType].photos || { additional: [] };
+    
+    // Initialiser la structure photos si nécessaire
+    if (!preparation.tasks[taskType].photos) {
+      preparation.tasks[taskType].photos = { additional: [] };
+    }
+    
     preparation.tasks[taskType].photos.before = {
       url: photoUrl,
       timestamp: new Date()
@@ -169,7 +185,7 @@ router.post('/:id/tasks/:taskType/start', verifyToken, upload.single('photo'), a
     });
   } catch (error) {
     console.error('Erreur lors du démarrage de la tâche:', error);
-    res.status(500).json({ message: 'Erreur serveur' });
+    res.status(500).json({ message: `Erreur lors du démarrage de la tâche: ${error.message}` });
   }
 });
 
@@ -178,6 +194,8 @@ router.post('/:id/tasks/:taskType/complete', verifyToken, upload.single('photo')
   try {
     const { id, taskType } = req.params;
     const { notes, amount, departureLocation, arrivalLocation } = req.body;
+    
+    console.log(`Completion de la tâche ${taskType} pour préparation ${id}`);
     
     // Vérifier que la préparation existe
     const preparation = await Preparation.findById(id);
@@ -196,6 +214,11 @@ router.post('/:id/tasks/:taskType/complete', verifyToken, upload.single('photo')
       return res.status(400).json({ message: 'Type de tâche invalide' });
     }
     
+    // S'assurer que la tâche est initialisée correctement
+    if (!preparation.tasks[taskType]) {
+      return res.status(400).json({ message: 'La tâche doit d\'abord être commencée' });
+    }
+    
     // Vérifier que la tâche est en cours
     if (preparation.tasks[taskType].status !== 'in_progress') {
       return res.status(400).json({ 
@@ -208,9 +231,10 @@ router.post('/:id/tasks/:taskType/complete', verifyToken, upload.single('photo')
       return res.status(400).json({ message: 'Une photo "after" est requise pour terminer la tâche' });
     }
     
-    // Préparer l'URL de la photo
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
-    const photoUrl = `${baseUrl}/uploads/${req.user._id}/${req.file.filename}`;
+    console.log(`Photo reçue: ${req.file.path}`);
+    
+    // Utiliser l'URL Cloudinary
+    const photoUrl = req.file.path;
     
     // Ajouter des données spécifiques selon le type de tâche
     if (taskType === 'refueling' && amount) {
@@ -220,14 +244,16 @@ router.post('/:id/tasks/:taskType/complete', verifyToken, upload.single('photo')
     if (taskType === 'vehicleTransfer') {
       if (departureLocation) {
         try {
-          preparation.tasks[taskType].departureLocation = JSON.parse(departureLocation);
+          preparation.tasks[taskType].departureLocation = typeof departureLocation === 'string' ? 
+            JSON.parse(departureLocation) : departureLocation;
         } catch (e) {
           preparation.tasks[taskType].departureLocation = { name: departureLocation };
         }
       }
       if (arrivalLocation) {
         try {
-          preparation.tasks[taskType].arrivalLocation = JSON.parse(arrivalLocation);
+          preparation.tasks[taskType].arrivalLocation = typeof arrivalLocation === 'string' ? 
+            JSON.parse(arrivalLocation) : arrivalLocation;
         } catch (e) {
           preparation.tasks[taskType].arrivalLocation = { name: arrivalLocation };
         }
@@ -239,6 +265,11 @@ router.post('/:id/tasks/:taskType/complete', verifyToken, upload.single('photo')
     preparation.tasks[taskType].completedAt = new Date();
     if (notes) {
       preparation.tasks[taskType].notes = notes;
+    }
+    
+    // S'assurer que la structure photos existe
+    if (!preparation.tasks[taskType].photos) {
+      preparation.tasks[taskType].photos = { additional: [] };
     }
     
     // Ajouter la photo "after"
@@ -255,7 +286,7 @@ router.post('/:id/tasks/:taskType/complete', verifyToken, upload.single('photo')
     });
   } catch (error) {
     console.error('Erreur lors de la finalisation de la tâche:', error);
-    res.status(500).json({ message: 'Erreur serveur' });
+    res.status(500).json({ message: `Erreur lors de la finalisation de la tâche: ${error.message}` });
   }
 });
 
@@ -288,8 +319,7 @@ router.post('/:id/tasks/:taskType/photos', verifyToken, upload.single('photo'), 
     }
     
     // Préparer l'URL de la photo
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
-    const photoUrl = `${baseUrl}/uploads/${req.user._id}/${req.file.filename}`;
+    const photoUrl = req.file.path;
     
     // Initialiser le tableau des photos additionnelles s'il n'existe pas
     if (!preparation.tasks[taskType].photos) {
@@ -383,10 +413,8 @@ router.post('/:id/photos', verifyToken, upload.array('photos', 5), async (req, r
     
     // Ajouter les photos
     if (req.files && req.files.length > 0) {
-      const baseUrl = `${req.protocol}://${req.get('host')}`;
-      
       const photos = req.files.map(file => ({
-        url: `${baseUrl}/uploads/${req.user._id}/${file.filename}`,
+        url: file.path, // Utiliser l'URL fournie par Cloudinary
         type,
         timestamp: new Date()
       }));

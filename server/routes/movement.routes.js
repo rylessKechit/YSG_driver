@@ -464,10 +464,9 @@ router.post('/:id/photos', verifyToken, upload.array('photos', 5), async (req, r
     
     // Ajouter les photos
     if (req.files && req.files.length > 0) {
-      const baseUrl = `${req.protocol}://${req.get('host')}`;
-      
+      // MODIFICATION ICI: Utiliser l'URL fournie par Cloudinary
       const photos = req.files.map(file => ({
-        url: `${baseUrl}/uploads/${req.user._id}/${file.filename}`,
+        url: file.path, // Cloudinary renvoie le chemin complet dans file.path
         type,
         timestamp: new Date()
       }));
