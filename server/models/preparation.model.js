@@ -1,6 +1,72 @@
 // server/models/preparation.model.js
 const mongoose = require('mongoose');
 
+// Schéma pour les photos liées à une tâche spécifique
+const taskPhotoSchema = new mongoose.Schema({
+  url: {
+    type: String,
+    required: true
+  },
+  timestamp: {
+    type: Date,
+    default: Date.now
+  }
+});
+
+// Schéma pour les photos additionnelles avec description
+const additionalPhotoSchema = new mongoose.Schema({
+  url: {
+    type: String,
+    required: true
+  },
+  timestamp: {
+    type: Date,
+    default: Date.now
+  },
+  description: {
+    type: String
+  }
+});
+
+// Schéma pour les photos d'une tâche
+const taskPhotosSchema = new mongoose.Schema({
+  before: taskPhotoSchema,
+  after: taskPhotoSchema,
+  additional: [additionalPhotoSchema]
+});
+
+// Schéma pour une tâche
+const taskSchema = new mongoose.Schema({
+  status: {
+    type: String,
+    enum: ['not_started', 'in_progress', 'completed'],
+    default: 'not_started'
+  },
+  startedAt: Date,
+  completedAt: Date,
+  notes: String,
+  photos: {
+    type: taskPhotosSchema,
+    default: { additional: [] }
+  },
+  // Champs spécifiques conservés pour certaines tâches
+  amount: Number, // pour refueling (litres)
+  departureLocation: {
+    name: String,
+    coordinates: {
+      latitude: Number,
+      longitude: Number
+    }
+  }, // pour vehicleTransfer
+  arrivalLocation: {
+    name: String,
+    coordinates: {
+      latitude: Number,
+      longitude: Number
+    }
+  } // pour vehicleTransfer
+});
+
 const preparationSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -23,51 +89,20 @@ const preparationSchema = new mongoose.Schema({
   },
   tasks: {
     exteriorWashing: {
-      completed: {
-        type: Boolean,
-        default: false
-      },
-      completedAt: Date,
-      notes: String
+      type: taskSchema,
+      default: () => ({})
     },
     interiorCleaning: {
-      completed: {
-        type: Boolean,
-        default: false
-      },
-      completedAt: Date,
-      notes: String
+      type: taskSchema,
+      default: () => ({})
     },
     refueling: {
-      completed: {
-        type: Boolean,
-        default: false
-      },
-      completedAt: Date,
-      amount: Number, // Litres
-      notes: String
+      type: taskSchema,
+      default: () => ({})
     },
     vehicleTransfer: {
-      completed: {
-        type: Boolean,
-        default: false
-      },
-      completedAt: Date,
-      departureLocation: {
-        name: String,
-        coordinates: {
-          latitude: Number,
-          longitude: Number
-        }
-      },
-      arrivalLocation: {
-        name: String,
-        coordinates: {
-          latitude: Number,
-          longitude: Number
-        }
-      },
-      notes: String
+      type: taskSchema,
+      default: () => ({})
     }
   },
   status: {
@@ -81,6 +116,7 @@ const preparationSchema = new mongoose.Schema({
   endTime: {
     type: Date
   },
+  // Conserver ce tableau pour les photos générales de la préparation (dommages, etc.)
   photos: [{
     url: {
       type: String,
@@ -92,7 +128,7 @@ const preparationSchema = new mongoose.Schema({
     },
     type: {
       type: String,
-      enum: ['before', 'after', 'damage', 'other'],
+      enum: ['damage', 'other'],
       default: 'other'
     }
   }],

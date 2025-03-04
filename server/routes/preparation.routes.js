@@ -108,11 +108,11 @@ router.get('/preparators-on-duty', verifyToken, isAdmin, async (req, res) => {
   }
 });
 
-// Mettre à jour les tâches de préparation
-router.put('/:id/tasks', verifyToken, async (req, res) => {
+// NOUVELLE ROUTE: Commencer une tâche (requiert photo "before")
+router.post('/:id/tasks/:taskType/start', verifyToken, upload.single('photo'), async (req, res) => {
   try {
-    const { id } = req.params;
-    const { taskType, completed, notes, amount, departureLocation, arrivalLocation } = req.body;
+    const { id, taskType } = req.params;
+    const { notes } = req.body;
     
     // Vérifier que la préparation existe
     const preparation = await Preparation.findById(id);
@@ -131,39 +131,190 @@ router.put('/:id/tasks', verifyToken, async (req, res) => {
       return res.status(400).json({ message: 'Type de tâche invalide' });
     }
     
-    // Mettre à jour la tâche
-    const updateData = {
-      [`tasks.${taskType}.completed`]: completed === true,
-      [`tasks.${taskType}.completedAt`]: completed === true ? new Date() : null,
-      [`tasks.${taskType}.notes`]: notes
+    // Vérifier que la tâche n'est pas déjà commencée ou terminée
+    if (preparation.tasks[taskType].status !== 'not_started') {
+      return res.status(400).json({ message: `La tâche ${taskType} est déjà ${preparation.tasks[taskType].status === 'in_progress' ? 'en cours' : 'terminée'}` });
+    }
+    
+    // Vérifier qu'une photo a été fournie
+    if (!req.file) {
+      return res.status(400).json({ message: 'Une photo "before" est requise pour commencer la tâche' });
+    }
+    
+    // Préparer l'URL de la photo
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const photoUrl = `${baseUrl}/uploads/${req.user._id}/${req.file.filename}`;
+    
+    // Mettre à jour le statut de la tâche
+    preparation.tasks[taskType].status = 'in_progress';
+    preparation.tasks[taskType].startedAt = new Date();
+    preparation.tasks[taskType].notes = notes || preparation.tasks[taskType].notes;
+    preparation.tasks[taskType].photos = preparation.tasks[taskType].photos || { additional: [] };
+    preparation.tasks[taskType].photos.before = {
+      url: photoUrl,
+      timestamp: new Date()
     };
+    
+    // Si c'est la première tâche commencée, mettre à jour le statut de la préparation
+    if (preparation.status === 'pending') {
+      preparation.status = 'in-progress';
+      preparation.startTime = new Date();
+    }
+    
+    await preparation.save();
+    
+    res.json({
+      message: `Tâche ${taskType} commencée avec succès`,
+      preparation
+    });
+  } catch (error) {
+    console.error('Erreur lors du démarrage de la tâche:', error);
+    res.status(500).json({ message: 'Erreur serveur' });
+  }
+});
+
+// NOUVELLE ROUTE: Terminer une tâche (requiert photo "after")
+router.post('/:id/tasks/:taskType/complete', verifyToken, upload.single('photo'), async (req, res) => {
+  try {
+    const { id, taskType } = req.params;
+    const { notes, amount, departureLocation, arrivalLocation } = req.body;
+    
+    // Vérifier que la préparation existe
+    const preparation = await Preparation.findById(id);
+    if (!preparation) {
+      return res.status(404).json({ message: 'Préparation non trouvée' });
+    }
+    
+    // Vérifier que l'utilisateur est le préparateur assigné ou un admin
+    if (preparation.userId.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Vous n\'êtes pas autorisé à modifier cette préparation' });
+    }
+    
+    // Vérifier que la tâche existe
+    const validTasks = ['exteriorWashing', 'interiorCleaning', 'refueling', 'vehicleTransfer'];
+    if (!validTasks.includes(taskType)) {
+      return res.status(400).json({ message: 'Type de tâche invalide' });
+    }
+    
+    // Vérifier que la tâche est en cours
+    if (preparation.tasks[taskType].status !== 'in_progress') {
+      return res.status(400).json({ 
+        message: `La tâche ${taskType} n'est pas en cours. Statut actuel: ${preparation.tasks[taskType].status}` 
+      });
+    }
+    
+    // Vérifier qu'une photo a été fournie
+    if (!req.file) {
+      return res.status(400).json({ message: 'Une photo "after" est requise pour terminer la tâche' });
+    }
+    
+    // Préparer l'URL de la photo
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const photoUrl = `${baseUrl}/uploads/${req.user._id}/${req.file.filename}`;
     
     // Ajouter des données spécifiques selon le type de tâche
     if (taskType === 'refueling' && amount) {
-      updateData[`tasks.${taskType}.amount`] = amount;
+      preparation.tasks[taskType].amount = parseFloat(amount);
     }
     
     if (taskType === 'vehicleTransfer') {
       if (departureLocation) {
-        updateData[`tasks.${taskType}.departureLocation`] = departureLocation;
+        try {
+          preparation.tasks[taskType].departureLocation = JSON.parse(departureLocation);
+        } catch (e) {
+          preparation.tasks[taskType].departureLocation = { name: departureLocation };
+        }
       }
       if (arrivalLocation) {
-        updateData[`tasks.${taskType}.arrivalLocation`] = arrivalLocation;
+        try {
+          preparation.tasks[taskType].arrivalLocation = JSON.parse(arrivalLocation);
+        } catch (e) {
+          preparation.tasks[taskType].arrivalLocation = { name: arrivalLocation };
+        }
       }
     }
     
-    const updatedPreparation = await Preparation.findByIdAndUpdate(
-      id,
-      { $set: updateData },
-      { new: true }
-    );
+    // Mettre à jour le statut de la tâche
+    preparation.tasks[taskType].status = 'completed';
+    preparation.tasks[taskType].completedAt = new Date();
+    if (notes) {
+      preparation.tasks[taskType].notes = notes;
+    }
+    
+    // Ajouter la photo "after"
+    preparation.tasks[taskType].photos.after = {
+      url: photoUrl,
+      timestamp: new Date()
+    };
+    
+    await preparation.save();
     
     res.json({
-      message: 'Tâche mise à jour avec succès',
-      preparation: updatedPreparation
+      message: `Tâche ${taskType} terminée avec succès`,
+      preparation
     });
   } catch (error) {
-    console.error('Erreur lors de la mise à jour de la tâche:', error);
+    console.error('Erreur lors de la finalisation de la tâche:', error);
+    res.status(500).json({ message: 'Erreur serveur' });
+  }
+});
+
+// NOUVELLE ROUTE: Ajouter une photo additionnelle à une tâche
+router.post('/:id/tasks/:taskType/photos', verifyToken, upload.single('photo'), async (req, res) => {
+  try {
+    const { id, taskType } = req.params;
+    const { description } = req.body;
+    
+    // Vérifier que la préparation existe
+    const preparation = await Preparation.findById(id);
+    if (!preparation) {
+      return res.status(404).json({ message: 'Préparation non trouvée' });
+    }
+    
+    // Vérifier que l'utilisateur est le préparateur assigné ou un admin
+    if (preparation.userId.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Vous n\'êtes pas autorisé à modifier cette préparation' });
+    }
+    
+    // Vérifier que la tâche existe
+    const validTasks = ['exteriorWashing', 'interiorCleaning', 'refueling', 'vehicleTransfer'];
+    if (!validTasks.includes(taskType)) {
+      return res.status(400).json({ message: 'Type de tâche invalide' });
+    }
+    
+    // Vérifier qu'une photo a été fournie
+    if (!req.file) {
+      return res.status(400).json({ message: 'Une photo est requise' });
+    }
+    
+    // Préparer l'URL de la photo
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const photoUrl = `${baseUrl}/uploads/${req.user._id}/${req.file.filename}`;
+    
+    // Initialiser le tableau des photos additionnelles s'il n'existe pas
+    if (!preparation.tasks[taskType].photos) {
+      preparation.tasks[taskType].photos = { additional: [] };
+    }
+    
+    if (!preparation.tasks[taskType].photos.additional) {
+      preparation.tasks[taskType].photos.additional = [];
+    }
+    
+    // Ajouter la photo additionnelle
+    preparation.tasks[taskType].photos.additional.push({
+      url: photoUrl,
+      timestamp: new Date(),
+      description: description || ''
+    });
+    
+    await preparation.save();
+    
+    res.json({
+      message: 'Photo additionnelle ajoutée avec succès',
+      preparation
+    });
+  } catch (error) {
+    console.error('Erreur lors de l\'ajout de la photo:', error);
     res.status(500).json({ message: 'Erreur serveur' });
   }
 });
@@ -183,6 +334,12 @@ router.put('/:id/complete', verifyToken, async (req, res) => {
     // Vérifier que l'utilisateur est le préparateur assigné ou un admin
     if (preparation.userId.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Vous n\'êtes pas autorisé à modifier cette préparation' });
+    }
+    
+    // Vérifier qu'au moins une tâche a été complétée
+    const hasTasks = Object.values(preparation.tasks).some(task => task.status === 'completed');
+    if (!hasTasks) {
+      return res.status(400).json({ message: 'Vous devez compléter au moins une tâche avant de terminer la préparation' });
     }
     
     // Mettre à jour la préparation
@@ -205,7 +362,7 @@ router.put('/:id/complete', verifyToken, async (req, res) => {
   }
 });
 
-// Upload de photos pour la préparation
+// Upload de photos générales pour la préparation (dommages, autres)
 router.post('/:id/photos', verifyToken, upload.array('photos', 5), async (req, res) => {
   try {
     const { id } = req.params;
@@ -221,7 +378,7 @@ router.post('/:id/photos', verifyToken, upload.array('photos', 5), async (req, r
       return res.status(403).json({ message: 'Vous n\'êtes pas autorisé à modifier cette préparation' });
     }
     
-    // Type de photo (avant, après, dommage, autre)
+    // Type de photo (dommage, autre)
     const { type = 'other' } = req.body;
     
     // Ajouter les photos
@@ -299,7 +456,7 @@ router.get('/:id', verifyToken, async (req, res) => {
       return res.status(404).json({ message: 'Préparation non trouvée' });
     }
     
-    // Si c'est un préparateur, vérifier qu'il est assigné à cette préparation
+    // Correction de la vérification pour les préparateurs
     if (req.user.role === 'preparator' && preparation.userId._id.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: 'Vous n\'êtes pas autorisé à accéder à cette préparation' });
     }
