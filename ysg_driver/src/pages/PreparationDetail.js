@@ -25,6 +25,9 @@ const PreparationDetail = () => {
   const [currentTask, setCurrentTask] = useState(null);
   const [taskLoading, setTaskLoading] = useState(false);
   
+  // Nouvel état pour l'accordéon des tâches
+  const [expandedTask, setExpandedTask] = useState(null);
+  
   // États pour les données spécifiques aux tâches
   const [refuelingAmount, setRefuelingAmount] = useState('');
   const [transferDeparture, setTransferDeparture] = useState('');
@@ -98,6 +101,15 @@ const PreparationDetail = () => {
       
       // Nettoyer l'URL lors du démontage pour éviter les fuites mémoire
       return () => URL.revokeObjectURL(previewUrl);
+    }
+  };
+
+  // Gérer le clic sur une tâche pour l'étendre/réduire
+  const toggleTaskExpansion = (taskType) => {
+    if (expandedTask === taskType) {
+      setExpandedTask(null);
+    } else {
+      setExpandedTask(taskType);
     }
   };
 
@@ -413,229 +425,248 @@ const PreparationDetail = () => {
             <div className="task-grid">
               {/* Lavage extérieur */}
               <div className="task-card">
-                <div className="task-header">
+                <div 
+                  className={`task-header ${expandedTask === 'exteriorWashing' ? 'expanded' : ''}`}
+                  onClick={() => toggleTaskExpansion('exteriorWashing')}
+                >
                   <h3 className="task-title">Lavage extérieur</h3>
-                  <span className={`task-status ${preparation.tasks.exteriorWashing.status}`}>
-                    {getTaskStatusLabel(preparation.tasks.exteriorWashing.status)}
-                  </span>
+                  <div className="task-header-info">
+                    <span className={`task-status ${preparation.tasks.exteriorWashing.status}`}>
+                      {getTaskStatusLabel(preparation.tasks.exteriorWashing.status)}
+                    </span>
+                    <i className={`fas fa-chevron-${expandedTask === 'exteriorWashing' ? 'up' : 'down'}`}></i>
+                  </div>
                 </div>
                 
-                {preparation.tasks.exteriorWashing.startedAt && (
-                  <div className="task-info">
-                    <i className="fas fa-clock"></i> Commencée: {formatDate(preparation.tasks.exteriorWashing.startedAt)}
-                  </div>
-                )}
-                
-                {preparation.tasks.exteriorWashing.completedAt && (
-                  <div className="task-info">
-                    <i className="fas fa-check-circle"></i> Terminée: {formatDate(preparation.tasks.exteriorWashing.completedAt)}
-                  </div>
-                )}
-                
-                {preparation.tasks.exteriorWashing.notes && (
-                  <div className="task-notes">
-                    <strong>Notes:</strong> {preparation.tasks.exteriorWashing.notes}
-                  </div>
-                )}
-                
-                {/* Photos avant/après si complétées */}
-                {(preparation.tasks.exteriorWashing.photos?.before || preparation.tasks.exteriorWashing.photos?.after) && (
-                  <div className="task-photos">
-                    {preparation.tasks.exteriorWashing.photos.before && (
-                      <div className="photo-container">
-                        <div className="photo-header">Photo avant</div>
-                        <img 
-                          src={preparation.tasks.exteriorWashing.photos.before.url} 
-                          alt="Avant lavage" 
-                          className="photo-image"
-                          onClick={() => openFullScreenImage(preparation.tasks.exteriorWashing.photos.before.url)}
-                        />
-                        <div className="photo-timestamp">
-                          {formatDate(preparation.tasks.exteriorWashing.photos.before.timestamp)}
+                {expandedTask === 'exteriorWashing' && (
+                  <div className="task-content">
+                    {preparation.tasks.exteriorWashing.startedAt && (
+                      <div className="task-info">
+                        <i className="fas fa-clock"></i> Commencée: {formatDate(preparation.tasks.exteriorWashing.startedAt)}
+                      </div>
+                    )}
+                    
+                    {preparation.tasks.exteriorWashing.completedAt && (
+                      <div className="task-info">
+                        <i className="fas fa-check-circle"></i> Terminée: {formatDate(preparation.tasks.exteriorWashing.completedAt)}
+                      </div>
+                    )}
+                    
+                    {preparation.tasks.exteriorWashing.notes && (
+                      <div className="task-notes">
+                        <strong>Notes:</strong> {preparation.tasks.exteriorWashing.notes}
+                      </div>
+                    )}
+                    
+                    {/* Photos avant/après si complétées */}
+                    {(preparation.tasks.exteriorWashing.photos?.before || preparation.tasks.exteriorWashing.photos?.after) && (
+                      <div className="task-photos">
+                        {preparation.tasks.exteriorWashing.photos.before && (
+                          <div className="photo-container">
+                            <div className="photo-header">Photo avant</div>
+                            <img 
+                              src={preparation.tasks.exteriorWashing.photos.before.url} 
+                              alt="Avant lavage" 
+                              className="photo-image"
+                              onClick={() => openFullScreenImage(preparation.tasks.exteriorWashing.photos.before.url)}
+                            />
+                            <div className="photo-timestamp">
+                              {formatDate(preparation.tasks.exteriorWashing.photos.before.timestamp)}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {preparation.tasks.exteriorWashing.photos.after && (
+                          <div className="photo-container">
+                            <div className="photo-header">Photo après</div>
+                            <img 
+                              src={preparation.tasks.exteriorWashing.photos.after.url} 
+                              alt="Après lavage" 
+                              className="photo-image" 
+                              onClick={() => openFullScreenImage(preparation.tasks.exteriorWashing.photos.after.url)}
+                            />
+                            <div className="photo-timestamp">
+                              {formatDate(preparation.tasks.exteriorWashing.photos.after.timestamp)}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* Photos additionnelles */}
+                    {preparation.tasks.exteriorWashing.photos?.additional && 
+                     preparation.tasks.exteriorWashing.photos.additional.length > 0 && (
+                      <div className="additional-photos">
+                        <div className="additional-photos-title">Photos additionnelles ({preparation.tasks.exteriorWashing.photos.additional.length})</div>
+                        <div className="additional-photos-grid">
+                          {preparation.tasks.exteriorWashing.photos.additional.map((photo, index) => (
+                            <div key={index} className="additional-photo-item">
+                              <img 
+                                src={photo.url} 
+                                alt={`Photo additionnelle ${index + 1}`} 
+                                className="additional-photo-img" 
+                                onClick={() => openFullScreenImage(photo.url)}
+                              />
+                              {photo.description && (
+                                <div className="additional-photo-description">
+                                  {photo.description}
+                                </div>
+                              )}
+                            </div>
+                          ))}
                         </div>
                       </div>
                     )}
                     
-                    {preparation.tasks.exteriorWashing.photos.after && (
-                      <div className="photo-container">
-                        <div className="photo-header">Photo après</div>
-                        <img 
-                          src={preparation.tasks.exteriorWashing.photos.after.url} 
-                          alt="Après lavage" 
-                          className="photo-image" 
-                          onClick={() => openFullScreenImage(preparation.tasks.exteriorWashing.photos.after.url)}
-                        />
-                        <div className="photo-timestamp">
-                          {formatDate(preparation.tasks.exteriorWashing.photos.after.timestamp)}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-                
-                {/* Photos additionnelles */}
-                {preparation.tasks.exteriorWashing.photos?.additional && 
-                 preparation.tasks.exteriorWashing.photos.additional.length > 0 && (
-                  <div className="additional-photos">
-                    <div className="additional-photos-title">Photos additionnelles ({preparation.tasks.exteriorWashing.photos.additional.length})</div>
-                    <div className="additional-photos-grid">
-                      {preparation.tasks.exteriorWashing.photos.additional.map((photo, index) => (
-                        <div key={index} className="additional-photo-item">
-                          <img 
-                            src={photo.url} 
-                            alt={`Photo additionnelle ${index + 1}`} 
-                            className="additional-photo-img" 
-                            onClick={() => openFullScreenImage(photo.url)}
-                          />
-                          {photo.description && (
-                            <div className="additional-photo-description">
-                              {photo.description}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                
-                {/* Actions selon le statut de la tâche */}
-                {canEdit() && preparation.status !== 'completed' && (
-                  <div className="task-actions">
-                    {preparation.tasks.exteriorWashing.status === 'not_started' && (
-                      <div className="task-step">
-                        <div className="task-step-header">
-                          <span className="step-number">1</span>
-                          <span>Commencer le lavage extérieur</span>
-                        </div>
-                        
-                        <p>Prenez une photo de l'état initial du véhicule avant de commencer le lavage.</p>
-                        
-                        <div className="task-photo-upload">
-                          <input 
-                            type="file"
-                            accept="image/*"
-                            onChange={handlePhotoBeforeChange}
-                            className="form-input"
-                          />
-                          
-                          {photoBeforePreview && (
-                            <div className="photo-preview-container">
-                              <div className="photo-preview">
-                                <img src={photoBeforePreview} alt="Prévisualisation avant" />
-                              </div>
-                            </div>
-                          )}
-                          
-                          <div className="form-group">
-                            <label className="form-label">Notes (optionnel)</label>
-                            <textarea
-                              value={taskNotes}
-                              onChange={(e) => setTaskNotes(e.target.value)}
-                              className="form-textarea"
-                              placeholder="Observations sur l'état initial..."
-                            />
-                          </div>
-                          
-                          <button 
-                            onClick={() => handleStartTask('exteriorWashing')}
-                            className="btn btn-primary"
-                            disabled={!photoBeforeFile || taskLoading}
-                          >
-                            {taskLoading ? 'Traitement...' : 'Commencer le lavage'}
-                          </button>
-                        </div>
+                    {/* Message pour tâche non démarrée */}
+                    {preparation.tasks.exteriorWashing.status === 'not_started' && 
+                     !preparation.tasks.exteriorWashing.startedAt && (
+                      <div className="task-not-started-message">
+                        <i className="fas fa-info-circle"></i>
+                        <span>Cette tâche n'a pas encore été démarrée.</span>
                       </div>
                     )}
                     
-                    {preparation.tasks.exteriorWashing.status === 'in_progress' && (
-                      <div className="task-step">
-                        <div className="task-step-header">
-                          <span className="step-number">2</span>
-                          <span>Terminer le lavage extérieur</span>
-                        </div>
-                        
-                        <p>Prenez une photo du véhicule après le lavage pour documenter le travail effectué.</p>
-                        
-                        <div className="task-photo-upload">
-                          <input 
-                            type="file"
-                            accept="image/*"
-                            onChange={handlePhotoAfterChange}
-                            className="form-input"
-                          />
-                          
-                          {photoAfterPreview && (
-                            <div className="photo-preview-container">
-                              <div className="photo-preview">
-                                <img src={photoAfterPreview} alt="Prévisualisation après" />
-                              </div>
+                    {/* Actions selon le statut de la tâche */}
+                    {canEdit() && preparation.status !== 'completed' && (
+                      <div className="task-actions">
+                        {preparation.tasks.exteriorWashing.status === 'not_started' && (
+                          <div className="task-step">
+                            <div className="task-step-header">
+                              <span className="step-number">1</span>
+                              <span>Commencer le lavage extérieur</span>
                             </div>
-                          )}
-                          
-                          <div className="form-group">
-                            <label className="form-label">Notes (optionnel)</label>
-                            <textarea
-                              value={taskNotes}
-                              onChange={(e) => setTaskNotes(e.target.value)}
-                              className="form-textarea"
-                              placeholder="Observations sur le travail effectué..."
-                            />
-                          </div>
-                          
-                          <button 
-                            onClick={() => handleCompleteTask('exteriorWashing')}
-                            className="btn btn-success"
-                            disabled={!photoAfterFile || taskLoading}
-                          >
-                            {taskLoading ? 'Traitement...' : 'Terminer le lavage'}
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* Formulaire pour ajouter une photo additionnelle (disponible si la tâche est en cours ou terminée) */}
-                    {(preparation.tasks.exteriorWashing.status === 'in_progress' || preparation.tasks.exteriorWashing.status === 'completed') && (
-                      <div className="task-step">
-                        <div className="task-step-header">
-                          <span className="step-number">+</span>
-                          <span>Ajouter une photo additionnelle (optionnel)</span>
-                        </div>
-                        
-                        <div className="task-photo-upload">
-                          <input 
-                            type="file"
-                            accept="image/*"
-                            onChange={handleAdditionalPhotoChange}
-                            className="form-input"
-                          />
-                          
-                          {additionalPhotoPreview && (
-                            <div className="photo-preview-container">
-                              <div className="photo-preview">
-                                <img src={additionalPhotoPreview} alt="Prévisualisation additionnelle" />
+                            
+                            <p>Prenez une photo de l'état initial du véhicule avant de commencer le lavage.</p>
+                            
+                            <div className="task-photo-upload">
+                              <input 
+                                type="file"
+                                accept="image/*"
+                                onChange={handlePhotoBeforeChange}
+                                className="form-input"
+                              />
+                              
+                              {photoBeforePreview && (
+                                <div className="photo-preview-container">
+                                  <div className="photo-preview">
+                                    <img src={photoBeforePreview} alt="Prévisualisation avant" />
+                                  </div>
+                                </div>
+                              )}
+                              
+                              <div className="form-group">
+                                <label className="form-label">Notes (optionnel)</label>
+                                <textarea
+                                  value={taskNotes}
+                                  onChange={(e) => setTaskNotes(e.target.value)}
+                                  className="form-textarea"
+                                  placeholder="Observations sur l'état initial..."
+                                />
                               </div>
+                              
+                              <button 
+                                onClick={() => handleStartTask('exteriorWashing')}
+                                className="btn btn-primary"
+                                disabled={!photoBeforeFile || taskLoading}
+                              >
+                                {taskLoading ? 'Traitement...' : 'Commencer le lavage'}
+                              </button>
                             </div>
-                          )}
-                          
-                          <div className="form-group">
-                            <label className="form-label">Description</label>
-                            <input
-                              type="text"
-                              value={additionalPhotoDescription}
-                              onChange={(e) => setAdditionalPhotoDescription(e.target.value)}
-                              className="form-input"
-                              placeholder="Description de la photo..."
-                            />
                           </div>
-                          
-                          <button 
-                            onClick={() => handleAddAdditionalPhoto('exteriorWashing')}
-                            className="btn btn-photo"
-                            disabled={!additionalPhotoFile || taskLoading}
-                          >
-                            {taskLoading ? 'Traitement...' : 'Ajouter la photo'}
-                          </button>
-                        </div>
+                        )}
+                        
+                        {preparation.tasks.exteriorWashing.status === 'in_progress' && (
+                          <div className="task-step">
+                            <div className="task-step-header">
+                              <span className="step-number">2</span>
+                              <span>Terminer le lavage extérieur</span>
+                            </div>
+                            
+                            <p>Prenez une photo du véhicule après le lavage pour documenter le travail effectué.</p>
+                            
+                            <div className="task-photo-upload">
+                              <input 
+                                type="file"
+                                accept="image/*"
+                                onChange={handlePhotoAfterChange}
+                                className="form-input"
+                              />
+                              
+                              {photoAfterPreview && (
+                                <div className="photo-preview-container">
+                                  <div className="photo-preview">
+                                    <img src={photoAfterPreview} alt="Prévisualisation après" />
+                                  </div>
+                                </div>
+                              )}
+                              
+                              <div className="form-group">
+                                <label className="form-label">Notes (optionnel)</label>
+                                <textarea
+                                  value={taskNotes}
+                                  onChange={(e) => setTaskNotes(e.target.value)}
+                                  className="form-textarea"
+                                  placeholder="Observations sur le travail effectué..."
+                                />
+                              </div>
+                              
+                              <button 
+                                onClick={() => handleCompleteTask('exteriorWashing')}
+                                className="btn btn-success"
+                                disabled={!photoAfterFile || taskLoading}
+                              >
+                                {taskLoading ? 'Traitement...' : 'Terminer le lavage'}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Formulaire pour ajouter une photo additionnelle (disponible si la tâche est en cours ou terminée) */}
+                        {(preparation.tasks.exteriorWashing.status === 'in_progress' || preparation.tasks.exteriorWashing.status === 'completed') && (
+                          <div className="task-step">
+                            <div className="task-step-header">
+                              <span className="step-number">+</span>
+                              <span>Ajouter une photo additionnelle (optionnel)</span>
+                            </div>
+                            
+                            <div className="task-photo-upload">
+                              <input 
+                                type="file"
+                                accept="image/*"
+                                onChange={handleAdditionalPhotoChange}
+                                className="form-input"
+                              />
+                              
+                              {additionalPhotoPreview && (
+                                <div className="photo-preview-container">
+                                  <div className="photo-preview">
+                                    <img src={additionalPhotoPreview} alt="Prévisualisation additionnelle" />
+                                  </div>
+                                </div>
+                              )}
+                              
+                              <div className="form-group">
+                                <label className="form-label">Description</label>
+                                <input
+                                  type="text"
+                                  value={additionalPhotoDescription}
+                                  onChange={(e) => setAdditionalPhotoDescription(e.target.value)}
+                                  className="form-input"
+                                  placeholder="Description de la photo..."
+                                />
+                              </div>
+                              
+                              <button 
+                                onClick={() => handleAddAdditionalPhoto('exteriorWashing')}
+                                className="btn btn-photo"
+                                disabled={!additionalPhotoFile || taskLoading}
+                              >
+                                {taskLoading ? 'Traitement...' : 'Ajouter la photo'}
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -644,229 +675,248 @@ const PreparationDetail = () => {
               
               {/* Nettoyage intérieur - Structure similaire */}
               <div className="task-card">
-                <div className="task-header">
+                <div 
+                  className={`task-header ${expandedTask === 'interiorCleaning' ? 'expanded' : ''}`}
+                  onClick={() => toggleTaskExpansion('interiorCleaning')}
+                >
                   <h3 className="task-title">Nettoyage intérieur</h3>
-                  <span className={`task-status ${preparation.tasks.interiorCleaning.status}`}>
-                    {getTaskStatusLabel(preparation.tasks.interiorCleaning.status)}
-                  </span>
+                  <div className="task-header-info">
+                    <span className={`task-status ${preparation.tasks.interiorCleaning.status}`}>
+                      {getTaskStatusLabel(preparation.tasks.interiorCleaning.status)}
+                    </span>
+                    <i className={`fas fa-chevron-${expandedTask === 'interiorCleaning' ? 'up' : 'down'}`}></i>
+                  </div>
                 </div>
                 
-                {preparation.tasks.interiorCleaning.startedAt && (
-                  <div className="task-info">
-                    <i className="fas fa-clock"></i> Commencée: {formatDate(preparation.tasks.interiorCleaning.startedAt)}
-                  </div>
-                )}
-                
-                {preparation.tasks.interiorCleaning.completedAt && (
-                  <div className="task-info">
-                    <i className="fas fa-check-circle"></i> Terminée: {formatDate(preparation.tasks.interiorCleaning.completedAt)}
-                  </div>
-                )}
-                
-                {preparation.tasks.interiorCleaning.notes && (
-                  <div className="task-notes">
-                    <strong>Notes:</strong> {preparation.tasks.interiorCleaning.notes}
-                  </div>
-                )}
-                
-                {/* Photos avant/après si complétées */}
-                {(preparation.tasks.interiorCleaning.photos?.before || preparation.tasks.interiorCleaning.photos?.after) && (
-                  <div className="task-photos">
-                    {preparation.tasks.interiorCleaning.photos.before && (
-                      <div className="photo-container">
-                        <div className="photo-header">Photo avant</div>
-                        <img 
-                          src={preparation.tasks.interiorCleaning.photos.before.url} 
-                          alt="Avant nettoyage" 
-                          className="photo-image"
-                          onClick={() => openFullScreenImage(preparation.tasks.interiorCleaning.photos.before.url)}
-                        />
-                        <div className="photo-timestamp">
-                          {formatDate(preparation.tasks.interiorCleaning.photos.before.timestamp)}
+                {expandedTask === 'interiorCleaning' && (
+                  <div className="task-content">
+                    {preparation.tasks.interiorCleaning.startedAt && (
+                      <div className="task-info">
+                        <i className="fas fa-clock"></i> Commencée: {formatDate(preparation.tasks.interiorCleaning.startedAt)}
+                      </div>
+                    )}
+                    
+                    {preparation.tasks.interiorCleaning.completedAt && (
+                      <div className="task-info">
+                        <i className="fas fa-check-circle"></i> Terminée: {formatDate(preparation.tasks.interiorCleaning.completedAt)}
+                      </div>
+                    )}
+                    
+                    {preparation.tasks.interiorCleaning.notes && (
+                      <div className="task-notes">
+                        <strong>Notes:</strong> {preparation.tasks.interiorCleaning.notes}
+                      </div>
+                    )}
+                    
+                    {/* Photos avant/après si complétées */}
+                    {(preparation.tasks.interiorCleaning.photos?.before || preparation.tasks.interiorCleaning.photos?.after) && (
+                      <div className="task-photos">
+                        {preparation.tasks.interiorCleaning.photos.before && (
+                          <div className="photo-container">
+                            <div className="photo-header">Photo avant</div>
+                            <img 
+                              src={preparation.tasks.interiorCleaning.photos.before.url} 
+                              alt="Avant nettoyage" 
+                              className="photo-image"
+                              onClick={() => openFullScreenImage(preparation.tasks.interiorCleaning.photos.before.url)}
+                            />
+                            <div className="photo-timestamp">
+                              {formatDate(preparation.tasks.interiorCleaning.photos.before.timestamp)}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {preparation.tasks.interiorCleaning.photos.after && (
+                          <div className="photo-container">
+                            <div className="photo-header">Photo après</div>
+                            <img 
+                              src={preparation.tasks.interiorCleaning.photos.after.url} 
+                              alt="Après nettoyage" 
+                              className="photo-image" 
+                              onClick={() => openFullScreenImage(preparation.tasks.interiorCleaning.photos.after.url)}
+                            />
+                            <div className="photo-timestamp">
+                              {formatDate(preparation.tasks.interiorCleaning.photos.after.timestamp)}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* Photos additionnelles */}
+                    {preparation.tasks.interiorCleaning.photos?.additional && 
+                     preparation.tasks.interiorCleaning.photos.additional.length > 0 && (
+                      <div className="additional-photos">
+                        <div className="additional-photos-title">Photos additionnelles ({preparation.tasks.interiorCleaning.photos.additional.length})</div>
+                        <div className="additional-photos-grid">
+                          {preparation.tasks.interiorCleaning.photos.additional.map((photo, index) => (
+                            <div key={index} className="additional-photo-item">
+                              <img 
+                                src={photo.url} 
+                                alt={`Photo additionnelle ${index + 1}`} 
+                                className="additional-photo-img" 
+                                onClick={() => openFullScreenImage(photo.url)}
+                              />
+                              {photo.description && (
+                                <div className="additional-photo-description">
+                                  {photo.description}
+                                </div>
+                              )}
+                            </div>
+                          ))}
                         </div>
                       </div>
                     )}
                     
-                    {preparation.tasks.interiorCleaning.photos.after && (
-                      <div className="photo-container">
-                        <div className="photo-header">Photo après</div>
-                        <img 
-                          src={preparation.tasks.interiorCleaning.photos.after.url} 
-                          alt="Après nettoyage" 
-                          className="photo-image" 
-                          onClick={() => openFullScreenImage(preparation.tasks.interiorCleaning.photos.after.url)}
-                        />
-                        <div className="photo-timestamp">
-                          {formatDate(preparation.tasks.interiorCleaning.photos.after.timestamp)}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-                
-                {/* Photos additionnelles */}
-                {preparation.tasks.interiorCleaning.photos?.additional && 
-                 preparation.tasks.interiorCleaning.photos.additional.length > 0 && (
-                  <div className="additional-photos">
-                    <div className="additional-photos-title">Photos additionnelles ({preparation.tasks.interiorCleaning.photos.additional.length})</div>
-                    <div className="additional-photos-grid">
-                      {preparation.tasks.interiorCleaning.photos.additional.map((photo, index) => (
-                        <div key={index} className="additional-photo-item">
-                          <img 
-                            src={photo.url} 
-                            alt={`Photo additionnelle ${index + 1}`} 
-                            className="additional-photo-img" 
-                            onClick={() => openFullScreenImage(photo.url)}
-                          />
-                          {photo.description && (
-                            <div className="additional-photo-description">
-                              {photo.description}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                
-                {/* Actions selon le statut de la tâche */}
-                {canEdit() && preparation.status !== 'completed' && (
-                  <div className="task-actions">
-                    {preparation.tasks.interiorCleaning.status === 'not_started' && (
-                      <div className="task-step">
-                        <div className="task-step-header">
-                          <span className="step-number">1</span>
-                          <span>Commencer le nettoyage intérieur</span>
-                        </div>
-                        
-                        <p>Prenez une photo de l'état initial de l'intérieur avant de commencer le nettoyage.</p>
-                        
-                        <div className="task-photo-upload">
-                          <input 
-                            type="file"
-                            accept="image/*"
-                            onChange={handlePhotoBeforeChange}
-                            className="form-input"
-                          />
-                          
-                          {photoBeforePreview && (
-                            <div className="photo-preview-container">
-                              <div className="photo-preview">
-                                <img src={photoBeforePreview} alt="Prévisualisation avant" />
-                              </div>
-                            </div>
-                          )}
-                          
-                          <div className="form-group">
-                            <label className="form-label">Notes (optionnel)</label>
-                            <textarea
-                              value={taskNotes}
-                              onChange={(e) => setTaskNotes(e.target.value)}
-                              className="form-textarea"
-                              placeholder="Observations sur l'état initial..."
-                            />
-                          </div>
-                          
-                          <button 
-                            onClick={() => handleStartTask('interiorCleaning')}
-                            className="btn btn-primary"
-                            disabled={!photoBeforeFile || taskLoading}
-                          >
-                            {taskLoading ? 'Traitement...' : 'Commencer le nettoyage'}
-                          </button>
-                        </div>
+                    {/* Message pour tâche non démarrée */}
+                    {preparation.tasks.interiorCleaning.status === 'not_started' && 
+                     !preparation.tasks.interiorCleaning.startedAt && (
+                      <div className="task-not-started-message">
+                        <i className="fas fa-info-circle"></i>
+                        <span>Cette tâche n'a pas encore été démarrée.</span>
                       </div>
                     )}
                     
-                    {preparation.tasks.interiorCleaning.status === 'in_progress' && (
-                      <div className="task-step">
-                        <div className="task-step-header">
-                          <span className="step-number">2</span>
-                          <span>Terminer le nettoyage intérieur</span>
-                        </div>
-                        
-                        <p>Prenez une photo de l'intérieur après le nettoyage pour documenter le travail effectué.</p>
-                        
-                        <div className="task-photo-upload">
-                          <input 
-                            type="file"
-                            accept="image/*"
-                            onChange={handlePhotoAfterChange}
-                            className="form-input"
-                          />
-                          
-                          {photoAfterPreview && (
-                            <div className="photo-preview-container">
-                              <div className="photo-preview">
-                                <img src={photoAfterPreview} alt="Prévisualisation après" />
-                              </div>
+                    {/* Actions selon le statut de la tâche */}
+                    {canEdit() && preparation.status !== 'completed' && (
+                      <div className="task-actions">
+                        {preparation.tasks.interiorCleaning.status === 'not_started' && (
+                          <div className="task-step">
+                            <div className="task-step-header">
+                              <span className="step-number">1</span>
+                              <span>Commencer le nettoyage intérieur</span>
                             </div>
-                          )}
-                          
-                          <div className="form-group">
-                            <label className="form-label">Notes (optionnel)</label>
-                            <textarea
-                              value={taskNotes}
-                              onChange={(e) => setTaskNotes(e.target.value)}
-                              className="form-textarea"
-                              placeholder="Observations sur le travail effectué..."
-                            />
-                          </div>
-                          
-                          <button 
-                            onClick={() => handleCompleteTask('interiorCleaning')}
-                            className="btn btn-success"
-                            disabled={!photoAfterFile || taskLoading}
-                          >
-                            {taskLoading ? 'Traitement...' : 'Terminer le nettoyage'}
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* Formulaire pour ajouter une photo additionnelle (disponible si la tâche est en cours ou terminée) */}
-                    {(preparation.tasks.interiorCleaning.status === 'in_progress' || preparation.tasks.interiorCleaning.status === 'completed') && (
-                      <div className="task-step">
-                        <div className="task-step-header">
-                          <span className="step-number">+</span>
-                          <span>Ajouter une photo additionnelle (optionnel)</span>
-                        </div>
-                        
-                        <div className="task-photo-upload">
-                          <input 
-                            type="file"
-                            accept="image/*"
-                            onChange={handleAdditionalPhotoChange}
-                            className="form-input"
-                          />
-                          
-                          {additionalPhotoPreview && (
-                            <div className="photo-preview-container">
-                              <div className="photo-preview">
-                                <img src={additionalPhotoPreview} alt="Prévisualisation additionnelle" />
+                            
+                            <p>Prenez une photo de l'état initial de l'intérieur avant de commencer le nettoyage.</p>
+                            
+                            <div className="task-photo-upload">
+                              <input 
+                                type="file"
+                                accept="image/*"
+                                onChange={handlePhotoBeforeChange}
+                                className="form-input"
+                              />
+                              
+                              {photoBeforePreview && (
+                                <div className="photo-preview-container">
+                                  <div className="photo-preview">
+                                    <img src={photoBeforePreview} alt="Prévisualisation avant" />
+                                  </div>
+                                </div>
+                              )}
+                              
+                              <div className="form-group">
+                                <label className="form-label">Notes (optionnel)</label>
+                                <textarea
+                                  value={taskNotes}
+                                  onChange={(e) => setTaskNotes(e.target.value)}
+                                  className="form-textarea"
+                                  placeholder="Observations sur l'état initial..."
+                                />
                               </div>
+                              
+                              <button 
+                                onClick={() => handleStartTask('interiorCleaning')}
+                                className="btn btn-primary"
+                                disabled={!photoBeforeFile || taskLoading}
+                              >
+                                {taskLoading ? 'Traitement...' : 'Commencer le nettoyage'}
+                              </button>
                             </div>
-                          )}
-                          
-                          <div className="form-group">
-                            <label className="form-label">Description</label>
-                            <input
-                              type="text"
-                              value={additionalPhotoDescription}
-                              onChange={(e) => setAdditionalPhotoDescription(e.target.value)}
-                              className="form-input"
-                              placeholder="Description de la photo..."
-                            />
                           </div>
-                          
-                          <button 
-                            onClick={() => handleAddAdditionalPhoto('interiorCleaning')}
-                            className="btn btn-photo"
-                            disabled={!additionalPhotoFile || taskLoading}
-                          >
-                            {taskLoading ? 'Traitement...' : 'Ajouter la photo'}
-                          </button>
-                        </div>
+                        )}
+                        
+                        {preparation.tasks.interiorCleaning.status === 'in_progress' && (
+                          <div className="task-step">
+                            <div className="task-step-header">
+                              <span className="step-number">2</span>
+                              <span>Terminer le nettoyage intérieur</span>
+                            </div>
+                            
+                            <p>Prenez une photo de l'intérieur après le nettoyage pour documenter le travail effectué.</p>
+                            
+                            <div className="task-photo-upload">
+                              <input 
+                                type="file"
+                                accept="image/*"
+                                onChange={handlePhotoAfterChange}
+                                className="form-input"
+                              />
+                              
+                              {photoAfterPreview && (
+                                <div className="photo-preview-container">
+                                  <div className="photo-preview">
+                                    <img src={photoAfterPreview} alt="Prévisualisation après" />
+                                  </div>
+                                </div>
+                              )}
+                              
+                              <div className="form-group">
+                                <label className="form-label">Notes (optionnel)</label>
+                                <textarea
+                                  value={taskNotes}
+                                  onChange={(e) => setTaskNotes(e.target.value)}
+                                  className="form-textarea"
+                                  placeholder="Observations sur le travail effectué..."
+                                />
+                              </div>
+                              
+                              <button 
+                                onClick={() => handleCompleteTask('interiorCleaning')}
+                                className="btn btn-success"
+                                disabled={!photoAfterFile || taskLoading}
+                              >
+                                {taskLoading ? 'Traitement...' : 'Terminer le nettoyage'}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Formulaire pour ajouter une photo additionnelle (disponible si la tâche est en cours ou terminée) */}
+                        {(preparation.tasks.interiorCleaning.status === 'in_progress' || preparation.tasks.interiorCleaning.status === 'completed') && (
+                          <div className="task-step">
+                            <div className="task-step-header">
+                              <span className="step-number">+</span>
+                              <span>Ajouter une photo additionnelle (optionnel)</span>
+                            </div>
+                            
+                            <div className="task-photo-upload">
+                              <input 
+                                type="file"
+                                accept="image/*"
+                                onChange={handleAdditionalPhotoChange}
+                                className="form-input"
+                              />
+                              
+                              {additionalPhotoPreview && (
+                                <div className="photo-preview-container">
+                                  <div className="photo-preview">
+                                    <img src={additionalPhotoPreview} alt="Prévisualisation additionnelle" />
+                                  </div>
+                                </div>
+                              )}
+                              
+                              <div className="form-group">
+                                <label className="form-label">Description</label>
+                                <input
+                                  type="text"
+                                  value={additionalPhotoDescription}
+                                  onChange={(e) => setAdditionalPhotoDescription(e.target.value)}
+                                  className="form-input"
+                                  placeholder="Description de la photo..."
+                                />
+                              </div>
+                              
+                              <button 
+                                onClick={() => handleAddAdditionalPhoto('interiorCleaning')}
+                                className="btn btn-photo"
+                                disabled={!additionalPhotoFile || taskLoading}
+                              >
+                                {taskLoading ? 'Traitement...' : 'Ajouter la photo'}
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -875,249 +925,268 @@ const PreparationDetail = () => {
               
               {/* Mise de carburant */}
               <div className="task-card">
-                <div className="task-header">
+                <div 
+                  className={`task-header ${expandedTask === 'refueling' ? 'expanded' : ''}`}
+                  onClick={() => toggleTaskExpansion('refueling')}
+                >
                   <h3 className="task-title">Mise de carburant</h3>
-                  <span className={`task-status ${preparation.tasks.refueling.status}`}>
-                    {getTaskStatusLabel(preparation.tasks.refueling.status)}
-                  </span>
+                  <div className="task-header-info">
+                    <span className={`task-status ${preparation.tasks.refueling.status}`}>
+                      {getTaskStatusLabel(preparation.tasks.refueling.status)}
+                    </span>
+                    <i className={`fas fa-chevron-${expandedTask === 'refueling' ? 'up' : 'down'}`}></i>
+                  </div>
                 </div>
                 
-                {preparation.tasks.refueling.startedAt && (
-                  <div className="task-info">
-                    <i className="fas fa-clock"></i> Commencée: {formatDate(preparation.tasks.refueling.startedAt)}
-                  </div>
-                )}
-                
-                {preparation.tasks.refueling.completedAt && (
-                  <div className="task-info">
-                    <i className="fas fa-check-circle"></i> Terminée: {formatDate(preparation.tasks.refueling.completedAt)}
-                  </div>
-                )}
-                
-                {preparation.tasks.refueling.amount && (
-                  <div className="task-info">
-                    <i className="fas fa-gas-pump"></i> Quantité: {preparation.tasks.refueling.amount} L
-                  </div>
-                )}
-                
-                {preparation.tasks.refueling.notes && (
-                  <div className="task-notes">
-                    <strong>Notes:</strong> {preparation.tasks.refueling.notes}
-                  </div>
-                )}
-                
-                {/* Photos avant/après si complétées */}
-                {(preparation.tasks.refueling.photos?.before || preparation.tasks.refueling.photos?.after) && (
-                  <div className="task-photos">
-                    {preparation.tasks.refueling.photos.before && (
-                      <div className="photo-container">
-                        <div className="photo-header">Photo avant</div>
-                        <img 
-                          src={preparation.tasks.refueling.photos.before.url} 
-                          alt="Avant carburant" 
-                          className="photo-image"
-                          onClick={() => openFullScreenImage(preparation.tasks.refueling.photos.before.url)}
-                        />
-                        <div className="photo-timestamp">
-                          {formatDate(preparation.tasks.refueling.photos.before.timestamp)}
+                {expandedTask === 'refueling' && (
+                  <div className="task-content">
+                    {preparation.tasks.refueling.startedAt && (
+                      <div className="task-info">
+                        <i className="fas fa-clock"></i> Commencée: {formatDate(preparation.tasks.refueling.startedAt)}
+                      </div>
+                    )}
+                    
+                    {preparation.tasks.refueling.completedAt && (
+                      <div className="task-info">
+                        <i className="fas fa-check-circle"></i> Terminée: {formatDate(preparation.tasks.refueling.completedAt)}
+                      </div>
+                    )}
+                    
+                    {preparation.tasks.refueling.amount && (
+                      <div className="task-info">
+                        <i className="fas fa-gas-pump"></i> Quantité: {preparation.tasks.refueling.amount} L
+                      </div>
+                    )}
+                    
+                    {preparation.tasks.refueling.notes && (
+                      <div className="task-notes">
+                        <strong>Notes:</strong> {preparation.tasks.refueling.notes}
+                      </div>
+                    )}
+                    
+                    {/* Photos avant/après si complétées */}
+                    {(preparation.tasks.refueling.photos?.before || preparation.tasks.refueling.photos?.after) && (
+                      <div className="task-photos">
+                        {preparation.tasks.refueling.photos.before && (
+                          <div className="photo-container">
+                            <div className="photo-header">Photo avant</div>
+                            <img 
+                              src={preparation.tasks.refueling.photos.before.url} 
+                              alt="Avant carburant" 
+                              className="photo-image"
+                              onClick={() => openFullScreenImage(preparation.tasks.refueling.photos.before.url)}
+                            />
+                            <div className="photo-timestamp">
+                              {formatDate(preparation.tasks.refueling.photos.before.timestamp)}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {preparation.tasks.refueling.photos.after && (
+                          <div className="photo-container">
+                            <div className="photo-header">Photo après</div>
+                            <img 
+                              src={preparation.tasks.refueling.photos.after.url} 
+                              alt="Après carburant" 
+                              className="photo-image" 
+                              onClick={() => openFullScreenImage(preparation.tasks.refueling.photos.after.url)}
+                            />
+                            <div className="photo-timestamp">
+                              {formatDate(preparation.tasks.refueling.photos.after.timestamp)}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* Photos additionnelles */}
+                    {preparation.tasks.refueling.photos?.additional && 
+                     preparation.tasks.refueling.photos.additional.length > 0 && (
+                      <div className="additional-photos">
+                        <div className="additional-photos-title">Photos additionnelles ({preparation.tasks.refueling.photos.additional.length})</div>
+                        <div className="additional-photos-grid">
+                          {preparation.tasks.refueling.photos.additional.map((photo, index) => (
+                            <div key={index} className="additional-photo-item">
+                              <img 
+                                src={photo.url} 
+                                alt={`Photo additionnelle ${index + 1}`} 
+                                className="additional-photo-img" 
+                                onClick={() => openFullScreenImage(photo.url)}
+                              />
+                              {photo.description && (
+                                <div className="additional-photo-description">
+                                  {photo.description}
+                                </div>
+                              )}
+                            </div>
+                          ))}
                         </div>
                       </div>
                     )}
                     
-                    {preparation.tasks.refueling.photos.after && (
-                      <div className="photo-container">
-                        <div className="photo-header">Photo après</div>
-                        <img 
-                          src={preparation.tasks.refueling.photos.after.url} 
-                          alt="Après carburant" 
-                          className="photo-image" 
-                          onClick={() => openFullScreenImage(preparation.tasks.refueling.photos.after.url)}
-                        />
-                        <div className="photo-timestamp">
-                          {formatDate(preparation.tasks.refueling.photos.after.timestamp)}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-                
-                {/* Photos additionnelles */}
-                {preparation.tasks.refueling.photos?.additional && 
-                 preparation.tasks.refueling.photos.additional.length > 0 && (
-                  <div className="additional-photos">
-                    <div className="additional-photos-title">Photos additionnelles ({preparation.tasks.refueling.photos.additional.length})</div>
-                    <div className="additional-photos-grid">
-                      {preparation.tasks.refueling.photos.additional.map((photo, index) => (
-                        <div key={index} className="additional-photo-item">
-                          <img 
-                            src={photo.url} 
-                            alt={`Photo additionnelle ${index + 1}`} 
-                            className="additional-photo-img" 
-                            onClick={() => openFullScreenImage(photo.url)}
-                          />
-                          {photo.description && (
-                            <div className="additional-photo-description">
-                              {photo.description}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                
-                {/* Actions selon le statut de la tâche */}
-                {canEdit() && preparation.status !== 'completed' && (
-                  <div className="task-actions">
-                    {preparation.tasks.refueling.status === 'not_started' && (
-                      <div className="task-step">
-                        <div className="task-step-header">
-                          <span className="step-number">1</span>
-                          <span>Commencer la mise de carburant</span>
-                        </div>
-                        
-                        <p>Prenez une photo de la jauge de carburant avant le remplissage.</p>
-                        
-                        <div className="task-photo-upload">
-                          <input 
-                            type="file"
-                            accept="image/*"
-                            onChange={handlePhotoBeforeChange}
-                            className="form-input"
-                          />
-                          
-                          {photoBeforePreview && (
-                            <div className="photo-preview-container">
-                              <div className="photo-preview">
-                                <img src={photoBeforePreview} alt="Prévisualisation avant" />
-                              </div>
-                            </div>
-                          )}
-                          
-                          <div className="form-group">
-                            <label className="form-label">Notes (optionnel)</label>
-                            <textarea
-                              value={taskNotes}
-                              onChange={(e) => setTaskNotes(e.target.value)}
-                              className="form-textarea"
-                              placeholder="Observations sur le niveau de carburant initial..."
-                            />
-                          </div>
-                          
-                          <button 
-                            onClick={() => handleStartTask('refueling')}
-                            className="btn btn-primary"
-                            disabled={!photoBeforeFile || taskLoading}
-                          >
-                            {taskLoading ? 'Traitement...' : 'Commencer le plein'}
-                          </button>
-                        </div>
+                    {/* Message pour tâche non démarrée */}
+                    {preparation.tasks.refueling.status === 'not_started' && 
+                     !preparation.tasks.refueling.startedAt && (
+                      <div className="task-not-started-message">
+                        <i className="fas fa-info-circle"></i>
+                        <span>Cette tâche n'a pas encore été démarrée.</span>
                       </div>
                     )}
                     
-                    {preparation.tasks.refueling.status === 'in_progress' && (
-                      <div className="task-step">
-                        <div className="task-step-header">
-                          <span className="step-number">2</span>
-                          <span>Terminer la mise de carburant</span>
-                        </div>
-                        
-                        <p>Prenez une photo de la jauge de carburant après le remplissage et indiquez la quantité ajoutée.</p>
-                        
-                        <div className="task-photo-upload">
-                          <input 
-                            type="file"
-                            accept="image/*"
-                            onChange={handlePhotoAfterChange}
-                            className="form-input"
-                          />
-                          
-                          {photoAfterPreview && (
-                            <div className="photo-preview-container">
-                              <div className="photo-preview">
-                                <img src={photoAfterPreview} alt="Prévisualisation après" />
-                              </div>
+                    {/* Actions selon le statut de la tâche */}
+                    {canEdit() && preparation.status !== 'completed' && (
+                      <div className="task-actions">
+                        {preparation.tasks.refueling.status === 'not_started' && (
+                          <div className="task-step">
+                            <div className="task-step-header">
+                              <span className="step-number">1</span>
+                              <span>Commencer la mise de carburant</span>
                             </div>
-                          )}
-                          
-                          <div className="form-group">
-                            <label className="form-label">Quantité de carburant (litres) *</label>
-                            <input
-                              type="number"
-                              value={refuelingAmount}
-                              onChange={(e) => setRefuelingAmount(e.target.value)}
-                              className="form-input"
-                              step="0.01"
-                              min="0"
-                              placeholder="Ex: 45.5"
-                              required
-                            />
-                          </div>
-                          
-                          <div className="form-group">
-                            <label className="form-label">Notes (optionnel)</label>
-                            <textarea
-                              value={taskNotes}
-                              onChange={(e) => setTaskNotes(e.target.value)}
-                              className="form-textarea"
-                              placeholder="Observations sur le plein..."
-                            />
-                          </div>
-                          
-                          <button 
-                            onClick={() => handleCompleteTask('refueling')}
-                            className="btn btn-success"
-                            disabled={!photoAfterFile || !refuelingAmount || taskLoading}
-                          >
-                            {taskLoading ? 'Traitement...' : 'Terminer le plein'}
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* Formulaire pour ajouter une photo additionnelle (disponible si la tâche est en cours ou terminée) */}
-                    {(preparation.tasks.refueling.status === 'in_progress' || preparation.tasks.refueling.status === 'completed') && (
-                      <div className="task-step">
-                        <div className="task-step-header">
-                          <span className="step-number">+</span>
-                          <span>Ajouter une photo additionnelle (optionnel)</span>
-                        </div>
-                        
-                        <div className="task-photo-upload">
-                          <input 
-                            type="file"
-                            accept="image/*"
-                            onChange={handleAdditionalPhotoChange}
-                            className="form-input"
-                          />
-                          
-                          {additionalPhotoPreview && (
-                            <div className="photo-preview-container">
-                              <div className="photo-preview">
-                                <img src={additionalPhotoPreview} alt="Prévisualisation additionnelle" />
+                            
+                            <p>Prenez une photo de la jauge de carburant avant le remplissage.</p>
+                            
+                            <div className="task-photo-upload">
+                              <input 
+                                type="file"
+                                accept="image/*"
+                                onChange={handlePhotoBeforeChange}
+                                className="form-input"
+                              />
+                              
+                              {photoBeforePreview && (
+                                <div className="photo-preview-container">
+                                  <div className="photo-preview">
+                                    <img src={photoBeforePreview} alt="Prévisualisation avant" />
+                                  </div>
+                                </div>
+                              )}
+                              
+                              <div className="form-group">
+                                <label className="form-label">Notes (optionnel)</label>
+                                <textarea
+                                  value={taskNotes}
+                                  onChange={(e) => setTaskNotes(e.target.value)}
+                                  className="form-textarea"
+                                  placeholder="Observations sur le niveau de carburant initial..."
+                                />
                               </div>
+                              
+                              <button 
+                                onClick={() => handleStartTask('refueling')}
+                                className="btn btn-primary"
+                                disabled={!photoBeforeFile || taskLoading}
+                              >
+                                {taskLoading ? 'Traitement...' : 'Commencer le plein'}
+                              </button>
                             </div>
-                          )}
-                          
-                          <div className="form-group">
-                            <label className="form-label">Description</label>
-                            <input
-                              type="text"
-                              value={additionalPhotoDescription}
-                              onChange={(e) => setAdditionalPhotoDescription(e.target.value)}
-                              className="form-input"
-                              placeholder="Description de la photo..."
-                            />
                           </div>
-                          
-                          <button 
-                            onClick={() => handleAddAdditionalPhoto('refueling')}
-                            className="btn btn-photo"
-                            disabled={!additionalPhotoFile || taskLoading}
-                          >
-                            {taskLoading ? 'Traitement...' : 'Ajouter la photo'}
-                          </button>
-                        </div>
+                        )}
+                        
+                        {preparation.tasks.refueling.status === 'in_progress' && (
+                          <div className="task-step">
+                            <div className="task-step-header">
+                              <span className="step-number">2</span>
+                              <span>Terminer la mise de carburant</span>
+                            </div>
+                            
+                            <p>Prenez une photo de la jauge de carburant après le remplissage et indiquez la quantité ajoutée.</p>
+                            
+                            <div className="task-photo-upload">
+                              <input 
+                                type="file"
+                                accept="image/*"
+                                onChange={handlePhotoAfterChange}
+                                className="form-input"
+                              />
+                              
+                              {photoAfterPreview && (
+                                <div className="photo-preview-container">
+                                  <div className="photo-preview">
+                                    <img src={photoAfterPreview} alt="Prévisualisation après" />
+                                  </div>
+                                </div>
+                              )}
+                              
+                              <div className="form-group">
+                                <label className="form-label">Quantité de carburant (litres) *</label>
+                                <input
+                                  type="number"
+                                  value={refuelingAmount}
+                                  onChange={(e) => setRefuelingAmount(e.target.value)}
+                                  className="form-input"
+                                  step="0.01"
+                                  min="0"
+                                  placeholder="Ex: 45.5"
+                                  required
+                                />
+                              </div>
+                              
+                              <div className="form-group">
+                                <label className="form-label">Notes (optionnel)</label>
+                                <textarea
+                                  value={taskNotes}
+                                  onChange={(e) => setTaskNotes(e.target.value)}
+                                  className="form-textarea"
+                                  placeholder="Observations sur le plein..."
+                                />
+                              </div>
+                              
+                              <button 
+                                onClick={() => handleCompleteTask('refueling')}
+                                className="btn btn-success"
+                                disabled={!photoAfterFile || !refuelingAmount || taskLoading}
+                              >
+                                {taskLoading ? 'Traitement...' : 'Terminer le plein'}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Formulaire pour ajouter une photo additionnelle (disponible si la tâche est en cours ou terminée) */}
+                        {(preparation.tasks.refueling.status === 'in_progress' || preparation.tasks.refueling.status === 'completed') && (
+                          <div className="task-step">
+                            <div className="task-step-header">
+                              <span className="step-number">+</span>
+                              <span>Ajouter une photo additionnelle (optionnel)</span>
+                            </div>
+                            
+                            <div className="task-photo-upload">
+                              <input 
+                                type="file"
+                                accept="image/*"
+                                onChange={handleAdditionalPhotoChange}
+                                className="form-input"
+                              />
+                              
+                              {additionalPhotoPreview && (
+                                <div className="photo-preview-container">
+                                  <div className="photo-preview">
+                                    <img src={additionalPhotoPreview} alt="Prévisualisation additionnelle" />
+                                  </div>
+                                </div>
+                              )}
+                              
+                              <div className="form-group">
+                                <label className="form-label">Description</label>
+                                <input
+                                  type="text"
+                                  value={additionalPhotoDescription}
+                                  onChange={(e) => setAdditionalPhotoDescription(e.target.value)}
+                                  className="form-input"
+                                  placeholder="Description de la photo..."
+                                />
+                              </div>
+                              
+                              <button 
+                                onClick={() => handleAddAdditionalPhoto('refueling')}
+                                className="btn btn-photo"
+                                disabled={!additionalPhotoFile || taskLoading}
+                              >
+                                {taskLoading ? 'Traitement...' : 'Ajouter la photo'}
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -1126,264 +1195,283 @@ const PreparationDetail = () => {
               
               {/* Transfert de véhicule */}
               <div className="task-card">
-                <div className="task-header">
+                <div 
+                  className={`task-header ${expandedTask === 'vehicleTransfer' ? 'expanded' : ''}`}
+                  onClick={() => toggleTaskExpansion('vehicleTransfer')}
+                >
                   <h3 className="task-title">Transfert de véhicule</h3>
-                  <span className={`task-status ${preparation.tasks.vehicleTransfer.status}`}>
-                    {getTaskStatusLabel(preparation.tasks.vehicleTransfer.status)}
-                  </span>
+                  <div className="task-header-info">
+                    <span className={`task-status ${preparation.tasks.vehicleTransfer.status}`}>
+                      {getTaskStatusLabel(preparation.tasks.vehicleTransfer.status)}
+                    </span>
+                    <i className={`fas fa-chevron-${expandedTask === 'vehicleTransfer' ? 'up' : 'down'}`}></i>
+                  </div>
                 </div>
                 
-                {preparation.tasks.vehicleTransfer.startedAt && (
-                  <div className="task-info">
-                    <i className="fas fa-clock"></i> Commencé: {formatDate(preparation.tasks.vehicleTransfer.startedAt)}
-                  </div>
-                )}
-                
-                {preparation.tasks.vehicleTransfer.completedAt && (
-                  <div className="task-info">
-                    <i className="fas fa-check-circle"></i> Terminé: {formatDate(preparation.tasks.vehicleTransfer.completedAt)}
-                  </div>
-                )}
-                
-                {preparation.tasks.vehicleTransfer.departureLocation && (
-                  <div className="task-info">
-                    <i className="fas fa-map-marker-alt"></i> Départ: {preparation.tasks.vehicleTransfer.departureLocation.name}
-                  </div>
-                )}
-                
-                {preparation.tasks.vehicleTransfer.arrivalLocation && (
-                  <div className="task-info">
-                    <i className="fas fa-flag-checkered"></i> Arrivée: {preparation.tasks.vehicleTransfer.arrivalLocation.name}
-                  </div>
-                )}
-                
-                {preparation.tasks.vehicleTransfer.notes && (
-                  <div className="task-notes">
-                    <strong>Notes:</strong> {preparation.tasks.vehicleTransfer.notes}
-                  </div>
-                )}
-                
-                {/* Photos avant/après si complétées */}
-                {(preparation.tasks.vehicleTransfer.photos?.before || preparation.tasks.vehicleTransfer.photos?.after) && (
-                  <div className="task-photos">
-                    {preparation.tasks.vehicleTransfer.photos.before && (
-                      <div className="photo-container">
-                        <div className="photo-header">Photo avant</div>
-                        <img 
-                          src={preparation.tasks.vehicleTransfer.photos.before.url} 
-                          alt="Lieu de départ" 
-                          className="photo-image"
-                          onClick={() => openFullScreenImage(preparation.tasks.vehicleTransfer.photos.before.url)}
-                        />
-                        <div className="photo-timestamp">
-                          {formatDate(preparation.tasks.vehicleTransfer.photos.before.timestamp)}
+                {expandedTask === 'vehicleTransfer' && (
+                  <div className="task-content">
+                    {preparation.tasks.vehicleTransfer.startedAt && (
+                      <div className="task-info">
+                        <i className="fas fa-clock"></i> Commencé: {formatDate(preparation.tasks.vehicleTransfer.startedAt)}
+                      </div>
+                    )}
+                    
+                    {preparation.tasks.vehicleTransfer.completedAt && (
+                      <div className="task-info">
+                        <i className="fas fa-check-circle"></i> Terminé: {formatDate(preparation.tasks.vehicleTransfer.completedAt)}
+                      </div>
+                    )}
+                    
+                    {preparation.tasks.vehicleTransfer.departureLocation && (
+                      <div className="task-info">
+                        <i className="fas fa-map-marker-alt"></i> Départ: {preparation.tasks.vehicleTransfer.departureLocation.name}
+                      </div>
+                    )}
+                    
+                    {preparation.tasks.vehicleTransfer.arrivalLocation && (
+                      <div className="task-info">
+                        <i className="fas fa-flag-checkered"></i> Arrivée: {preparation.tasks.vehicleTransfer.arrivalLocation.name}
+                      </div>
+                    )}
+                    
+                    {preparation.tasks.vehicleTransfer.notes && (
+                      <div className="task-notes">
+                        <strong>Notes:</strong> {preparation.tasks.vehicleTransfer.notes}
+                      </div>
+                    )}
+                    
+                    {/* Photos avant/après si complétées */}
+                    {(preparation.tasks.vehicleTransfer.photos?.before || preparation.tasks.vehicleTransfer.photos?.after) && (
+                      <div className="task-photos">
+                        {preparation.tasks.vehicleTransfer.photos.before && (
+                          <div className="photo-container">
+                            <div className="photo-header">Photo avant</div>
+                            <img 
+                              src={preparation.tasks.vehicleTransfer.photos.before.url} 
+                              alt="Lieu de départ" 
+                              className="photo-image"
+                              onClick={() => openFullScreenImage(preparation.tasks.vehicleTransfer.photos.before.url)}
+                            />
+                            <div className="photo-timestamp">
+                              {formatDate(preparation.tasks.vehicleTransfer.photos.before.timestamp)}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {preparation.tasks.vehicleTransfer.photos.after && (
+                          <div className="photo-container">
+                            <div className="photo-header">Photo après</div>
+                            <img 
+                              src={preparation.tasks.vehicleTransfer.photos.after.url} 
+                              alt="Lieu d'arrivée" 
+                              className="photo-image" 
+                              onClick={() => openFullScreenImage(preparation.tasks.vehicleTransfer.photos.after.url)}
+                            />
+                            <div className="photo-timestamp">
+                              {formatDate(preparation.tasks.vehicleTransfer.photos.after.timestamp)}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* Photos additionnelles */}
+                    {preparation.tasks.vehicleTransfer.photos?.additional && 
+                     preparation.tasks.vehicleTransfer.photos.additional.length > 0 && (
+                      <div className="additional-photos">
+                        <div className="additional-photos-title">Photos additionnelles ({preparation.tasks.vehicleTransfer.photos.additional.length})</div>
+                        <div className="additional-photos-grid">
+                          {preparation.tasks.vehicleTransfer.photos.additional.map((photo, index) => (
+                            <div key={index} className="additional-photo-item">
+                              <img 
+                                src={photo.url} 
+                                alt={`Photo additionnelle ${index + 1}`} 
+                                className="additional-photo-img" 
+                                onClick={() => openFullScreenImage(photo.url)}
+                              />
+                              {photo.description && (
+                                <div className="additional-photo-description">
+                                  {photo.description}
+                                </div>
+                              )}
+                            </div>
+                          ))}
                         </div>
                       </div>
                     )}
                     
-                    {preparation.tasks.vehicleTransfer.photos.after && (
-                      <div className="photo-container">
-                        <div className="photo-header">Photo après</div>
-                        <img 
-                          src={preparation.tasks.vehicleTransfer.photos.after.url} 
-                          alt="Lieu d'arrivée" 
-                          className="photo-image" 
-                          onClick={() => openFullScreenImage(preparation.tasks.vehicleTransfer.photos.after.url)}
-                        />
-                        <div className="photo-timestamp">
-                          {formatDate(preparation.tasks.vehicleTransfer.photos.after.timestamp)}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-                
-                {/* Photos additionnelles */}
-                {preparation.tasks.vehicleTransfer.photos?.additional && 
-                 preparation.tasks.vehicleTransfer.photos.additional.length > 0 && (
-                  <div className="additional-photos">
-                    <div className="additional-photos-title">Photos additionnelles ({preparation.tasks.vehicleTransfer.photos.additional.length})</div>
-                    <div className="additional-photos-grid">
-                      {preparation.tasks.vehicleTransfer.photos.additional.map((photo, index) => (
-                        <div key={index} className="additional-photo-item">
-                          <img 
-                            src={photo.url} 
-                            alt={`Photo additionnelle ${index + 1}`} 
-                            className="additional-photo-img" 
-                            onClick={() => openFullScreenImage(photo.url)}
-                          />
-                          {photo.description && (
-                            <div className="additional-photo-description">
-                              {photo.description}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                
-                {/* Actions selon le statut de la tâche */}
-                {canEdit() && preparation.status !== 'completed' && (
-                  <div className="task-actions">
-                    {preparation.tasks.vehicleTransfer.status === 'not_started' && (
-                      <div className="task-step">
-                        <div className="task-step-header">
-                          <span className="step-number">1</span>
-                          <span>Commencer le transfert de véhicule</span>
-                        </div>
-                        
-                        <p>Prenez une photo du véhicule à son emplacement de départ.</p>
-                        
-                        <div className="task-photo-upload">
-                          <input 
-                            type="file"
-                            accept="image/*"
-                            onChange={handlePhotoBeforeChange}
-                            className="form-input"
-                          />
-                          
-                          {photoBeforePreview && (
-                            <div className="photo-preview-container">
-                              <div className="photo-preview">
-                                <img src={photoBeforePreview} alt="Prévisualisation avant" />
-                              </div>
-                            </div>
-                          )}
-                          
-                          <div className="form-group">
-                            <label className="form-label">Lieu de départ</label>
-                            <input
-                              type="text"
-                              value={transferDeparture}
-                              onChange={(e) => setTransferDeparture(e.target.value)}
-                              className="form-input"
-                              placeholder="Ex: Parking P3, Zone A"
-                            />
-                          </div>
-                          
-                          <div className="form-group">
-                            <label className="form-label">Notes (optionnel)</label>
-                            <textarea
-                              value={taskNotes}
-                              onChange={(e) => setTaskNotes(e.target.value)}
-                              className="form-textarea"
-                              placeholder="Observations sur le lieu de départ..."
-                            />
-                          </div>
-                          
-                          <button 
-                            onClick={() => handleStartTask('vehicleTransfer')}
-                            className="btn btn-primary"
-                            disabled={!photoBeforeFile || taskLoading}
-                          >
-                            {taskLoading ? 'Traitement...' : 'Commencer le transfert'}
-                          </button>
-                        </div>
+                    {/* Message pour tâche non démarrée */}
+                    {preparation.tasks.vehicleTransfer.status === 'not_started' && 
+                     !preparation.tasks.vehicleTransfer.startedAt && (
+                      <div className="task-not-started-message">
+                        <i className="fas fa-info-circle"></i>
+                        <span>Cette tâche n'a pas encore été démarrée.</span>
                       </div>
                     )}
                     
-                    {preparation.tasks.vehicleTransfer.status === 'in_progress' && (
-                      <div className="task-step">
-                        <div className="task-step-header">
-                          <span className="step-number">2</span>
-                          <span>Terminer le transfert de véhicule</span>
-                        </div>
-                        
-                        <p>Prenez une photo du véhicule à son emplacement d'arrivée.</p>
-                        
-                        <div className="task-photo-upload">
-                          <input 
-                            type="file"
-                            accept="image/*"
-                            onChange={handlePhotoAfterChange}
-                            className="form-input"
-                          />
-                          
-                          {photoAfterPreview && (
-                            <div className="photo-preview-container">
-                              <div className="photo-preview">
-                                <img src={photoAfterPreview} alt="Prévisualisation après" />
-                              </div>
+                    {/* Actions selon le statut de la tâche */}
+                    {canEdit() && preparation.status !== 'completed' && (
+                      <div className="task-actions">
+                        {preparation.tasks.vehicleTransfer.status === 'not_started' && (
+                          <div className="task-step">
+                            <div className="task-step-header">
+                              <span className="step-number">1</span>
+                              <span>Commencer le transfert de véhicule</span>
                             </div>
-                          )}
-                          
-                          <div className="form-group">
-                            <label className="form-label">Lieu d'arrivée *</label>
-                            <input
-                              type="text"
-                              value={transferArrival}
-                              onChange={(e) => setTransferArrival(e.target.value)}
-                              className="form-input"
-                              placeholder="Ex: Parking P2, Zone B"
-                              required
-                            />
-                          </div>
-                          
-                          <div className="form-group">
-                            <label className="form-label">Notes (optionnel)</label>
-                            <textarea
-                              value={taskNotes}
-                              onChange={(e) => setTaskNotes(e.target.value)}
-                              className="form-textarea"
-                              placeholder="Observations sur le transfert..."
-                            />
-                          </div>
-                          
-                          <button 
-                            onClick={() => handleCompleteTask('vehicleTransfer')}
-                            className="btn btn-success"
-                            disabled={!photoAfterFile || !transferArrival || taskLoading}
-                          >
-                            {taskLoading ? 'Traitement...' : 'Terminer le transfert'}
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* Formulaire pour ajouter une photo additionnelle (disponible si la tâche est en cours ou terminée) */}
-                    {(preparation.tasks.vehicleTransfer.status === 'in_progress' || preparation.tasks.vehicleTransfer.status === 'completed') && (
-                      <div className="task-step">
-                        <div className="task-step-header">
-                          <span className="step-number">+</span>
-                          <span>Ajouter une photo additionnelle (optionnel)</span>
-                        </div>
-                        
-                        <div className="task-photo-upload">
-                          <input 
-                            type="file"
-                            accept="image/*"
-                            onChange={handleAdditionalPhotoChange}
-                            className="form-input"
-                          />
-                          
-                          {additionalPhotoPreview && (
-                            <div className="photo-preview-container">
-                              <div className="photo-preview">
-                                <img src={additionalPhotoPreview} alt="Prévisualisation additionnelle" />
+                            
+                            <p>Prenez une photo du véhicule à son emplacement de départ.</p>
+                            
+                            <div className="task-photo-upload">
+                              <input 
+                                type="file"
+                                accept="image/*"
+                                onChange={handlePhotoBeforeChange}
+                                className="form-input"
+                              />
+                              
+                              {photoBeforePreview && (
+                                <div className="photo-preview-container">
+                                  <div className="photo-preview">
+                                    <img src={photoBeforePreview} alt="Prévisualisation avant" />
+                                  </div>
+                                </div>
+                              )}
+                              
+                              <div className="form-group">
+                                <label className="form-label">Lieu de départ</label>
+                                <input
+                                  type="text"
+                                  value={transferDeparture}
+                                  onChange={(e) => setTransferDeparture(e.target.value)}
+                                  className="form-input"
+                                  placeholder="Ex: Parking P3, Zone A"
+                                />
                               </div>
+                              
+                              <div className="form-group">
+                                <label className="form-label">Notes (optionnel)</label>
+                                <textarea
+                                  value={taskNotes}
+                                  onChange={(e) => setTaskNotes(e.target.value)}
+                                  className="form-textarea"
+                                  placeholder="Observations sur le lieu de départ..."
+                                />
+                              </div>
+                              
+                              <button 
+                                onClick={() => handleStartTask('vehicleTransfer')}
+                                className="btn btn-primary"
+                                disabled={!photoBeforeFile || taskLoading}
+                              >
+                                {taskLoading ? 'Traitement...' : 'Commencer le transfert'}
+                              </button>
                             </div>
-                          )}
-                          
-                          <div className="form-group">
-                            <label className="form-label">Description</label>
-                            <input
-                              type="text"
-                              value={additionalPhotoDescription}
-                              onChange={(e) => setAdditionalPhotoDescription(e.target.value)}
-                              className="form-input"
-                              placeholder="Description de la photo..."
-                            />
                           </div>
-                          
-                          <button 
-                            onClick={() => handleAddAdditionalPhoto('vehicleTransfer')}
-                            className="btn btn-photo"
-                            disabled={!additionalPhotoFile || taskLoading}
-                          >
-                            {taskLoading ? 'Traitement...' : 'Ajouter la photo'}
-                          </button>
-                        </div>
+                        )}
+                        
+                        {preparation.tasks.vehicleTransfer.status === 'in_progress' && (
+                          <div className="task-step">
+                            <div className="task-step-header">
+                              <span className="step-number">2</span>
+                              <span>Terminer le transfert de véhicule</span>
+                            </div>
+                            
+                            <p>Prenez une photo du véhicule à son emplacement d'arrivée.</p>
+                            
+                            <div className="task-photo-upload">
+                              <input 
+                                type="file"
+                                accept="image/*"
+                                onChange={handlePhotoAfterChange}
+                                className="form-input"
+                              />
+                              
+                              {photoAfterPreview && (
+                                <div className="photo-preview-container">
+                                  <div className="photo-preview">
+                                    <img src={photoAfterPreview} alt="Prévisualisation après" />
+                                  </div>
+                                </div>
+                              )}
+                              
+                              <div className="form-group">
+                                <label className="form-label">Lieu d'arrivée *</label>
+                                <input
+                                  type="text"
+                                  value={transferArrival}
+                                  onChange={(e) => setTransferArrival(e.target.value)}
+                                  className="form-input"
+                                  placeholder="Ex: Parking P2, Zone B"
+                                  required
+                                />
+                              </div>
+                              
+                              <div className="form-group">
+                                <label className="form-label">Notes (optionnel)</label>
+                                <textarea
+                                  value={taskNotes}
+                                  onChange={(e) => setTaskNotes(e.target.value)}
+                                  className="form-textarea"
+                                  placeholder="Observations sur le transfert..."
+                                />
+                              </div>
+                              
+                              <button 
+                                onClick={() => handleCompleteTask('vehicleTransfer')}
+                                className="btn btn-success"
+                                disabled={!photoAfterFile || !transferArrival || taskLoading}
+                              >
+                                {taskLoading ? 'Traitement...' : 'Terminer le transfert'}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Formulaire pour ajouter une photo additionnelle (disponible si la tâche est en cours ou terminée) */}
+                        {(preparation.tasks.vehicleTransfer.status === 'in_progress' || preparation.tasks.vehicleTransfer.status === 'completed') && (
+                          <div className="task-step">
+                            <div className="task-step-header">
+                              <span className="step-number">+</span>
+                              <span>Ajouter une photo additionnelle (optionnel)</span>
+                            </div>
+                            
+                            <div className="task-photo-upload">
+                              <input 
+                                type="file"
+                                accept="image/*"
+                                onChange={handleAdditionalPhotoChange}
+                                className="form-input"
+                              />
+                              
+                              {additionalPhotoPreview && (
+                                <div className="photo-preview-container">
+                                  <div className="photo-preview">
+                                    <img src={additionalPhotoPreview} alt="Prévisualisation additionnelle" />
+                                  </div>
+                                </div>
+                              )}
+                              
+                              <div className="form-group">
+                                <label className="form-label">Description</label>
+                                <input
+                                  type="text"
+                                  value={additionalPhotoDescription}
+                                  onChange={(e) => setAdditionalPhotoDescription(e.target.value)}
+                                  className="form-input"
+                                  placeholder="Description de la photo..."
+                                />
+                              </div>
+                              
+                              <button 
+                                onClick={() => handleAddAdditionalPhoto('vehicleTransfer')}
+                                className="btn btn-photo"
+                                disabled={!additionalPhotoFile || taskLoading}
+                              >
+                                {taskLoading ? 'Traitement...' : 'Ajouter la photo'}
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
