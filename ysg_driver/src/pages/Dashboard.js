@@ -260,7 +260,7 @@ const Dashboard = () => {
                   </div>
                   <span className="action-title">Créer une préparation</span>
                 </Link>
-                <Link to="/preparations" className="action-card">
+                <Link to="/preparations?day=today" className="action-card">
                   <div className="action-icon">
                     <i className="fas fa-clipboard-list"></i>
                   </div>

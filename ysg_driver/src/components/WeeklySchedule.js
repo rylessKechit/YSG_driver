@@ -9,6 +9,7 @@ const WeeklySchedule = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expandedDay, setExpandedDay] = useState(null);
+  const [isExpanded, setIsExpanded] = useState(false);
   const { currentUser } = useAuth();
   
   const days = [
@@ -86,11 +87,23 @@ const WeeklySchedule = () => {
     }
   };
 
+  // Obtenir l'entrée de planning pour le jour actuel
+  const currentDayEntry = getEntryForDay(currentDay);
+
   return (
     <div className="weekly-schedule-container">
-      <h2 className="schedule-title">
-        <i className="fas fa-calendar-alt"></i> Mon planning de la semaine
-      </h2>
+      <div className="schedule-header">
+        <h2 className="schedule-title">
+          <i className="fas fa-calendar-alt"></i> Mon planning
+        </h2>
+        <button 
+          className="toggle-schedule-btn" 
+          onClick={() => setIsExpanded(!isExpanded)}
+          aria-label={isExpanded ? "Réduire le planning" : "Afficher le planning complet"}
+        >
+          <i className={`fas fa-chevron-${isExpanded ? 'up' : 'down'}`}></i>
+        </button>
+      </div>
       
       {error ? (
         <div className="schedule-error">{error}</div>
@@ -103,7 +116,50 @@ const WeeklySchedule = () => {
         <div className="no-schedule">
           <p>Aucun planning défini pour cette semaine.</p>
         </div>
+      ) : !isExpanded ? (
+        // Mode compact - affiche uniquement le jour actuel
+        <div className="compact-view">
+          <div className={`today-card ${currentDayEntry ? (currentDayEntry.entryType === 'rest' ? 'rest-day' : 'work-day') : 'no-schedule'}`}>
+            <div className="today-header">
+              <div className="today-date">
+                <span className="day-name">{days.find(d => d.value === currentDay)?.label}</span>
+                <span className="date">{weekDates[currentDay]}</span>
+              </div>
+              <div className="today-badge">Aujourd'hui</div>
+            </div>
+            
+            {currentDayEntry ? (
+              <div className="today-content">
+                {currentDayEntry.entryType === 'rest' ? (
+                  <div className="rest-day-info">
+                    <i className="fas fa-bed"></i>
+                    <span>Jour de repos</span>
+                  </div>
+                ) : (
+                  <>
+                    <div className="today-schedule">
+                      <i className="fas fa-clock"></i>
+                      <span>{currentDayEntry.startTime} - {currentDayEntry.endTime}</span>
+                    </div>
+                    {currentDayEntry.location && (
+                      <div className="today-location">
+                        <i className="fas fa-map-marker-alt"></i>
+                        <span>{currentDayEntry.location}</span>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            ) : (
+              <div className="no-schedule-info">
+                <i className="fas fa-calendar-times"></i>
+                <span>Aucun horaire prévu</span>
+              </div>
+            )}
+          </div>
+        </div>
       ) : (
+        // Mode étendu - affiche la vue semaine complète
         <div className="mobile-week-view">
           {days.map(day => {
             const entry = getEntryForDay(day.value);

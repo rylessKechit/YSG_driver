@@ -438,7 +438,7 @@ router.post('/:id/photos', verifyToken, upload.array('photos', 5), async (req, r
 // Obtenir toutes les préparations (filtrées selon le rôle)
 router.get('/', verifyToken, async (req, res) => {
   try {
-    const { page = 1, limit = 10, status } = req.query;
+    const { page = 1, limit = 10, status, day } = req.query;
     const skip = (page - 1) * limit;
     
     const query = {};
@@ -452,11 +452,27 @@ router.get('/', verifyToken, async (req, res) => {
       query.status = status;
     }
     
+    // Ajouter le filtrage par jour (today)
+    if (day === 'today') {
+      // Calculer le début et la fin de la journée actuelle (UTC)
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      
+      // Ajouter la condition de date à la requête
+      query.createdAt = {
+        $gte: today,
+        $lt: tomorrow
+      };
+    }
+    
     const preparations = await Preparation.find(query)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit))
-      .populate('userId', 'username fullName')
+      .populate('userId', 'username fullName');
     
     const total = await Preparation.countDocuments(query);
     

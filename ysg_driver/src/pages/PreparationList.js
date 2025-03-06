@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import preparationService from '../services/preparationService';
 import Navigation from '../components/Navigation';
@@ -14,7 +14,16 @@ const PreparationList = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
+  const [isTodayFilter, setIsTodayFilter] = useState(false);
   const { currentUser } = useAuth();
+  const [searchParams] = useSearchParams();
+  
+  useEffect(() => {
+    const dayParam = searchParams.get('day');
+    if (dayParam === 'today') {
+      setIsTodayFilter(true);
+    }
+  }, [searchParams]);
 
   // Charger les préparations
   const loadPreparations = async () => {
@@ -23,9 +32,12 @@ const PreparationList = () => {
       let response;
       
       if (isSearching && searchQuery) {
+        // Si on est en mode recherche, utiliser l'endpoint de recherche
         response = await preparationService.searchByLicensePlate(searchQuery);
       } else {
-        response = await preparationService.getPreparations(page, 10, statusFilter || null);
+        // Sinon utiliser l'endpoint standard avec les paramètres de filtrage
+        const dayParam = isTodayFilter ? 'today' : null;
+        response = await preparationService.getPreparations(page, 10, statusFilter || null, dayParam);
         setTotalPages(response.totalPages);
       }
       

@@ -142,12 +142,17 @@ const preparationService = {
   },
   
   // Obtenir toutes les préparations
-  getPreparations: async (page = 1, limit = 10, status = null) => {
+  getPreparations: async (page = 1, limit = 10, status = null, day = null) => {
     try {
       let url = `${ENDPOINTS.PREPARATIONS.BASE}?page=${page}&limit=${limit}`;
       
       if (status) {
         url += `&status=${status}`;
+      }
+      
+      // Ajouter le paramètre day s'il est fourni (today)
+      if (day) {
+        url += `&day=${day}`;
       }
       
       const response = await api.get(url);
