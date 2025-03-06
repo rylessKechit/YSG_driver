@@ -68,6 +68,12 @@ const Dashboard = () => {
     });
   };
 
+  // Gestionnaire pour naviguer vers les préparations d'aujourd'hui
+  const goToTodayPreparations = (e) => {
+    // Navigation directe avec rechargement complet pour éviter les problèmes de requêtes multiples
+    window.location.href = '/preparations?day=today';
+  };
+
   if (loading) {
     return (
       <div>
@@ -86,7 +92,7 @@ const Dashboard = () => {
       
       <div className="dashboard-container">
         <div className="greeting-section">
-          <h1 className="greeting-title">Bonjour, {currentUser?.fullName || 'Chauffeur'}</h1>
+          <h1 className="greeting-title">Bonjour, {currentUser?.fullName || 'Utilisateur'}</h1>
           <p className="greeting-subtitle">{new Date().toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
         </div>
 
@@ -198,6 +204,12 @@ const Dashboard = () => {
             {currentUser.role === 'admin' ? (
               // Actions admin
               <>
+                <Link to="/admin/movements/create" className="action-card">
+                  <div className="action-icon">
+                    <i className="fas fa-plus-circle"></i>
+                  </div>
+                  <span className="action-title">Créer un mouvement</span>
+                </Link>
                 <Link to="/movement/history" className="action-card">
                   <div className="action-icon">
                     <i className="fas fa-history"></i>
@@ -221,6 +233,12 @@ const Dashboard = () => {
                     <i className="fas fa-calendar-week"></i>
                   </div>
                   <span className="action-title">Planning préparateurs</span>
+                </Link>
+                <Link to="/admin" className="action-card">
+                  <div className="action-icon">
+                    <i className="fas fa-user-shield"></i>
+                  </div>
+                  <span className="action-title">Administration</span>
                 </Link>
               </>
             ) : currentUser.role === 'team-leader' ? (
@@ -260,11 +278,33 @@ const Dashboard = () => {
                   </div>
                   <span className="action-title">Créer une préparation</span>
                 </Link>
-                <Link to="/preparations?day=today" className="action-card">
+                <div onClick={goToTodayPreparations} className="action-card" style={{ cursor: 'pointer' }}>
                   <div className="action-icon">
                     <i className="fas fa-clipboard-list"></i>
                   </div>
-                  <span className="action-title">Historique des préparations</span>
+                  <span className="action-title">Préparations du jour</span>
+                </div>
+                <Link to="/profile" className="action-card">
+                  <div className="action-icon">
+                    <i className="fas fa-user"></i>
+                  </div>
+                  <span className="action-title">Mon profil</span>
+                </Link>
+              </>
+            ) : currentUser.role === 'direction' ? (
+              // Actions direction
+              <>
+                <Link to="/reports" className="action-card">
+                  <div className="action-icon">
+                    <i className="fas fa-file-excel"></i>
+                  </div>
+                  <span className="action-title">Rapports</span>
+                </Link>
+                <Link to="/schedules" className="action-card">
+                  <div className="action-icon">
+                    <i className="fas fa-calendar-week"></i>
+                  </div>
+                  <span className="action-title">Planning préparateurs</span>
                 </Link>
                 <Link to="/profile" className="action-card">
                   <div className="action-icon">

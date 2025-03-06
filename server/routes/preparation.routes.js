@@ -437,6 +437,7 @@ router.post('/:id/photos', verifyToken, upload.array('photos', 5), async (req, r
 
 // Obtenir toutes les préparations (filtrées selon le rôle)
 router.get('/', verifyToken, async (req, res) => {
+  console.log("Query params:", req.query);
   try {
     const { page = 1, limit = 10, status, day } = req.query;
     const skip = (page - 1) * limit;
@@ -461,12 +462,17 @@ router.get('/', verifyToken, async (req, res) => {
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
       
-      // Ajouter la condition de date à la requête
-      query.createdAt = {
-        $gte: today,
-        $lt: tomorrow
-      };
+      query.$or = [
+        // Créée aujourd'hui
+        { createdAt: { $gte: today, $lt: tomorrow } },
+        // OU démarrée aujourd'hui
+        { startTime: { $gte: today, $lt: tomorrow } },
+        // OU terminée aujourd'hui
+        { endTime: { $gte: today, $lt: tomorrow } }
+      ];
     }
+
+    console.log("MongoDB query:", JSON.stringify(query, null, 2));
     
     const preparations = await Preparation.find(query)
       .sort({ createdAt: -1 })
@@ -482,6 +488,8 @@ router.get('/', verifyToken, async (req, res) => {
       currentPage: parseInt(page),
       totalItems: total
     });
+
+    console.log(`Found ${preparations.length} preparations`);
   } catch (error) {
     console.error('Erreur lors de la récupération des préparations:', error);
     res.status(500).json({ message: 'Erreur serveur' });

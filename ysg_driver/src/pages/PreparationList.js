@@ -1,5 +1,6 @@
+// src/pages/PreparationList.js
 import React, { useState, useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import preparationService from '../services/preparationService';
 import Navigation from '../components/Navigation';
@@ -7,7 +8,7 @@ import '../styles/PreparationList.css';
 
 const PreparationList = () => {
   const [preparations, setPreparations] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -17,19 +18,38 @@ const PreparationList = () => {
   const [isTodayFilter, setIsTodayFilter] = useState(false);
   const { currentUser } = useAuth();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   
+  // Initialiser correctement les filtres à partir des paramètres d'URL
+  // Cette fonction s'exécutera une seule fois au montage initial
   useEffect(() => {
+    console.log("Initialisation des filtres à partir de l'URL");
     const dayParam = searchParams.get('day');
+    
     if (dayParam === 'today') {
+      console.log("Filtre 'today' détecté dans l'URL");
       setIsTodayFilter(true);
     }
-  }, [searchParams]);
-
-  // Charger les préparations
+  }, []); // Dépendances vides pour n'exécuter qu'au montage initial
+  
+  // Fonction de chargement des préparations
   const loadPreparations = async () => {
     try {
+      // Éviter de recharger si déjà en cours de chargement
+      if (loading) return;
+      
       setLoading(true);
       let response;
+      
+      // Log pour debug
+      console.log("Chargement des préparations avec paramètres:", {
+        isSearching, 
+        searchQuery, 
+        page, 
+        statusFilter,
+        isTodayFilter,
+        dayParam: isTodayFilter ? 'today' : null
+      });
       
       if (isSearching && searchQuery) {
         // Si on est en mode recherche, utiliser l'endpoint de recherche
@@ -37,11 +57,15 @@ const PreparationList = () => {
       } else {
         // Sinon utiliser l'endpoint standard avec les paramètres de filtrage
         const dayParam = isTodayFilter ? 'today' : null;
+        
         response = await preparationService.getPreparations(page, 10, statusFilter || null, dayParam);
         setTotalPages(response.totalPages);
       }
       
       setPreparations(response.preparations);
+      
+      // Log pour debug
+      console.log("Préparations chargées:", response.preparations.length);
     } catch (err) {
       console.error('Erreur lors du chargement des préparations:', err);
       setError('Erreur lors du chargement des données');
@@ -49,11 +73,12 @@ const PreparationList = () => {
       setLoading(false);
     }
   };
-
-  // Charger les préparations au montage et quand les filtres changent
+  
+  // Effet pour charger les préparations quand les filtres changent
   useEffect(() => {
+    console.log("Déclenchement du chargement suite à un changement de filtre");
     loadPreparations();
-  }, [page, statusFilter, isSearching]);
+  }, [page, statusFilter, isSearching, isTodayFilter]);
 
   // Gestionnaire de changement de filtre
   const handleFilterChange = (e) => {
@@ -74,6 +99,13 @@ const PreparationList = () => {
     setIsSearching(false);
     setPage(1);
   };
+  
+  // Réinitialiser le filtre aujourd'hui
+  const resetTodayFilter = () => {
+    setIsTodayFilter(false);
+    // Mettre à jour l'URL pour refléter ce changement
+    navigate('/preparations');
+  };
 
   // Formatter la date
   const formatDate = (dateString) => {
@@ -92,10 +124,10 @@ const PreparationList = () => {
   const getTasksProgress = (preparation) => {
     const tasks = preparation.tasks;
     const completedTasks = [
-      tasks.exteriorWashing.status === 'completed',
-      tasks.interiorCleaning.status === 'completed',
-      tasks.refueling.status === 'completed',
-      tasks.parking.status === 'completed'
+      tasks.exteriorWashing?.status === 'completed',
+      tasks.interiorCleaning?.status === 'completed',
+      tasks.refueling?.status === 'completed',
+      tasks.parking?.status === 'completed'
     ].filter(Boolean).length;
     
     return `${completedTasks}/4 tâches`;
@@ -107,7 +139,9 @@ const PreparationList = () => {
       
       <div className="preparation-list-container">
         <div className="page-header">
-          <h1 className="page-title">Préparations de véhicules</h1>
+          <h1 className="page-title">
+            {isTodayFilter ? "Préparations d'aujourd'hui" : "Préparations de véhicules"}
+          </h1>
           {currentUser && (currentUser.role === 'admin' || currentUser.role === 'preparator') && (
             <Link to="/preparations/create" className="btn btn-primary">
               <i className="fas fa-plus"></i> Nouvelle préparation
@@ -154,6 +188,19 @@ const PreparationList = () => {
               <option value="in-progress">En cours</option>
               <option value="completed">Terminées</option>
             </select>
+            
+            {isTodayFilter && (
+              <div className="active-filter">
+                <span className="filter-badge">Aujourd'hui seulement</span>
+                <button 
+                  onClick={resetTodayFilter} 
+                  className="reset-filter-btn"
+                  title="Voir toutes les préparations"
+                >
+                  <i className="fas fa-times"></i>
+                </button>
+              </div>
+            )}
           </div>
         </div>
         
@@ -227,7 +274,7 @@ const PreparationList = () => {
               </div>
             ))}
             
-            {!isSearching && (
+            {!isSearching && !isTodayFilter && (
               <div className="pagination">
                 <button
                   onClick={() => setPage(Math.max(1, page - 1))}
@@ -251,7 +298,11 @@ const PreparationList = () => {
           </div>
         ) : (
           <div className="no-results">
-            <p>Aucune préparation de véhicule trouvée.</p>
+            <p>
+              {isTodayFilter 
+                ? "Aucune préparation de véhicule pour aujourd'hui."
+                : "Aucune préparation de véhicule trouvée."}
+            </p>
             {currentUser && (currentUser.role === 'admin' || currentUser.role === 'preparator') && (
               <Link to="/preparations/create" className="btn btn-primary">
                 Créer une nouvelle préparation

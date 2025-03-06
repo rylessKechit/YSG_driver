@@ -285,6 +285,78 @@
     border-top-color: #3b82f6;
     animation: spin 1s ease-in-out infinite;
   }
+
+  .active-filter {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-left: 0.75rem;
+  }
+  
+  .filter-badge {
+    background-color: #3b82f6;
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+  }
+  
+  .reset-filter-btn {
+    background: none;
+    border: none;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    background-color: rgba(0, 0, 0, 0.1);
+    color: #1f2937;
+    transition: all 0.2s ease;
+  }
+  
+  .reset-filter-btn:hover {
+    background-color: rgba(0, 0, 0, 0.2);
+  }
+  
+  /* Ajuster l'espacement dans le conteneur de filtres */
+  .filter-container {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  
+  /* Ajuster le titre de la page */
+  .page-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  /* Animation pour les indicateurs de chargement */
+  @keyframes pulse {
+    0% { opacity: 0.6; }
+    50% { opacity: 1; }
+    100% { opacity: 0.6; }
+  }
+  
+  .loading-container .spinner {
+    animation: spin 1s linear infinite, pulse 1.5s ease-in-out infinite;
+  }
+  
+  /* Améliorer la réactivité sur mobile */
+  @media (max-width: 640px) {
+    .active-filter {
+      margin-left: 0;
+      margin-top: 0.5rem;
+      width: 100%;
+      justify-content: space-between;
+    }
+  }
   
   @keyframes spin {
     to {
