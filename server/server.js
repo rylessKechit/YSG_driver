@@ -21,8 +21,16 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT;
 
-// Connexion à la base de données
-connectDB();
+// Connexion à la base de données avant d'initialiser le service WhatsApp
+connectDB().then(() => {
+  console.log('MongoDB connecté avec succès');
+  
+  // Importation du service WhatsApp après la connexion établie
+  // WhatsApp sera initialisé après l'export dans whatsapp.service.js
+  require('./services/whatsapp.service');
+}).catch(err => {
+  console.error('Erreur de connexion à MongoDB:', err);
+});
 
 // Middleware
 app.use(cors());
