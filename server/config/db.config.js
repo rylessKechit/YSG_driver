@@ -6,7 +6,11 @@ const connectDB = async () => {
     // Utiliser directement l'URL locale pour tester
     const dbURI = process.env.MONGODB_URI
 
-    await mongoose.connect(dbURI);
+    await mongoose.connect(dbURI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      // Ces options ne sont plus nécessaires dans les versions récentes de mongoose mais vérifiez votre version
+    });
     
     console.log('MongoDB connecté avec succès');
     
