@@ -282,7 +282,7 @@ const Dashboard = () => {
                   <div className="action-icon">
                     <i className="fas fa-clipboard-list"></i>
                   </div>
-                  <span className="action-title">Préparations du jour</span>
+                  <span className="action-title">Historique des préparations</span>
                 </div>
                 <Link to="/profile" className="action-card">
                   <div className="action-icon">

@@ -15,7 +15,6 @@ const PreparationList = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
-  const [isTodayFilter, setIsTodayFilter] = useState(false);
   const { currentUser } = useAuth();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -28,7 +27,6 @@ const PreparationList = () => {
     
     if (dayParam === 'today') {
       console.log("Filtre 'today' détecté dans l'URL");
-      setIsTodayFilter(true);
     }
   }, []); // Dépendances vides pour n'exécuter qu'au montage initial
   
@@ -47,8 +45,6 @@ const PreparationList = () => {
         searchQuery, 
         page, 
         statusFilter,
-        isTodayFilter,
-        dayParam: isTodayFilter ? 'today' : null
       });
       
       if (isSearching && searchQuery) {
@@ -56,9 +52,8 @@ const PreparationList = () => {
         response = await preparationService.searchByLicensePlate(searchQuery);
       } else {
         // Sinon utiliser l'endpoint standard avec les paramètres de filtrage
-        const dayParam = isTodayFilter ? 'today' : null;
         
-        response = await preparationService.getPreparations(page, 10, statusFilter || null, dayParam);
+        response = await preparationService.getPreparations(page, 10, statusFilter || null);
         setTotalPages(response.totalPages);
       }
       
@@ -78,7 +73,7 @@ const PreparationList = () => {
   useEffect(() => {
     console.log("Déclenchement du chargement suite à un changement de filtre");
     loadPreparations();
-  }, [page, statusFilter, isSearching, isTodayFilter]);
+  }, [page, statusFilter, isSearching]);
 
   // Gestionnaire de changement de filtre
   const handleFilterChange = (e) => {
@@ -98,13 +93,6 @@ const PreparationList = () => {
     setSearchQuery('');
     setIsSearching(false);
     setPage(1);
-  };
-  
-  // Réinitialiser le filtre aujourd'hui
-  const resetTodayFilter = () => {
-    setIsTodayFilter(false);
-    // Mettre à jour l'URL pour refléter ce changement
-    navigate('/preparations');
   };
 
   // Formatter la date
@@ -140,7 +128,7 @@ const PreparationList = () => {
       <div className="preparation-list-container">
         <div className="page-header">
           <h1 className="page-title">
-            {isTodayFilter ? "Préparations d'aujourd'hui" : "Préparations de véhicules"}
+            Préparations de véhicules
           </h1>
           {currentUser && (currentUser.role === 'admin' || currentUser.role === 'preparator') && (
             <Link to="/preparations/create" className="btn btn-primary">
@@ -188,19 +176,6 @@ const PreparationList = () => {
               <option value="in-progress">En cours</option>
               <option value="completed">Terminées</option>
             </select>
-            
-            {isTodayFilter && (
-              <div className="active-filter">
-                <span className="filter-badge">Aujourd'hui seulement</span>
-                <button 
-                  onClick={resetTodayFilter} 
-                  className="reset-filter-btn"
-                  title="Voir toutes les préparations"
-                >
-                  <i className="fas fa-times"></i>
-                </button>
-              </div>
-            )}
           </div>
         </div>
         
@@ -274,7 +249,7 @@ const PreparationList = () => {
               </div>
             ))}
             
-            {!isSearching && !isTodayFilter && (
+            {!isSearching && (
               <div className="pagination">
                 <button
                   onClick={() => setPage(Math.max(1, page - 1))}
@@ -299,9 +274,7 @@ const PreparationList = () => {
         ) : (
           <div className="no-results">
             <p>
-              {isTodayFilter 
-                ? "Aucune préparation de véhicule pour aujourd'hui."
-                : "Aucune préparation de véhicule trouvée."}
+              Aucune préparation de véhicule trouvée.
             </p>
             {currentUser && (currentUser.role === 'admin' || currentUser.role === 'preparator') && (
               <Link to="/preparations/create" className="btn btn-primary">
