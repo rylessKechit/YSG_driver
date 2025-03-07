@@ -20,7 +20,6 @@ const checkDriverActiveTimeLog = async (driverId) => {
 // Créer un nouveau mouvement (réservé aux admins)
 // Modifier la route de création du mouvement (POST /)
 router.post('/', verifyToken, canCreateMovement, async (req, res) => {
-  console.log('JE suis passer ici');
   try {
     const {
       userId, // ID du chauffeur à qui le mouvement sera assigné (optionnel)
@@ -85,7 +84,6 @@ router.post('/', verifyToken, canCreateMovement, async (req, res) => {
       movement.timeLogId = timeLogId;
 
       if (whatsAppService.isClientReady() && driver.phone) {
-        console.log('OK');
         const message = `🚗 Nouveau mouvement assigné!\n\n` +
                         `Véhicule: ${movement.licensePlate}\n` +
                         `Départ: ${movement.departureLocation.name}\n` +
@@ -305,7 +303,6 @@ router.post('/:id/assign', verifyToken, canAssignMovement, async (req, res) => {
     try {
       console.log('whatsapp is ready :', whatsAppService.isClientReady())
       if (whatsAppService.isClientReady() && driver.phone) {
-        console.log('OK');
         const message = `🚗 Nouveau mouvement assigné!\n\n` +
                         `Véhicule: ${movement.licensePlate}\n` +
                         `Départ: ${movement.departureLocation.name}\n` +

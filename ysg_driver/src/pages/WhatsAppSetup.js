@@ -1,6 +1,5 @@
 // ysg_driver/src/pages/WhatsAppSetup.js
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
 import Navigation from '../components/Navigation';
 import axios from 'axios';
 import { API_URL } from '../config';
@@ -9,7 +8,6 @@ const WhatsAppSetup = () => {
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const { currentUser } = useAuth();
   
   useEffect(() => {
     const checkStatus = async () => {
@@ -63,11 +61,11 @@ const WhatsAppSetup = () => {
               <p><strong>Message:</strong> {status?.message}</p>
             </div>
             
-            {!status?.isReady && status?.qrCodeExists && (
+            {!status?.isReady && status?.qrCodeUrl && (
               <div className="qr-code-container" style={{ textAlign: 'center', margin: '20px 0' }}>
                 <h3>Scannez ce QR code avec WhatsApp sur votre téléphone</h3>
                 <img 
-                  src={`${API_URL}/api/admin/whatsapp-qr?${new Date().getTime()}`} 
+                  src={status.qrCodeUrl} 
                   alt="WhatsApp QR Code" 
                   style={{ maxWidth: '300px', margin: '20px auto', display: 'block' }}
                 />

@@ -1,15 +1,25 @@
 // server/services/whatsapp.service.js
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode');
+const cloudinary = require('cloudinary').v2;
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 
-// Classe pour gérer la connexion et l'envoi de messages WhatsApp
+// Configuration de Cloudinary (assurez-vous que ces variables sont définies dans votre .env)
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
 class WhatsAppService {
   constructor() {
     this.client = null;
     this.isReady = false;
-    this.qrCodePath = path.join(__dirname, '..', 'whatsapp-qr.png');
+    this.qrCodeUrl = null;  // URL Cloudinary du QR code
+    this.qrCodeLocalPath = path.join(os.tmpdir(), 'whatsapp-qr.png');  // Fichier temporaire
+    this.publicId = `ysg-driver-app/whatsapp-qr-${Date.now()}`; // ID public unique
     this.initialize();
   }
 
@@ -19,45 +29,60 @@ class WhatsAppService {
     
     // Créer un nouveau client WhatsApp
     this.client = new Client({
-        authStrategy: new LocalAuth({ clientId: "ysg-driver-app" }),
-        puppeteer: {
-          headless: true,
-          args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-accelerated-2d-canvas',
-            '--no-first-run',
-            '--no-zygote',
-            '--single-process',
-            '--disable-gpu'
-          ]
-        }
-      });
+      authStrategy: new LocalAuth({ clientId: "ysg-driver-app" }),
+      puppeteer: {
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
+      }
+    });
 
     // Événement de génération du QR code
-    this.client.on('qr', (qr) => {
-      console.log('QR Code reçu, veuillez le scanner avec WhatsApp sur votre téléphone');
+    this.client.on('qr', async (qr) => {
+      console.log('QR Code reçu, génération et téléchargement sur Cloudinary...');
       
-      // Générer une image du QR code
-      qrcode.toFile(this.qrCodePath, qr, {
-        color: {
-          dark: '#000',
-          light: '#fff'
+      try {
+        // Générer une image du QR code localement d'abord
+        await qrcode.toFile(this.qrCodeLocalPath, qr, {
+          color: {
+            dark: '#000',
+            light: '#fff'
+          }
+        });
+        
+        console.log(`QR Code sauvegardé localement dans ${this.qrCodeLocalPath}`);
+        
+        // Télécharger sur Cloudinary
+        const uploadResult = await cloudinary.uploader.upload(this.qrCodeLocalPath, {
+          public_id: this.publicId,
+          overwrite: true,
+          resource_type: 'image',
+          folder: 'ysg-driver-app'
+        });
+        
+        // Stocker l'URL du QR code
+        this.qrCodeUrl = uploadResult.secure_url;
+        console.log(`QR Code téléchargé sur Cloudinary: ${this.qrCodeUrl}`);
+        
+        // Supprimer le fichier local (optionnel)
+        if (fs.existsSync(this.qrCodeLocalPath)) {
+          fs.unlinkSync(this.qrCodeLocalPath);
         }
-      }, (err) => {
-        if (err) {
-          console.error('Erreur lors de la génération du QR code:', err);
-        } else {
-          console.log(`QR Code enregistré dans ${this.qrCodePath}`);
-          console.log('Scannez-le avec WhatsApp pour vous connecter');
-        }
-      });
+      } catch (error) {
+        console.error('Erreur lors du téléchargement du QR Code:', error);
+      }
     });
 
     // Événement d'authentification
     this.client.on('authenticated', () => {
       console.log('Authentification WhatsApp réussie');
+      
+      // Supprimer le QR code de Cloudinary une fois authentifié
+      if (this.qrCodeUrl) {
+        cloudinary.uploader.destroy(this.publicId)
+          .then((result) => console.log('QR Code supprimé de Cloudinary'))
+          .catch((err) => console.error('Erreur lors de la suppression du QR Code:', err));
+        
+        this.qrCodeUrl = null;
+      }
     });
 
     // Événement de déconnexion
@@ -77,9 +102,13 @@ class WhatsAppService {
       this.isReady = true;
       console.log('Client WhatsApp prêt à envoyer des messages');
       
-      // Supprimer le QR code une fois connecté
-      if (fs.existsSync(this.qrCodePath)) {
-        fs.unlinkSync(this.qrCodePath);
+      // Supprimer le QR code de Cloudinary
+      if (this.qrCodeUrl) {
+        cloudinary.uploader.destroy(this.publicId)
+          .then((result) => console.log('QR Code supprimé de Cloudinary'))
+          .catch((err) => console.error('Erreur lors de la suppression du QR Code:', err));
+        
+        this.qrCodeUrl = null;
       }
     });
 
@@ -91,7 +120,6 @@ class WhatsAppService {
 
   // Méthode pour envoyer un message
   async sendMessage(phoneNumber, message) {
-    console.log('DANS LA FONCTION DENVOI DE MSG')
     if (!this.isReady || !this.client) {
       throw new Error('Client WhatsApp non initialisé ou non prêt');
     }
@@ -142,9 +170,9 @@ class WhatsAppService {
     return this.isReady;
   }
 
-  // Obtenir le chemin du QR code
-  getQrCodePath() {
-    return this.qrCodePath;
+  // Obtenir l'URL du QR code sur Cloudinary
+  getQrCodeUrl() {
+    return this.qrCodeUrl;
   }
 }
 
