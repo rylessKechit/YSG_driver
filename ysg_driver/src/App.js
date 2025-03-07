@@ -26,6 +26,8 @@ import Reports from './pages/Reports';
 
 import ScheduleManager from './pages/ScheduleManager';
 
+import WhatsAppSetup from './pages/WhatsAppSetup';
+
 // Composant de route protégée
 const ProtectedRoute = ({ children, requiredRoles = [] }) => {
   const { isAuthenticated, loading, currentUser } = useAuth();
@@ -145,6 +147,14 @@ const AppContent = () => {
           element={
             <ProtectedRoute requiredRoles={['admin']}>
               <AdminPanel />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/whatsapp-setup" 
+          element={
+            <ProtectedRoute requiredRoles={['admin']}>
+              <WhatsAppSetup />
             </ProtectedRoute>
           } 
         />

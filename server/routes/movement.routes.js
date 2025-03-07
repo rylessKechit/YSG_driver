@@ -6,7 +6,7 @@ const TimeLog = require('../models/timelog.model');
 const User = require('../models/user.model');
 const { verifyToken, canCreateMovement, canAssignMovement } = require('../middleware/auth.middleware');
 const upload = require('../middleware/upload.middleware');
-const path = require('path');
+const whatsAppService = require('../services/whatsapp.service');
 
 // Middleware pour vérifier si un chauffeur a un service actif
 const checkDriverActiveTimeLog = async (driverId) => {
@@ -20,6 +20,7 @@ const checkDriverActiveTimeLog = async (driverId) => {
 // Créer un nouveau mouvement (réservé aux admins)
 // Modifier la route de création du mouvement (POST /)
 router.post('/', verifyToken, canCreateMovement, async (req, res) => {
+  console.log('JE suis passer ici');
   try {
     const {
       userId, // ID du chauffeur à qui le mouvement sera assigné (optionnel)
@@ -82,6 +83,19 @@ router.post('/', verifyToken, canCreateMovement, async (req, res) => {
     if (userId) {
       movement.userId = userId;
       movement.timeLogId = timeLogId;
+
+      if (whatsAppService.isClientReady() && driver.phone) {
+        console.log('OK');
+        const message = `🚗 Nouveau mouvement assigné!\n\n` +
+                        `Véhicule: ${movement.licensePlate}\n` +
+                        `Départ: ${movement.departureLocation.name}\n` +
+                        `Arrivée: ${movement.arrivalLocation.name}\n\n` +
+                        `Statut: ${movement.status === 'assigned' ? 'Prêt à démarrer' : 'En attente'}\n` +
+                        `Pour plus de détails, consultez l'application.`;
+                        
+        await whatsAppService.sendMessage(driver.phone, message);
+        console.log(`Notification WhatsApp envoyée à ${driver.fullName} (${driver.phone})`);
+      }
     }
     
     await movement.save();
@@ -287,9 +301,30 @@ router.post('/:id/assign', verifyToken, canAssignMovement, async (req, res) => {
     
     await movement.save();
     
+    // Envoyer une notification WhatsApp au chauffeur
+    try {
+      console.log('whatsapp is ready :', whatsAppService.isClientReady())
+      if (whatsAppService.isClientReady() && driver.phone) {
+        console.log('OK');
+        const message = `🚗 Nouveau mouvement assigné!\n\n` +
+                        `Véhicule: ${movement.licensePlate}\n` +
+                        `Départ: ${movement.departureLocation.name}\n` +
+                        `Arrivée: ${movement.arrivalLocation.name}\n\n` +
+                        `Statut: ${movement.status === 'assigned' ? 'Prêt à démarrer' : 'En attente'}\n` +
+                        `Pour plus de détails, consultez l'application.`;
+                        
+        await whatsAppService.sendMessage(driver.phone, message);
+        console.log(`Notification WhatsApp envoyée à ${driver.fullName} (${driver.phone})`);
+      }
+    } catch (whatsappError) {
+      // Ne pas bloquer le processus principal si l'envoi WhatsApp échoue
+      console.error('Erreur lors de l\'envoi de la notification WhatsApp:', whatsappError);
+    }
+    
     res.json({
       message: activeTimeLog ? 'Chauffeur assigné et prêt pour le mouvement' : 'Chauffeur assigné mais hors service',
-      movement
+      movement,
+      notificationSent: whatsAppService.isClientReady()
     });
   } catch (error) {
     console.error('Erreur lors de l\'assignation du chauffeur:', error);

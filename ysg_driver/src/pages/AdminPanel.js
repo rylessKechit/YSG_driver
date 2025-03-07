@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import userService from '../services/userService';
 import Navigation from '../components/Navigation';
@@ -384,6 +384,18 @@ const AdminPanel = () => {
             </table>
           </div>
         )}
+      </div>
+      <div className="admin-section">
+        <h2>Outils d'administration</h2>
+        <div className="admin-tools">
+          <Link to="/admin/whatsapp-setup" className="admin-tool-card">
+            <div className="tool-icon">
+              <i className="fas fa-comments"></i>
+            </div>
+            <div className="tool-name">Configuration WhatsApp</div>
+          </Link>
+          {/* Autres outils */}
+        </div>
       </div>
     </div>
   );

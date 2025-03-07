@@ -321,6 +321,56 @@
     width: 100%;
   }
 }
+.admin-section {
+  margin-top: 2rem;
+  background-color: white;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.admin-tools {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.admin-tool-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 1.5rem;
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  text-decoration: none;
+  color: #1f2937;
+  transition: all 0.2s ease-in-out;
+}
+
+.admin-tool-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border-color: #d1d5db;
+}
+
+.tool-icon {
+  font-size: 2rem;
+  color: #3b82f6;
+  margin-bottom: 1rem;
+}
+
+.tool-name {
+  font-weight: 500;
+}
+
+@media (max-width: 640px) {
+  .admin-tools {
+    grid-template-columns: 1fr;
+  }
+}
 
 /* Styles pour les très petits écrans (téléphones) */
 @media (max-width: 480px) {
