@@ -8,25 +8,26 @@ const WhatsAppSetup = () => {
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [disconnecting, setDisconnecting] = useState(false);
+  
+  const checkStatus = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(`${API_URL}/admin/whatsapp-status`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      setStatus(response.data);
+      setLoading(false);
+    } catch (err) {
+      console.error('Erreur lors de la vérification du statut WhatsApp:', err);
+      setError('Erreur lors de la vérification du statut WhatsApp');
+      setLoading(false);
+    }
+  };
   
   useEffect(() => {
-    const checkStatus = async () => {
-      try {
-        setLoading(true);
-        const response = await axios.get(`${API_URL}/admin/whatsapp-status`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`
-          }
-        });
-        setStatus(response.data);
-        setLoading(false);
-      } catch (err) {
-        console.error('Erreur lors de la vérification du statut WhatsApp:', err);
-        setError('Erreur lors de la vérification du statut WhatsApp');
-        setLoading(false);
-      }
-    };
-    
     checkStatus();
     
     // Vérifier le statut toutes les 10 secondes
@@ -34,6 +35,28 @@ const WhatsAppSetup = () => {
     
     return () => clearInterval(interval);
   }, []);
+  
+  // Nouvelle fonction pour déconnecter WhatsApp
+  const handleDisconnect = async () => {
+    try {
+      setDisconnecting(true);
+      setError(null);
+      
+      await axios.post(`${API_URL}/admin/whatsapp-disconnect`, {}, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      // Rafraîchir le statut
+      await checkStatus();
+      setDisconnecting(false);
+    } catch (err) {
+      console.error('Erreur lors de la déconnexion de WhatsApp:', err);
+      setError('Erreur lors de la déconnexion de WhatsApp');
+      setDisconnecting(false);
+    }
+  };
   
   return (
     <div>
@@ -43,7 +66,7 @@ const WhatsAppSetup = () => {
         <h1 className="page-title">Configuration WhatsApp</h1>
         
         {error && (
-          <div className="error-message" style={{ color: 'red', marginBottom: '20px' }}>
+          <div className="error-message" style={{ color: 'red', marginBottom: '20px', padding: '10px', backgroundColor: '#fee2e2', borderRadius: '8px' }}>
             {error}
           </div>
         )}
@@ -76,9 +99,31 @@ const WhatsAppSetup = () => {
             )}
             
             {status?.isReady && (
-              <div className="success-message" style={{ backgroundColor: '#d1fae5', padding: '15px', borderRadius: '8px', color: '#047857' }}>
-                <h3>WhatsApp est connecté !</h3>
-                <p>Vous pouvez maintenant envoyer des notifications aux chauffeurs.</p>
+              <div>
+                <div className="success-message" style={{ backgroundColor: '#d1fae5', padding: '15px', borderRadius: '8px', color: '#047857', marginBottom: '20px' }}>
+                  <h3>WhatsApp est connecté !</h3>
+                  <p>Vous pouvez maintenant envoyer des notifications aux chauffeurs.</p>
+                </div>
+                
+                {/* Bouton de déconnexion (visible uniquement si WhatsApp est connecté) */}
+                <div style={{ textAlign: 'center' }}>
+                  <button 
+                    onClick={handleDisconnect} 
+                    className="btn btn-danger" 
+                    style={{ 
+                      backgroundColor: '#dc2626', 
+                      color: 'white', 
+                      border: 'none', 
+                      padding: '10px 20px', 
+                      borderRadius: '8px', 
+                      fontWeight: '600',
+                      cursor: 'pointer'
+                    }}
+                    disabled={disconnecting}
+                  >
+                    {disconnecting ? 'Déconnexion en cours...' : 'Déconnecter WhatsApp'}
+                  </button>
+                </div>
               </div>
             )}
           </div>

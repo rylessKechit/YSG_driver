@@ -25,4 +25,25 @@ router.get('/whatsapp-status', isAdmin, (req, res) => {
   }
 });
 
+// Nouvelle route pour déconnecter WhatsApp
+router.post('/whatsapp-disconnect', isAdmin, async (req, res) => {
+  try {
+    if (!whatsAppService.isClientReady()) {
+      return res.status(400).json({ message: 'WhatsApp n\'est pas connecté' });
+    }
+
+    const disconnected = await whatsAppService.disconnect();
+    
+    if (disconnected) {
+      res.json({ message: 'WhatsApp déconnecté avec succès' });
+    } else {
+      res.status(500).json({ message: 'Erreur lors de la déconnexion de WhatsApp' });
+    }
+  } catch (error) {
+    console.error('Erreur lors de la déconnexion de WhatsApp:', error);
+    res.status(500).json({ message: 'Erreur serveur' });
+  }
+});
+
+
 module.exports = router;
