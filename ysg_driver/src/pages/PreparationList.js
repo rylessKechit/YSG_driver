@@ -1,6 +1,6 @@
 // src/pages/PreparationList.js
 import React, { useState, useEffect } from 'react';
-import { Link, useSearchParams, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import preparationService from '../services/preparationService';
 import Navigation from '../components/Navigation';
@@ -16,19 +16,6 @@ const PreparationList = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const { currentUser } = useAuth();
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
-  
-  // Initialiser correctement les filtres à partir des paramètres d'URL
-  // Cette fonction s'exécutera une seule fois au montage initial
-  useEffect(() => {
-    console.log("Initialisation des filtres à partir de l'URL");
-    const dayParam = searchParams.get('day');
-    
-    if (dayParam === 'today') {
-      console.log("Filtre 'today' détecté dans l'URL");
-    }
-  }, []); // Dépendances vides pour n'exécuter qu'au montage initial
   
   // Fonction de chargement des préparations
   const loadPreparations = async () => {
@@ -39,28 +26,17 @@ const PreparationList = () => {
       setLoading(true);
       let response;
       
-      // Log pour debug
-      console.log("Chargement des préparations avec paramètres:", {
-        isSearching, 
-        searchQuery, 
-        page, 
-        statusFilter,
-      });
-      
       if (isSearching && searchQuery) {
         // Si on est en mode recherche, utiliser l'endpoint de recherche
         response = await preparationService.searchByLicensePlate(searchQuery);
       } else {
         // Sinon utiliser l'endpoint standard avec les paramètres de filtrage
         
-        response = await preparationService.getPreparations(page, 10, statusFilter || null);
+        response = await preparationService.getPreparations(page, 100, statusFilter || null);
         setTotalPages(response.totalPages);
       }
       
       setPreparations(response.preparations);
-      
-      // Log pour debug
-      console.log("Préparations chargées:", response.preparations.length);
     } catch (err) {
       console.error('Erreur lors du chargement des préparations:', err);
       setError('Erreur lors du chargement des données');
@@ -71,7 +47,6 @@ const PreparationList = () => {
   
   // Effet pour charger les préparations quand les filtres changent
   useEffect(() => {
-    console.log("Déclenchement du chargement suite à un changement de filtre");
     loadPreparations();
   }, [page, statusFilter, isSearching]);
 

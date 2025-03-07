@@ -24,14 +24,12 @@ const Navigation = () => {
   
   // Fonction de navigation explicite
   const goTo = (path) => {
-    console.log(`Navigation vers: ${path}`);
     setIsMenuOpen(false);
     navigate(path);
   };
   
   // Gestion de la déconnexion
   const handleLogout = () => {
-    console.log('Tentative de déconnexion');
     logout()
       .then(() => {
         navigate('/login');

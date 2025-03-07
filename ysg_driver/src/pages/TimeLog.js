@@ -64,10 +64,7 @@ const TimeLog = () => {
       try {
         setLoading(true);
         setError(null);
-        
-        console.log('Tentative de récupération du pointage actif...');
         const data = await timelogService.getActiveTimeLog();
-        console.log('Réponse reçue:', data);
         
         setActiveTimeLog(data);
         
@@ -79,8 +76,6 @@ const TimeLog = () => {
       } catch (err) {
         console.error('Erreur lors du chargement du pointage actif:', err);
         if (err.response && err.response.status === 404) {
-          // C'est normal de ne pas avoir de pointage actif, pas d'erreur à afficher
-          console.log('Aucun pointage actif trouvé (404)');
         } else {
           setError('Erreur lors du chargement du pointage actif. Veuillez réessayer.');
         }
@@ -110,10 +105,8 @@ const TimeLog = () => {
           coordinates: { latitude: null, longitude: null }
         };
       }
-      
-      console.log('Démarrage du pointage avec la localisation:', locationData);
+
       const response = await timelogService.startTimeLog(locationData);
-      console.log('Réponse du démarrage:', response);
       
       setActiveTimeLog(response.timeLog);
       
@@ -133,23 +126,6 @@ const TimeLog = () => {
     try {
       setActionLoading(true);
       setError(null);
-      
-      // Obtenir la position actuelle
-      let locationData;
-      try {
-        locationData = location || await getCurrentLocation();
-      } catch (geoError) {
-        console.error('Erreur de géolocalisation lors de la fin:', geoError);
-        // Continuer avec une localisation vide si la géolocalisation échoue
-        locationData = {
-          name: 'Position non disponible',
-          coordinates: { latitude: null, longitude: null }
-        };
-      }
-      
-      console.log('Fin du pointage avec la localisation:', locationData);
-      const response = await timelogService.endTimeLog(locationData, notes);
-      console.log('Réponse de la fin:', response);
       
       setActiveTimeLog(null);
       setNotes('');
@@ -269,7 +245,7 @@ const TimeLog = () => {
           </div>
           
           <div className="back-link">
-            <a href="#" onClick={(e) => { e.preventDefault(); navigate('/dashboard'); }}>
+            <a href='/' onClick={(e) => { e.preventDefault(); navigate('/dashboard'); }}>
               Retour au tableau de bord
             </a>
           </div>

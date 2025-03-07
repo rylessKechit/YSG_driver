@@ -114,8 +114,6 @@ router.post('/:id/tasks/:taskType/start', verifyToken, upload.single('photo'), a
     const { id, taskType } = req.params;
     const { notes } = req.body;
     
-    console.log(`Démarrage de la tâche ${taskType} pour préparation ${id}`);
-    
     // Vérifier que la préparation existe
     const preparation = await Preparation.findById(id);
     if (!preparation) {
@@ -150,8 +148,6 @@ router.post('/:id/tasks/:taskType/start', verifyToken, upload.single('photo'), a
     if (!req.file) {
       return res.status(400).json({ message: 'Une photo "before" est requise pour commencer la tâche' });
     }
-    
-    console.log(`Photo reçue: ${req.file.path}`);
     
     // Utiliser l'URL Cloudinary
     const photoUrl = req.file.path;
@@ -195,8 +191,6 @@ router.post('/:id/tasks/:taskType/complete', verifyToken, upload.single('photo')
     const { id, taskType } = req.params;
     const { notes, amount, departureLocation, arrivalLocation } = req.body;
     
-    console.log(`Completion de la tâche ${taskType} pour préparation ${id}`);
-    
     // Vérifier que la préparation existe
     const preparation = await Preparation.findById(id);
     if (!preparation) {
@@ -230,8 +224,6 @@ router.post('/:id/tasks/:taskType/complete', verifyToken, upload.single('photo')
     if (!req.file) {
       return res.status(400).json({ message: 'Une photo "after" est requise pour terminer la tâche' });
     }
-    
-    console.log(`Photo reçue: ${req.file.path}`);
     
     // Utiliser l'URL Cloudinary
     const photoUrl = req.file.path;
@@ -437,7 +429,6 @@ router.post('/:id/photos', verifyToken, upload.array('photos', 5), async (req, r
 
 // Obtenir toutes les préparations (filtrées selon le rôle)
 router.get('/', verifyToken, async (req, res) => {
-  console.log("Query params:", req.query);
   try {
     const { page = 1, limit = 10, status, day } = req.query;
     const skip = (page - 1) * limit;
@@ -471,8 +462,6 @@ router.get('/', verifyToken, async (req, res) => {
         { endTime: { $gte: today, $lt: tomorrow } }
       ];
     }
-
-    console.log("MongoDB query:", JSON.stringify(query, null, 2));
     
     const preparations = await Preparation.find(query)
       .sort({ createdAt: -1 })
@@ -488,8 +477,6 @@ router.get('/', verifyToken, async (req, res) => {
       currentPage: parseInt(page),
       totalItems: total
     });
-
-    console.log(`Found ${preparations.length} preparations`);
   } catch (error) {
     console.error('Erreur lors de la récupération des préparations:', error);
     res.status(500).json({ message: 'Erreur serveur' });
