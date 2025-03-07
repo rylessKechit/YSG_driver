@@ -1,8 +1,15 @@
+// src/pages/AdminPanel.js
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import userService from '../services/userService';
 import Navigation from '../components/Navigation';
+import AlertMessage from '../components/ui/AlertMessage';
+import LoadingSpinner from '../components/ui/LoadingSpinner';
+import UserForm from '../components/admin/UserForm';
+import UsersTable from '../components/admin/UsersTable';
+import AdminTools from '../components/admin/AdminTools';
+
 import '../styles/AdminPanel.css';
 
 const AdminPanel = () => {
@@ -170,17 +177,8 @@ const AdminPanel = () => {
       <div className="admin-container">
         <h1 className="page-title">Panneau d'administration</h1>
         
-        {error && (
-          <div className="error-message">
-            {error}
-          </div>
-        )}
-        
-        {success && (
-          <div className="success-message">
-            {success}
-          </div>
-        )}
+        {error && <AlertMessage type="error" message={error} />}
+        {success && <AlertMessage type="success" message={success} />}
         
         <div className="admin-header">
           <h2 className="section-title">Gestion des utilisateurs</h2>
@@ -193,210 +191,32 @@ const AdminPanel = () => {
         </div>
         
         {showUserForm && (
-          <div className="user-form-container">
-            <h3 className="form-title">
-              {formMode === 'create' ? 'Créer un utilisateur' : 'Modifier un utilisateur'}
-            </h3>
-            
-            <form onSubmit={handleSubmit} className="user-form">
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="username" className="form-label">
-                    Nom d'utilisateur *
-                  </label>
-                  <input
-                    type="text"
-                    id="username"
-                    name="username"
-                    value={formData.username}
-                    onChange={handleChange}
-                    className="form-input"
-                    required
-                  />
-                </div>
-                
-                <div className="form-group">
-                  <label htmlFor="password" className="form-label">
-                    {formMode === 'create' ? 'Mot de passe *' : 'Mot de passe (laisser vide pour ne pas changer)'}
-                  </label>
-                  <input
-                    type="password"
-                    id="password"
-                    name="password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    className="form-input"
-                    required={formMode === 'create'}
-                  />
-                </div>
-              </div>
-              
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="fullName" className="form-label">
-                    Nom complet *
-                  </label>
-                  <input
-                    type="text"
-                    id="fullName"
-                    name="fullName"
-                    value={formData.fullName}
-                    onChange={handleChange}
-                    className="form-input"
-                    required
-                  />
-                </div>
-                
-                <div className="form-group">
-                  <label htmlFor="email" className="form-label">
-                    Email *
-                  </label>
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    className="form-input"
-                    required
-                  />
-                </div>
-              </div>
-              
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="phone" className="form-label">
-                    Téléphone *
-                  </label>
-                  <input
-                    type="tel"
-                    id="phone"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleChange}
-                    className="form-input"
-                    required
-                  />
-                </div>
-                
-                <div className="form-group">
-                  <label htmlFor="role" className="form-label">
-                    Rôle *
-                  </label>
-                  <select
-                    id="role"
-                    name="role"
-                    value={formData.role}
-                    onChange={handleChange}
-                    className="form-input"
-                    required
-                  >
-                    <option value="driver">Chauffeur</option>
-                    <option value="preparator">Préparateur</option>
-                    <option value="team-leader">Chef d'équipe</option>
-                    <option value="direction">Direction</option>
-                    <option value="admin">Administrateur</option>
-                  </select>
-                </div>
-              </div>
-              
-              <div className="form-actions">
-                <button 
-                  type="button" 
-                  onClick={resetForm}
-                  className="btn btn-secondary"
-                  disabled={loading}
-                >
-                  Annuler
-                </button>
-                <button 
-                  type="submit" 
-                  className="btn btn-primary"
-                  disabled={loading}
-                >
-                  {loading ? 'En cours...' : formMode === 'create' ? 'Créer' : 'Mettre à jour'}
-                </button>
-              </div>
-            </form>
-          </div>
+          <UserForm 
+            formData={formData}
+            formMode={formMode}
+            onChange={handleChange}
+            onSubmit={handleSubmit}
+            onCancel={resetForm}
+            loading={loading}
+          />
         )}
         
         {loading && !showUserForm ? (
           <div className="loading-container">
-            <div className="spinner"></div>
+            <LoadingSpinner />
           </div>
         ) : (
-          <div className="users-table-container">
-            <table className="users-table">
-              <thead>
-                <tr>
-                  <th>Utilisateur</th>
-                  <th>Nom complet</th>
-                  <th>Téléphone</th>
-                  <th>Rôle</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map(user => (
-                  <tr key={user._id}>
-                    <td>{user.username}</td>
-                    <td>{user.fullName}</td>
-                    <td>{user.phone}</td>
-                    <td>
-                      <span className={`role-badge ${
-                        user.role === 'admin' ? 'admin-role' : 
-                        user.role === 'driver' ? 'driver-role' : 
-                        user.role === 'preparator' ? 'preparator-role' : 
-                        user.role === 'team-leader' ? 'team-leader-role' : 
-                        'direction-role'
-                      }`}>
-                        {user.role === 'admin' ? 'Admin' : 
-                        user.role === 'driver' ? 'Chauffeur' : 
-                        user.role === 'preparator' ? 'Préparateur' : 
-                        user.role === 'team-leader' ? 'Chef d\'équipe' : 
-                        'Direction'}
-                      </span>
-                    </td>
-                    <td>
-                      <div className="table-actions">
-                        <button 
-                          onClick={() => handleEditUser(user)}
-                          className="action-button edit-button"
-                          title="Modifier"
-                        >
-                          ✏️
-                        </button>
-                        {user._id !== currentUser._id && (
-                          <button 
-                            onClick={() => handleDeleteUser(user._id)}
-                            className="action-button delete-button"
-                            title="Supprimer"
-                          >
-                            🗑️
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <UsersTable 
+            users={users}
+            currentUser={currentUser}
+            onEditUser={handleEditUser}
+            onDeleteUser={handleDeleteUser}
+            loading={loading}
+          />
         )}
       </div>
-      <div className="admin-section">
-        <h2>Outils d'administration</h2>
-        <div className="admin-tools">
-          <Link to="/admin/whatsapp-setup" className="admin-tool-card">
-            <div className="tool-icon">
-              <i className="fas fa-comments"></i>
-            </div>
-            <div className="tool-name">Configuration WhatsApp</div>
-          </Link>
-          {/* Autres outils */}
-        </div>
-      </div>
+      
+      <AdminTools />
     </div>
   );
 };
