@@ -13,12 +13,16 @@ import QuickActions from '../components/dashboard/QuickActions';
 import RecentMovements from '../components/dashboard/RecentMovements';
 import RecentPreparations from '../components/dashboard/RecentPreparations';
 import '../styles/Dashboard.css';
+import InProgressMovement from '../components/dashboard/InProgressMovement';
+import InProgressPreparations from '../components/dashboard/InProgressPreparations';
 
 const Dashboard = () => {
   const [activeTimeLog, setActiveTimeLog] = useState(null);
   const [assignedMovements, setAssignedMovements] = useState([]);
+  const [inProgressMovements, setInProgressMovements] = useState([]);
   const [recentMovements, setRecentMovements] = useState([]);
-  const [preparations, setPreparations] = useState([]);
+  const [inProgressPreparations, setInProgressPreparations] = useState([]);
+  const [recentPreparations, setRecentPreparations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { currentUser } = useAuth();
@@ -26,9 +30,12 @@ const Dashboard = () => {
   // Chargement des préparations
   const loadPreparations = async () => {
     try {
-      if (currentUser?.role === 'preparator') {
-        const response = await preparationService.getPreparations(null, 5, 'completed' || null);
-        setPreparations(response.preparations);
+      if (currentUser?.role === 'preparator' || currentUser?.role === 'driver' || currentUser?.role === 'team-leader') {
+        const recentPreparations = await preparationService.getPreparations(null, 5, 'completed' || null);
+        setRecentPreparations(recentPreparations.preparations);
+
+        const inProgressPreparations = await preparationService.getPreparations(null, 5, 'in-progress' || null);
+        setInProgressPreparations(inProgressPreparations.preparations);
       }
     } catch (err) {
       console.error('Erreur lors du chargement des préparations:', err);
@@ -57,6 +64,10 @@ const Dashboard = () => {
         if (currentUser?.role === 'driver') {
           const assignedData = await movementService.getMovements(1, 5, 'assigned');
           setAssignedMovements(assignedData.movements);
+
+          const inProgressData = await movementService.getMovements(1, 5, 'in-progress');
+          setInProgressMovements(inProgressData.movements);
+
         }
         
         // Récupérer les mouvements récents (terminés pour les chauffeurs, tous pour les admins)
@@ -118,6 +129,11 @@ const Dashboard = () => {
         {(currentUser.role === 'driver' || currentUser.role === 'preparator' || currentUser.role === 'team-leader') && (
           <StatusCard activeTimeLog={activeTimeLog} />
         )}
+
+        {/* Mouvement in progress (chauffeurs seulement) */}
+        {((currentUser.role === 'driver' | currentUser.role === 'team-leader') && inProgressMovements.length > 0 ) && (
+          <InProgressMovement movements={inProgressMovements} />
+        )}
         
         {/* Mouvements assignés (chauffeurs seulement) */}
         {currentUser.role === 'driver' && assignedMovements.length > 0 && (
@@ -127,13 +143,18 @@ const Dashboard = () => {
         {/* Actions rapides */}
         <QuickActions currentUser={currentUser} />
         
-        {/* Préparations récentes (préparateurs) */}
-        {currentUser.role === 'preparator' && (
-          <RecentPreparations preparations={preparations} />
+        {/* Préparations en cours */}
+        {(currentUser.role === 'preparator' || currentUser.role === 'driver' || currentUser.role === 'team-leader') && (
+          <InProgressPreparations preparations={inProgressPreparations} />
+        )}
+        
+        {/* Préparations récentes */}
+        {(currentUser.role === 'preparator' || currentUser.role === 'driver' || currentUser.role === 'team-leader') && (
+          <RecentPreparations preparations={recentPreparations} />
         )}
         
         {/* Mouvements récents (chauffeurs ou chefs d'équipe) */}
-        {(currentUser.role === 'driver' || currentUser.role === 'team-leader') && (
+        {((currentUser.role === 'driver' || currentUser.role === 'team-leader' || currentUser.role === 'preparator') && recentMovements.length > 0) && (
           <RecentMovements movements={recentMovements} />
         )}
       </div>

@@ -17,7 +17,7 @@ const RecentMovements = ({ movements }) => {
       
       {movements.length > 0 ? (
         <div className="movements-list">
-          {movements.map(movement => (
+          {movements.slice(0, 5).map(movement => (
             <MovementCard key={movement._id} movement={movement} />
           ))}
         </div>
