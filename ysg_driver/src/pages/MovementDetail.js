@@ -280,10 +280,10 @@ const MovementDetail = () => {
       
       await movementService.uploadPhotos(id, formData);
       
-      // Mettre à jour le statut de la photo
+      // IMPORTANT: Mettre à jour explicitement le statut de la photo
       setPhotosStatus(prev => ({
         ...prev,
-        [photoType]: true
+        [photoType]: true  // Marquer explicitement comme complété
       }));
       
       // Réinitialiser le fichier sélectionné
@@ -389,11 +389,13 @@ const MovementDetail = () => {
 
   // Vérifier si toutes les photos requises ont été prises au départ
   const allRequiredPhotosTaken = () => {
+    if (!photosStatus) return false;
     return Object.values(photosStatus).every(status => status === true);
   };
 
   // Vérifier si toutes les photos requises ont été prises à l'arrivée
   const allRequiredArrivalPhotosTaken = () => {
+    if (!arrivalPhotosStatus) return false;
     return Object.values(arrivalPhotosStatus).every(status => status === true);
   };
 

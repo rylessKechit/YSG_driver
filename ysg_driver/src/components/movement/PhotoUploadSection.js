@@ -57,8 +57,15 @@ const PhotoUploadSection = ({
 
   // Check if all required photos have been taken
   const allRequiredPhotosTaken = () => {
+    // Vérification explicite du statut des photos
+    if (!photosStatus) return false;
     return Object.values(photosStatus).every(status => status === true);
   };
+
+  // Debug à afficher dans la console pour voir l'état des photos
+  console.log("État actuel des photos:", photosStatus);
+  console.log("Tous les champs sont remplis:", allRequiredPhotosTaken());
+  console.log("Fichiers sélectionnés:", selectedFiles);
 
   return (
     <div className="detail-section photo-upload-section">
@@ -80,7 +87,7 @@ const PhotoUploadSection = ({
             type={section.type}
             label={section.label}
             instruction={section.instruction}
-            completed={photosStatus[section.type]}
+            completed={photosStatus[section.type] === true}
             expanded={expandedSection === section.type}
             photoUrl={getPhotoUrlByType(section.type)}
             selectedFile={selectedFiles[section.type]}
@@ -106,6 +113,12 @@ const PhotoUploadSection = ({
             <span>Veuillez prendre toutes les photos requises pour continuer</span>
           </div>
         )}
+        
+        {/* Debug temporaire (à supprimer après correction) */}
+        <div style={{marginTop: '10px', padding: '10px', backgroundColor: '#f8f9fa', fontSize: '12px', color: '#666', borderRadius: '4px'}}>
+          <div>Statut des photos: {JSON.stringify(photosStatus)}</div>
+          <div>Photos complétées: {allRequiredPhotosTaken() ? 'Oui' : 'Non'}</div>
+        </div>
       </div>
     </div>
   );
