@@ -51,6 +51,8 @@ const MovementDetail = () => {
     meter: false
   });
 
+  const [fullscreenPreview, setFullscreenPreview] = useState(null);
+
   // États pour les photos à l'arrivée
   const [expandedArrivalPhotoSection, setExpandedArrivalPhotoSection] = useState(null);
   const [selectedArrivalPhotoFiles, setSelectedArrivalPhotoFiles] = useState({
@@ -111,21 +113,23 @@ const MovementDetail = () => {
         setNotes(data.notes);
       }
       
-      // Analyser les photos au départ pour déterminer quelles vues sont déjà disponibles
+      // Analyser les photos pour déterminer quelles vues sont déjà disponibles
       if (data.photos && data.photos.length > 0) {
-        const newPhotoStatus = { ...photosStatus };
-        const newArrivalPhotoStatus = { ...arrivalPhotosStatus };
+        console.log("Toutes les photos reçues:", data.photos);
+        
+        // Nouvelle approche: on conserve l'état actuel et on met à jour seulement ce qui est confirmé
+        const updatedPhotoStatus = { ...photosStatus };
         
         data.photos.forEach(photo => {
-          if (photo.type && photo.photoType === 'departure' && newPhotoStatus.hasOwnProperty(photo.type)) {
-            newPhotoStatus[photo.type] = true;
-          } else if (photo.type && photo.photoType === 'arrival' && newArrivalPhotoStatus.hasOwnProperty(photo.type)) {
-            newArrivalPhotoStatus[photo.type] = true;
+          // Si la photo a un type défini et qu'elle est de type "departure" (ou sans type spécifié)
+          if (photo.type && (photo.photoType === 'departure' || !photo.photoType)) {
+            updatedPhotoStatus[photo.type] = true;
+            console.log(`Photo de type ${photo.type} trouvée et marquée comme complétée`);
           }
         });
         
-        setPhotosStatus(newPhotoStatus);
-        setArrivalPhotosStatus(newArrivalPhotoStatus);
+        console.log("État des photos mis à jour après chargement:", updatedPhotoStatus);
+        setPhotosStatus(updatedPhotoStatus);
       }
       
     } catch (err) {
@@ -133,6 +137,13 @@ const MovementDetail = () => {
       setError('Erreur lors du chargement des détails du mouvement');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Ajoutez cette fonction pour gérer le clic sur la prévisualisation
+  const handleImagePreview = (url) => {
+    if (url) {
+      setFullscreenPreview(url);
     }
   };
 
@@ -276,15 +287,19 @@ const MovementDetail = () => {
       const formData = new FormData();
       formData.append('photos', file);
       formData.append('type', photoType);
-      formData.append('photoType', 'departure'); // Ajout du type de photo: départ
       
+      console.log(`Téléchargement de la photo pour ${photoType}...`);
       await movementService.uploadPhotos(id, formData);
       
-      // IMPORTANT: Mettre à jour explicitement le statut de la photo
-      setPhotosStatus(prev => ({
-        ...prev,
-        [photoType]: true  // Marquer explicitement comme complété
-      }));
+      // Mettre à jour l'état AVANT de recharger le mouvement
+      setPhotosStatus(prev => {
+        const newStatus = {
+          ...prev,
+          [photoType]: true
+        };
+        console.log(`État des photos mis à jour pour ${photoType}:`, newStatus);
+        return newStatus;
+      });
       
       // Réinitialiser le fichier sélectionné
       setSelectedPhotoFiles(prev => ({
@@ -292,11 +307,12 @@ const MovementDetail = () => {
         [photoType]: null
       }));
       
-      // Afficher un message de succès et recharger le mouvement
-      setUpdateSuccess(`Photo téléchargée avec succès`);
+      setUpdateSuccess(`Photo ${photoType} téléchargée avec succès`);
       setTimeout(() => setUpdateSuccess(null), 3000);
       
+      // Recharger les données du mouvement
       await loadMovement();
+      
     } catch (err) {
       console.error(`Erreur lors du téléchargement de la photo ${photoType}:`, err);
       setError(err.response?.data?.message || `Erreur lors du téléchargement de la photo`);
@@ -375,7 +391,15 @@ const MovementDetail = () => {
   const getPhotoUrlByType = (photoType) => {
     if (!movement || !movement.photos) return '';
     
-    const photo = movement.photos.find(photo => photo.type === photoType && photo.photoType === 'departure');
+    // Chercher la photo avec le type spécifié
+    const photo = movement.photos.find(photo => 
+      photo.type === photoType && 
+      (photo.photoType === 'departure' || !photo.photoType)
+    );
+    
+    // Ajouter un log pour voir ce qui est trouvé
+    console.log(`Photo trouvée pour ${photoType}:`, photo);
+    
     return photo ? photo.url : '';
   };
 
@@ -526,6 +550,15 @@ const MovementDetail = () => {
               sectionTitle="Photos du véhicule à l'arrivée"
               instructionText="Pour terminer ce mouvement, vous devez prendre les photos suivantes du véhicule à l'arrivée. Chaque section doit être complétée."
             />
+          )}
+
+          {fullscreenPreview && (
+            <div className="fullscreen-preview" onClick={() => setFullscreenPreview(null)}>
+              <div className="preview-container">
+                <img src={fullscreenPreview} alt="Prévisualisation plein écran" />
+                <button className="close-preview" onClick={() => setFullscreenPreview(null)}>×</button>
+              </div>
+            </div>
           )}
           
           {/* Section des notes */}

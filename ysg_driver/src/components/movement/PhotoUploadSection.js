@@ -113,12 +113,6 @@ const PhotoUploadSection = ({
             <span>Veuillez prendre toutes les photos requises pour continuer</span>
           </div>
         )}
-        
-        {/* Debug temporaire (à supprimer après correction) */}
-        <div style={{marginTop: '10px', padding: '10px', backgroundColor: '#f8f9fa', fontSize: '12px', color: '#666', borderRadius: '4px'}}>
-          <div>Statut des photos: {JSON.stringify(photosStatus)}</div>
-          <div>Photos complétées: {allRequiredPhotosTaken() ? 'Oui' : 'Non'}</div>
-        </div>
       </div>
     </div>
   );

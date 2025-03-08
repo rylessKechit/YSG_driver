@@ -117,6 +117,7 @@ const PhotoAccordionItem = ({
           {completed ? (
             <div className="completed-photo">
               <div style={styles.previewContainer}>
+              {photoUrl ? (
                 <img 
                   src={photoUrl} 
                   alt={label} 
@@ -124,6 +125,12 @@ const PhotoAccordionItem = ({
                   style={styles.previewImage}
                   onClick={() => window.open(photoUrl, '_blank')}
                 />
+              ) : (
+                <div style={styles.previewContainer}>
+                  <p>Aucune image disponible</p>
+                </div>
+              )}
+                {console.log(photoUrl)}
               </div>
               <button 
                 className="btn btn-secondary photo-replace-btn" 
