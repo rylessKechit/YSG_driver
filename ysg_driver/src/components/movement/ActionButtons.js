@@ -6,6 +6,7 @@ const ActionButtons = ({
   currentUser, 
   loading, 
   allPhotosTaken,
+  allArrivalPhotosTaken = false,
   onPrepareMovement,
   onStartMovement,
   onCompleteMovement,
@@ -80,15 +81,16 @@ const ActionButtons = ({
         </button>
       )}
       
-      {/* Step 3: Complete movement */}
+      {/* Step 3: Complete movement (after arrival photos) */}
       {movement.status === 'in-progress' && 
         movement.userId && 
         currentUser.role === 'driver' && 
         movement.userId._id === currentUser._id && (
         <button
           onClick={onCompleteMovement}
-          className="btn btn-success"
-          disabled={loading}
+          className="btn btn-warning"  // Orange button for completion
+          disabled={loading || !allArrivalPhotosTaken}
+          title={!allArrivalPhotosTaken ? "Toutes les photos d'arrivée requises doivent être prises" : ""}
         >
           {loading ? 'Finalisation...' : 'Terminer le trajet'}
         </button>

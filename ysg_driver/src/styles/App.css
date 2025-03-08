@@ -386,6 +386,10 @@
   z-index: 99;
 }
 
+.section-header {
+  margin-bottom: 8px !important; /* Réduit l'espace entre le titre et la première carte */
+}
+
 /* Styles pour le mode MOBILE */
 @media (max-width: 950px) {
   /* Masquer le menu mobile par défaut */

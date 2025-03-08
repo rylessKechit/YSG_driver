@@ -29,7 +29,7 @@ const MovementDetail = () => {
   const [allDrivers, setAllDrivers] = useState([]);
   const [loadingDrivers, setLoadingDrivers] = useState(false);
   
-  // États pour les photos
+  // États pour les photos au départ
   const [expandedPhotoSection, setExpandedPhotoSection] = useState(null);
   const [selectedPhotoFiles, setSelectedPhotoFiles] = useState({
     front: null,
@@ -42,6 +42,28 @@ const MovementDetail = () => {
   });
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [photosStatus, setPhotosStatus] = useState({
+    front: false,
+    passenger: false,
+    driver: false,
+    rear: false,
+    windshield: false,
+    roof: false,
+    meter: false
+  });
+
+  // États pour les photos à l'arrivée
+  const [expandedArrivalPhotoSection, setExpandedArrivalPhotoSection] = useState(null);
+  const [selectedArrivalPhotoFiles, setSelectedArrivalPhotoFiles] = useState({
+    front: null,
+    passenger: null,
+    driver: null,
+    rear: null,
+    windshield: null,
+    roof: null,
+    meter: null
+  });
+  const [uploadingArrivalPhoto, setUploadingArrivalPhoto] = useState(false);
+  const [arrivalPhotosStatus, setArrivalPhotosStatus] = useState({
     front: false,
     passenger: false,
     driver: false,
@@ -89,17 +111,21 @@ const MovementDetail = () => {
         setNotes(data.notes);
       }
       
-      // Analyser les photos pour déterminer quelles vues sont déjà disponibles
+      // Analyser les photos au départ pour déterminer quelles vues sont déjà disponibles
       if (data.photos && data.photos.length > 0) {
         const newPhotoStatus = { ...photosStatus };
+        const newArrivalPhotoStatus = { ...arrivalPhotosStatus };
         
         data.photos.forEach(photo => {
-          if (photo.type && newPhotoStatus.hasOwnProperty(photo.type)) {
+          if (photo.type && photo.photoType === 'departure' && newPhotoStatus.hasOwnProperty(photo.type)) {
             newPhotoStatus[photo.type] = true;
+          } else if (photo.type && photo.photoType === 'arrival' && newArrivalPhotoStatus.hasOwnProperty(photo.type)) {
+            newArrivalPhotoStatus[photo.type] = true;
           }
         });
         
         setPhotosStatus(newPhotoStatus);
+        setArrivalPhotosStatus(newArrivalPhotoStatus);
       }
       
     } catch (err) {
@@ -188,6 +214,12 @@ const MovementDetail = () => {
   // Terminer le mouvement
   const handleCompleteMovement = async () => {
     try {
+      // Vérifier que toutes les photos d'arrivée ont été prises
+      if (!allRequiredArrivalPhotosTaken()) {
+        setError('Veuillez prendre toutes les photos requises à l\'arrivée avant de terminer le trajet');
+        return;
+      }
+      
       setUpdateLoading(true);
       
       await movementService.completeMovement(id, { notes });
@@ -203,12 +235,17 @@ const MovementDetail = () => {
     }
   };
 
-  // Fonction pour gérer l'expansion des sections de photo
+  // Fonction pour gérer l'expansion des sections de photo au départ
   const handleExpandPhotoSection = (section) => {
     setExpandedPhotoSection(expandedPhotoSection === section ? null : section);
   };
 
-  // Gérer la sélection d'une photo pour une section spécifique
+  // Fonction pour gérer l'expansion des sections de photo à l'arrivée
+  const handleExpandArrivalPhotoSection = (section) => {
+    setExpandedArrivalPhotoSection(expandedArrivalPhotoSection === section ? null : section);
+  };
+
+  // Gérer la sélection d'une photo pour une section spécifique au départ
   const handleSelectPhoto = (type, file) => {
     setSelectedPhotoFiles(prev => ({
       ...prev,
@@ -216,7 +253,15 @@ const MovementDetail = () => {
     }));
   };
 
-  // Télécharger une photo
+  // Gérer la sélection d'une photo pour une section spécifique à l'arrivée
+  const handleSelectArrivalPhoto = (type, file) => {
+    setSelectedArrivalPhotoFiles(prev => ({
+      ...prev,
+      [type]: file
+    }));
+  };
+
+  // Télécharger une photo au départ
   const handleUploadPhoto = async (photoType) => {
     try {
       setUploadingPhoto(true);
@@ -231,6 +276,7 @@ const MovementDetail = () => {
       const formData = new FormData();
       formData.append('photos', file);
       formData.append('type', photoType);
+      formData.append('photoType', 'departure'); // Ajout du type de photo: départ
       
       await movementService.uploadPhotos(id, formData);
       
@@ -259,7 +305,51 @@ const MovementDetail = () => {
     }
   };
 
-  // Réinitialiser le statut d'une photo pour permettre le remplacement
+  // Télécharger une photo à l'arrivée
+  const handleUploadArrivalPhoto = async (photoType) => {
+    try {
+      setUploadingArrivalPhoto(true);
+      setError(null);
+      
+      const file = selectedArrivalPhotoFiles[photoType];
+      if (!file) {
+        setError(`Veuillez sélectionner une photo pour ${photoType}`);
+        return;
+      }
+      
+      const formData = new FormData();
+      formData.append('photos', file);
+      formData.append('type', photoType);
+      formData.append('photoType', 'arrival'); // Ajout du type de photo: arrivée
+      
+      await movementService.uploadPhotos(id, formData);
+      
+      // Mettre à jour le statut de la photo
+      setArrivalPhotosStatus(prev => ({
+        ...prev,
+        [photoType]: true
+      }));
+      
+      // Réinitialiser le fichier sélectionné
+      setSelectedArrivalPhotoFiles(prev => ({
+        ...prev,
+        [photoType]: null
+      }));
+      
+      // Afficher un message de succès et recharger le mouvement
+      setUpdateSuccess(`Photo d'arrivée téléchargée avec succès`);
+      setTimeout(() => setUpdateSuccess(null), 3000);
+      
+      await loadMovement();
+    } catch (err) {
+      console.error(`Erreur lors du téléchargement de la photo d'arrivée ${photoType}:`, err);
+      setError(err.response?.data?.message || `Erreur lors du téléchargement de la photo`);
+    } finally {
+      setUploadingArrivalPhoto(false);
+    }
+  };
+
+  // Réinitialiser le statut d'une photo pour permettre le remplacement (départ)
   const handleResetPhotoStatus = (photoType) => {
     setPhotosStatus(prev => ({
       ...prev,
@@ -270,17 +360,41 @@ const MovementDetail = () => {
     setExpandedPhotoSection(photoType);
   };
 
-  // Obtenir l'URL d'une photo à partir de son type
+  // Réinitialiser le statut d'une photo pour permettre le remplacement (arrivée)
+  const handleResetArrivalPhotoStatus = (photoType) => {
+    setArrivalPhotosStatus(prev => ({
+      ...prev,
+      [photoType]: false
+    }));
+    
+    // Ouvrir la section correspondante
+    setExpandedArrivalPhotoSection(photoType);
+  };
+
+  // Obtenir l'URL d'une photo à partir de son type (départ)
   const getPhotoUrlByType = (photoType) => {
     if (!movement || !movement.photos) return '';
     
-    const photo = movement.photos.find(photo => photo.type === photoType);
+    const photo = movement.photos.find(photo => photo.type === photoType && photo.photoType === 'departure');
     return photo ? photo.url : '';
   };
 
-  // Vérifier si toutes les photos requises ont été prises
+  // Obtenir l'URL d'une photo à partir de son type (arrivée)
+  const getArrivalPhotoUrlByType = (photoType) => {
+    if (!movement || !movement.photos) return '';
+    
+    const photo = movement.photos.find(photo => photo.type === photoType && photo.photoType === 'arrival');
+    return photo ? photo.url : '';
+  };
+
+  // Vérifier si toutes les photos requises ont été prises au départ
   const allRequiredPhotosTaken = () => {
     return Object.values(photosStatus).every(status => status === true);
+  };
+
+  // Vérifier si toutes les photos requises ont été prises à l'arrivée
+  const allRequiredArrivalPhotosTaken = () => {
+    return Object.values(arrivalPhotosStatus).every(status => status === true);
   };
 
   // Naviguer vers l'historique des mouvements
@@ -370,7 +484,7 @@ const MovementDetail = () => {
           {/* Section d'itinéraire */}
           <RouteInfoSection movement={movement} />
           
-          {/* Section d'upload de photos guidé */}
+          {/* Section d'upload de photos guidé au départ */}
           {movement.status === 'preparing' && 
            movement.userId && 
            currentUser.role === 'driver' && 
@@ -386,6 +500,29 @@ const MovementDetail = () => {
               onResetPhotoStatus={handleResetPhotoStatus}
               uploadingPhoto={uploadingPhoto}
               getPhotoUrlByType={getPhotoUrlByType}
+              sectionTitle="Photos du véhicule au départ"
+              instructionText="Pour continuer ce mouvement, vous devez prendre les photos suivantes du véhicule avant le départ. Chaque section doit être complétée."
+            />
+          )}
+
+          {/* Section d'upload de photos guidé à l'arrivée */}
+          {movement.status === 'in-progress' && 
+           movement.userId && 
+           currentUser.role === 'driver' && 
+           movement.userId._id === currentUser._id && (
+            <PhotoUploadSection
+              movement={movement}
+              photosStatus={arrivalPhotosStatus}
+              expandedSection={expandedArrivalPhotoSection}
+              selectedFiles={selectedArrivalPhotoFiles}
+              onExpandSection={handleExpandArrivalPhotoSection}
+              onSelectPhoto={handleSelectArrivalPhoto}
+              onUploadPhoto={handleUploadArrivalPhoto}
+              onResetPhotoStatus={handleResetArrivalPhotoStatus}
+              uploadingPhoto={uploadingArrivalPhoto}
+              getPhotoUrlByType={getArrivalPhotoUrlByType}
+              sectionTitle="Photos du véhicule à l'arrivée"
+              instructionText="Pour terminer ce mouvement, vous devez prendre les photos suivantes du véhicule à l'arrivée. Chaque section doit être complétée."
             />
           )}
           
@@ -405,6 +542,7 @@ const MovementDetail = () => {
             currentUser={currentUser}
             loading={updateLoading}
             allPhotosTaken={allRequiredPhotosTaken()}
+            allArrivalPhotosTaken={allRequiredArrivalPhotosTaken()}
             onPrepareMovement={handlePrepareMovement}
             onStartMovement={handleStartMovement}
             onCompleteMovement={handleCompleteMovement}

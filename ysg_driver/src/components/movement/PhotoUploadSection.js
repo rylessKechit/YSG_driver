@@ -1,5 +1,5 @@
 // src/components/movement/PhotoUploadSection.js
-import React, { useState } from 'react';
+import React from 'react';
 import PhotoAccordionItem from './PhotoAccordionItem';
 
 const PhotoUploadSection = ({ 
@@ -12,7 +12,9 @@ const PhotoUploadSection = ({
   onUploadPhoto,
   onResetPhotoStatus,
   uploadingPhoto,
-  getPhotoUrlByType
+  getPhotoUrlByType,
+  sectionTitle = "Photos du véhicule",
+  instructionText = "Pour continuer ce mouvement, vous devez prendre les photos suivantes du véhicule. Chaque section doit être complétée."
 }) => {
   // Array of photo sections with their details
   const photoSections = [
@@ -61,12 +63,12 @@ const PhotoUploadSection = ({
   return (
     <div className="detail-section photo-upload-section">
       <h2 className="section-title">
-        <i className="fas fa-camera"></i> Photos du véhicule
+        <i className="fas fa-camera"></i> {sectionTitle}
       </h2>
       
       <div className="photo-guidelines">
         <p className="guidelines-intro">
-          Pour continuer ce mouvement, vous devez prendre les photos suivantes du véhicule. Chaque section doit être complétée.
+          {instructionText}
         </p>
       </div>
       

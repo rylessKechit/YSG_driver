@@ -74,7 +74,7 @@ const movementService = {
     }
   },
   
-  // Uploader des photos
+  // Uploader des photos (avec support pour photoType: 'departure' ou 'arrival')
   uploadPhotos: async (movementId, formData) => {
     try {
       const response = await api.post(
