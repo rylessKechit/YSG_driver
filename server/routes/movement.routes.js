@@ -486,10 +486,11 @@ router.post('/:id/photos', verifyToken, upload.array('photos', 5), async (req, r
       });
     }
     
-    // Vérifier que le mouvement est en cours
-    if (movement.status !== 'preparing') {
+    // Vérifier que le mouvement est en état approprié pour ajouter des photos
+    // MODIFICATION ICI: Permettre les photos en préparation ET en cours de trajet
+    if (movement.status !== 'preparing' && movement.status !== 'in-progress') {
       return res.status(400).json({
-        message: 'Vous ne pouvez ajouter des photos qu\'à un mouvement en cours'
+        message: 'Vous ne pouvez ajouter des photos qu\'à un mouvement en préparation ou en cours'
       });
     }
     
