@@ -115,21 +115,26 @@ const MovementDetail = () => {
       
       // Analyser les photos pour déterminer quelles vues sont déjà disponibles
       if (data.photos && data.photos.length > 0) {
-        console.log("Toutes les photos reçues:", data.photos);
         
-        // Nouvelle approche: on conserve l'état actuel et on met à jour seulement ce qui est confirmé
+        // Traiter séparément les photos de départ et d'arrivée
         const updatedPhotoStatus = { ...photosStatus };
+        const updatedArrivalPhotoStatus = { ...arrivalPhotosStatus };
         
         data.photos.forEach(photo => {
-          // Si la photo a un type défini et qu'elle est de type "departure" (ou sans type spécifié)
-          if (photo.type && (photo.photoType === 'departure' || !photo.photoType)) {
-            updatedPhotoStatus[photo.type] = true;
-            console.log(`Photo de type ${photo.type} trouvée et marquée comme complétée`);
+          // Si la photo a un type défini
+          if (photo.type) {
+            if (photo.photoType === 'arrival') {
+              // Photo d'arrivée
+              updatedArrivalPhotoStatus[photo.type] = true;
+            } else {
+              // Photo de départ (ou sans photoType spécifié)
+              updatedPhotoStatus[photo.type] = true;
+            }
           }
         });
         
-        console.log("État des photos mis à jour après chargement:", updatedPhotoStatus);
         setPhotosStatus(updatedPhotoStatus);
+        setArrivalPhotosStatus(updatedArrivalPhotoStatus);
       }
       
     } catch (err) {
@@ -288,7 +293,6 @@ const MovementDetail = () => {
       formData.append('photos', file);
       formData.append('type', photoType);
       
-      console.log(`Téléchargement de la photo pour ${photoType}...`);
       await movementService.uploadPhotos(id, formData);
       
       // Mettre à jour l'état AVANT de recharger le mouvement
@@ -297,7 +301,6 @@ const MovementDetail = () => {
           ...prev,
           [photoType]: true
         };
-        console.log(`État des photos mis à jour pour ${photoType}:`, newStatus);
         return newStatus;
       });
       
@@ -336,15 +339,18 @@ const MovementDetail = () => {
       const formData = new FormData();
       formData.append('photos', file);
       formData.append('type', photoType);
-      formData.append('photoType', 'arrival'); // Ajout du type de photo: arrivée
+      formData.append('photoType', 'arrival'); // Ajouter le type de photo: arrivée
       
       await movementService.uploadPhotos(id, formData);
       
       // Mettre à jour le statut de la photo
-      setArrivalPhotosStatus(prev => ({
-        ...prev,
-        [photoType]: true
-      }));
+      setArrivalPhotosStatus(prev => {
+        const newStatus = {
+          ...prev,
+          [photoType]: true
+        };
+        return newStatus;
+      });
       
       // Réinitialiser le fichier sélectionné
       setSelectedArrivalPhotoFiles(prev => ({
@@ -352,10 +358,11 @@ const MovementDetail = () => {
         [photoType]: null
       }));
       
-      // Afficher un message de succès et recharger le mouvement
-      setUpdateSuccess(`Photo d'arrivée téléchargée avec succès`);
+      // Afficher un message de succès
+      setUpdateSuccess(`Photo d'arrivée ${photoType} téléchargée avec succès`);
       setTimeout(() => setUpdateSuccess(null), 3000);
       
+      // Recharger le mouvement pour récupérer l'URL de la photo
       await loadMovement();
     } catch (err) {
       console.error(`Erreur lors du téléchargement de la photo d'arrivée ${photoType}:`, err);
@@ -391,14 +398,11 @@ const MovementDetail = () => {
   const getPhotoUrlByType = (photoType) => {
     if (!movement || !movement.photos) return '';
     
-    // Chercher la photo avec le type spécifié
+    // Chercher la photo avec le type spécifié et soit sans photoType, soit avec photoType='departure'
     const photo = movement.photos.find(photo => 
       photo.type === photoType && 
-      (photo.photoType === 'departure' || !photo.photoType)
+      (!photo.photoType || photo.photoType === 'departure')
     );
-    
-    // Ajouter un log pour voir ce qui est trouvé
-    console.log(`Photo trouvée pour ${photoType}:`, photo);
     
     return photo ? photo.url : '';
   };
@@ -407,7 +411,11 @@ const MovementDetail = () => {
   const getArrivalPhotoUrlByType = (photoType) => {
     if (!movement || !movement.photos) return '';
     
-    const photo = movement.photos.find(photo => photo.type === photoType && photo.photoType === 'arrival');
+    // Chercher la photo avec le type spécifié et photoType='arrival'
+    const photo = movement.photos.find(photo => 
+      photo.type === photoType && photo.photoType === 'arrival'
+    );
+    
     return photo ? photo.url : '';
   };
 
@@ -533,9 +541,9 @@ const MovementDetail = () => {
 
           {/* Section d'upload de photos guidé à l'arrivée */}
           {movement.status === 'in-progress' && 
-           movement.userId && 
-           currentUser.role === 'driver' && 
-           movement.userId._id === currentUser._id && (
+          movement.userId && 
+          currentUser.role === 'driver' && 
+          movement.userId._id === currentUser._id && (
             <PhotoUploadSection
               movement={movement}
               photosStatus={arrivalPhotosStatus}

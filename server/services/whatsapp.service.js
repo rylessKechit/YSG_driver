@@ -28,24 +28,20 @@ class WhatsAppService {
   async initialize() {
     // Éviter les initialisations multiples
     if (this.isInitializing) {
-      console.log('Une initialisation est déjà en cours...');
       return;
     }
 
     this.isInitializing = true;
-    console.log('Initialisation du service WhatsApp...');
     
     try {
       // Vérifier si nous avons déjà un client fonctionnel
       if (this.client && this.isReady) {
-        console.log('Le client WhatsApp est déjà initialisé et prêt');
         this.isInitializing = false;
         return;
       }
 
       // Vérifier si mongoose est connecté avant de créer le store
       if (mongoose.connection.readyState !== 1) {
-        console.log('Connexion MongoDB non établie, utilisation de LocalAuth');
         // Utiliser LocalAuth comme fallback
         this.client = new Client({
           puppeteer: {
@@ -56,7 +52,6 @@ class WhatsAppService {
         });
       } else {
         // Utiliser RemoteAuth avec MongoStore
-        console.log('Connexion MongoDB établie, utilisation de RemoteAuth avec MongoStore');
         
         try {
           const store = new MongoStore({ mongoose: mongoose });
@@ -89,11 +84,9 @@ class WhatsAppService {
         // Vérifier s'il faut générer un nouveau QR code
         const currentTime = Date.now();
         if (this.qrGenerationInProgress || (currentTime - this.lastQRGeneration < this.qrRefreshInterval)) {
-          console.log('Génération de QR code ignorée (trop fréquente ou déjà en cours)');
           return;
         }
         
-        console.log('QR Code reçu, génération et téléchargement sur Cloudinary...');
         this.qrGenerationInProgress = true;
         this.lastQRGeneration = currentTime;
         
@@ -117,7 +110,6 @@ class WhatsAppService {
           });
           
           this.qrCodeUrl = uploadResult.secure_url;
-          console.log(`QR Code téléchargé sur Cloudinary: ${this.qrCodeUrl}`);
         } catch (error) {
           console.error('Erreur lors du téléchargement du QR Code:', error);
         } finally {
@@ -127,12 +119,10 @@ class WhatsAppService {
 
       // Événement d'authentification
       this.client.on('authenticated', () => {
-        console.log('Authentification WhatsApp réussie');
         
         // Supprimer le QR code de Cloudinary une fois authentifié
         if (this.qrCodeUrl) {
           cloudinary.uploader.destroy(this.publicId)
-            .then(() => console.log('QR Code supprimé de Cloudinary'))
             .catch((err) => console.error('Erreur lors de la suppression du QR Code:', err));
           
           this.qrCodeUrl = null;
@@ -141,15 +131,12 @@ class WhatsAppService {
 
       // Événement de déconnexion
       this.client.on('disconnected', (reason) => {
-        console.log('Client WhatsApp déconnecté:', reason);
         this.isReady = false;
         this.qrCodeUrl = null;
         
         // Attendre avant de tenter de se reconnecter
-        console.log('Reconnexion prévue dans 30 secondes...');
         setTimeout(() => {
           if (!this.isInitializing && !this.isReady) {
-            console.log('Tentative de reconnexion WhatsApp...');
             this.initialize();
           }
         }, 30000); // 30 secondes de délai avant reconnexion
@@ -158,12 +145,10 @@ class WhatsAppService {
       // Événement de prêt
       this.client.on('ready', () => {
         this.isReady = true;
-        console.log('Client WhatsApp prêt à envoyer des messages');
         
         // Supprimer le QR code de Cloudinary
         if (this.qrCodeUrl) {
           cloudinary.uploader.destroy(this.publicId)
-            .then(() => console.log('QR Code supprimé de Cloudinary'))
             .catch((err) => console.error('Erreur lors de la suppression du QR Code:', err));
           
           this.qrCodeUrl = null;
@@ -223,11 +208,8 @@ class WhatsAppService {
       // Ajouter le suffixe WhatsApp
       formattedNumber = `${formattedNumber}@c.us`;
       
-      console.log(`Envoi de message WhatsApp à ${formattedNumber}`);
-      
       // Envoyer le message
       const result = await this.client.sendMessage(formattedNumber, message);
-      console.log('Message WhatsApp envoyé avec succès:', result.id._serialized);
       return result;
     } catch (error) {
       console.error('Erreur lors de l\'envoi du message WhatsApp:', error);
@@ -249,13 +231,11 @@ class WhatsAppService {
   async disconnect() {
     try {
       if (!this.client || !this.isReady) {
-        console.log('Client WhatsApp non initialisé ou non connecté');
         return false;
       }
       
       // Déconnecter le client WhatsApp
       await this.client.logout();
-      console.log('Client WhatsApp déconnecté avec succès');
       
       // Réinitialiser l'état
       this.isReady = false;

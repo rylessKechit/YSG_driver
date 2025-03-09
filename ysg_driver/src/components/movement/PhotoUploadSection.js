@@ -62,11 +62,6 @@ const PhotoUploadSection = ({
     return Object.values(photosStatus).every(status => status === true);
   };
 
-  // Debug à afficher dans la console pour voir l'état des photos
-  console.log("État actuel des photos:", photosStatus);
-  console.log("Tous les champs sont remplis:", allRequiredPhotosTaken());
-  console.log("Fichiers sélectionnés:", selectedFiles);
-
   return (
     <div className="detail-section photo-upload-section">
       <h2 className="section-title">

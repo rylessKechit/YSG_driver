@@ -18,6 +18,12 @@ const photoSchema = new mongoose.Schema({
       'front', 'passenger', 'driver', 'rear', 'windshield', 'roof', 'meter'
     ],
     default: 'other'
+  },
+  // Nouveau champ pour distinguer les photos de départ des photos d'arrivée
+  photoType: {
+    type: String,
+    enum: ['departure', 'arrival'],
+    default: 'departure'
   }
 });
 

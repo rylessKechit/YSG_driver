@@ -14,8 +14,6 @@ const InProgressPreparations = ({ preparations }) => {
           Voir tout <i className="fas fa-arrow-right"></i>
         </Link>
       </div>
-
-      {console.log(preparations)}
       
       <div className="preparation-list-container">
         {preparations.length > 0 ? (

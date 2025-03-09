@@ -92,7 +92,6 @@ router.post('/', verifyToken, canCreateMovement, async (req, res) => {
                         `Pour plus de détails, consultez l'application.`;
                         
         await whatsAppService.sendMessage(driver.phone, message);
-        console.log(`Notification WhatsApp envoyée à ${driver.fullName} (${driver.phone})`);
       }
     }
     
@@ -301,7 +300,6 @@ router.post('/:id/assign', verifyToken, canAssignMovement, async (req, res) => {
     
     // Envoyer une notification WhatsApp au chauffeur
     try {
-      console.log('whatsapp is ready :', whatsAppService.isClientReady())
       if (whatsAppService.isClientReady() && driver.phone) {
         const message = `🚗 Nouveau mouvement assigné!\n\n` +
                         `Véhicule: ${movement.licensePlate}\n` +
@@ -311,7 +309,6 @@ router.post('/:id/assign', verifyToken, canAssignMovement, async (req, res) => {
                         `Pour plus de détails, consultez l'application.`;
                         
         await whatsAppService.sendMessage(driver.phone, message);
-        console.log(`Notification WhatsApp envoyée à ${driver.fullName} (${driver.phone})`);
       }
     } catch (whatsappError) {
       // Ne pas bloquer le processus principal si l'envoi WhatsApp échoue
@@ -497,6 +494,7 @@ router.post('/:id/photos', verifyToken, upload.array('photos', 5), async (req, r
     // Type de photo (valider les types autorisés)
     const allowedTypes = ['front', 'passenger', 'driver', 'rear', 'windshield', 'roof', 'meter', 'departure', 'arrival', 'damage', 'other'];
     const { type = 'other' } = req.body;
+    const { photoType = 'departure' } = req.body;
     
     if (!allowedTypes.includes(type)) {
       return res.status(400).json({
@@ -506,10 +504,11 @@ router.post('/:id/photos', verifyToken, upload.array('photos', 5), async (req, r
     
     // Ajouter les photos
     if (req.files && req.files.length > 0) {
-      // MODIFICATION ICI: Utiliser l'URL fournie par Cloudinary
+      // Utiliser l'URL fournie par Cloudinary
       const photos = req.files.map(file => ({
         url: file.path, // Cloudinary renvoie le chemin complet dans file.path
         type,
+        photoType, // Ajouter le type de photo (departure/arrival)
         timestamp: new Date()
       }));
       

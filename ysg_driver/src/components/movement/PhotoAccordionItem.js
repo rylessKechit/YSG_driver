@@ -20,15 +20,12 @@ const PhotoAccordionItem = ({
   
   // Effet pour gérer l'URL de prévisualisation
   useEffect(() => {
-    console.log(`PhotoAccordionItem (${type}) - État: `, { completed, expanded, selectedFile });
     
     if (selectedFile) {
-      console.log(`Création de preview URL pour ${type}`);
       const url = URL.createObjectURL(selectedFile);
       setPreviewUrl(url);
       
       return () => {
-        console.log(`Nettoyage de preview URL pour ${type}`);
         URL.revokeObjectURL(url);
       };
     } else {
@@ -39,7 +36,6 @@ const PhotoAccordionItem = ({
   // Fonction pour gérer le changement de fichier
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
-      console.log(`Fichier sélectionné pour ${type}:`, e.target.files[0].name);
       onSelectPhoto(e.target.files[0]);
     }
   };
@@ -130,7 +126,6 @@ const PhotoAccordionItem = ({
                   <p>Aucune image disponible</p>
                 </div>
               )}
-                {console.log(photoUrl)}
               </div>
               <button 
                 className="btn btn-secondary photo-replace-btn" 
