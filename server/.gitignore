@@ -26,3 +26,5 @@ yarn-error.log*
 *lock.json
 /.wwebjs_auth
 /.wwebjs_cache
+
+/RemoteAuth-ysg-driver-app.zip

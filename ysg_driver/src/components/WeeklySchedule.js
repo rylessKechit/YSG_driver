@@ -2,10 +2,12 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import scheduleService from '../services/scheduleService';
+import timelogService from '../services/timelogService';
 import '../styles/WeeklySchedule.css';
 
 const WeeklySchedule = () => {
   const [schedule, setSchedule] = useState([]);
+  const [timelogs, setTimelogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expandedDay, setExpandedDay] = useState(null);
@@ -49,23 +51,81 @@ const WeeklySchedule = () => {
   
   const weekDates = getWeekDates();
 
+  // Fonction pour obtenir les dates précises (en objets Date) pour chaque jour de la semaine
+  const getWeekDateObjects = () => {
+    const dateObjects = {};
+    const weekStart = new Date(today);
+    // Reculer jusqu'au lundi
+    weekStart.setDate(today.getDate() - (today.getDay() === 0 ? 6 : today.getDay() - 1));
+    
+    days.forEach((day, index) => {
+      const date = new Date(weekStart);
+      date.setDate(weekStart.getDate() + index);
+      dateObjects[day.value] = date;
+    });
+    
+    return dateObjects;
+  };
+
+  // Vérifier si une date spécifique correspond à un jour particulier de la semaine en cours
+  const isDateInDay = (date, dayValue) => {
+    const weekDateObjects = getWeekDateObjects();
+    const dayDate = weekDateObjects[dayValue];
+    
+    const checkDate = new Date(date);
+    
+    return (
+      checkDate.getDate() === dayDate.getDate() &&
+      checkDate.getMonth() === dayDate.getMonth() &&
+      checkDate.getFullYear() === dayDate.getFullYear()
+    );
+  };
+
+  // Obtenir les pointages pour un jour spécifique
+  const getTimelogsForDay = (dayValue) => {
+    return timelogs.filter(timelog => {
+      // Pour les pointages actifs, vérifier seulement la date de début
+      if (timelog.status === 'active') {
+        return isDateInDay(timelog.startTime, dayValue);
+      }
+      
+      // Pour les pointages terminés, vérifier si soit le début soit la fin est dans ce jour
+      return isDateInDay(timelog.startTime, dayValue) || 
+             (timelog.endTime && isDateInDay(timelog.endTime, dayValue));
+    });
+  };
+
+  // Formater l'heure pour l'affichage
+  const formatTime = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  };
+
   useEffect(() => {
-    const fetchSchedule = async () => {
+    const fetchData = async () => {
       if (!currentUser) return;
       
       try {
         setLoading(true);
-        const data = await scheduleService.getUserSchedule(currentUser._id);
-        setSchedule(data);
+        
+        // Charger le planning
+        const scheduleData = await scheduleService.getUserSchedule(currentUser._id);
+        setSchedule(scheduleData);
+        
+        // Charger les pointages (les 50 derniers devraient être suffisants pour voir la semaine)
+        const timelogsData = await timelogService.getTimeLogs(1, 50);
+        setTimelogs(timelogsData.timeLogs || []);
+        
         setLoading(false);
       } catch (err) {
-        console.error('Erreur lors du chargement du planning:', err);
-        setError('Impossible de charger votre planning');
+        console.error('Erreur lors du chargement des données:', err);
+        setError('Impossible de charger votre planning et vos pointages');
         setLoading(false);
       }
     };
     
-    fetchSchedule();
+    fetchData();
   }, [currentUser]);
 
   // Vérifier si c'est un préparateur
@@ -149,6 +209,22 @@ const WeeklySchedule = () => {
                     )}
                   </>
                 )}
+
+                {/* Affichage des pointages pour le jour actuel */}
+                {getTimelogsForDay(currentDay).length > 0 && (
+                  <div className="today-timelogs">
+                    <div className="timelog-separator"></div>
+                    {getTimelogsForDay(currentDay).map((timelog, idx) => (
+                      <div key={timelog._id || idx} className={`today-timelog ${timelog.status}`}>
+                        <i className={`fas ${timelog.status === 'active' ? 'fa-play-circle' : 'fa-stop-circle'}`}></i>
+                        <span>
+                          {formatTime(timelog.startTime)}
+                          {timelog.endTime ? ` - ${formatTime(timelog.endTime)}` : ' (en cours)'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             ) : (
               <div className="no-schedule-info">
@@ -166,6 +242,7 @@ const WeeklySchedule = () => {
             const isToday = day.value === currentDay;
             const isExpanded = expandedDay === day.value;
             const isRestDay = entry && entry.entryType === 'rest';
+            const dayTimelogs = getTimelogsForDay(day.value);
             
             return (
               <div 
@@ -193,6 +270,11 @@ const WeeklySchedule = () => {
                       )
                     ) : (
                       <span className="no-schedule-badge">Non planifié</span>
+                    )}
+                    {dayTimelogs.length > 0 && (
+                      <span className="timelog-badge">
+                        <i className="fas fa-user-clock"></i>
+                      </span>
                     )}
                     <i className={`fas fa-chevron-${isExpanded ? 'up' : 'down'}`}></i>
                   </div>
@@ -233,12 +315,52 @@ const WeeklySchedule = () => {
                         )}
                       </>
                     )}
+
+                    {/* Affichage des pointages pour ce jour */}
+                    {dayTimelogs.length > 0 && (
+                      <div className="detail-item timelog-detail">
+                        <div className="detail-label">
+                          <i className="fas fa-user-clock"></i> Pointages:
+                        </div>
+                        <div className="detail-value timelogs-list">
+                          {dayTimelogs.map((timelog, idx) => (
+                            <div key={timelog._id || idx} className={`timelog-entry ${timelog.status}`}>
+                              <i className={`fas ${timelog.status === 'active' ? 'fa-play-circle' : 'fa-check-circle'}`}></i>
+                              <span>
+                                {formatTime(timelog.startTime)}
+                                {timelog.endTime ? ` - ${formatTime(timelog.endTime)}` : ' (en cours)'}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
                 
                 {isExpanded && !entry && (
                   <div className="mobile-day-details empty">
                     <p>Pas d'horaire défini pour ce jour</p>
+                    
+                    {/* Affichage des pointages même sans planning */}
+                    {dayTimelogs.length > 0 && (
+                      <div className="detail-item timelog-detail">
+                        <div className="detail-label">
+                          <i className="fas fa-user-clock"></i> Pointages:
+                        </div>
+                        <div className="detail-value timelogs-list">
+                          {dayTimelogs.map((timelog, idx) => (
+                            <div key={timelog._id || idx} className={`timelog-entry ${timelog.status}`}>
+                              <i className={`fas ${timelog.status === 'active' ? 'fa-play-circle' : 'fa-check-circle'}`}></i>
+                              <span>
+                                {formatTime(timelog.startTime)}
+                                {timelog.endTime ? ` - ${formatTime(timelog.endTime)}` : ' (en cours)'}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
