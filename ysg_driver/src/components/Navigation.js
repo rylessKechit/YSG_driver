@@ -1,6 +1,43 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+
+// Configurations des liens par rôle
+const roleLinks = {
+  common: [
+    { name: 'Tableau de bord', path: '/dashboard', visibleFor: ['admin', 'driver', 'preparator', 'team-leader', 'direction'] },
+    { name: 'Pointage', path: '/timelog', visibleFor: ['driver', 'preparator', 'team-leader'] },
+    { name: 'Profil', path: '/profile', visibleFor: ['admin', 'driver', 'preparator', 'team-leader', 'direction'] }
+  ],
+  admin: [
+    { name: 'Nouveau mouvement', path: '/admin/movements/create' },
+    { name: 'Mouvements', path: '/movement/history' },
+    { name: 'Préparations', path: '/preparations' },
+    { name: 'Rapports', path: '/reports' },
+    { name: 'Planning préparateurs', path: '/schedules' },
+    { name: 'Comparaison pointages', path: '/schedule-comparison' },
+    { name: 'Administration', path: '/admin' }
+  ],
+  'team-leader': [
+    { name: 'Nouveau mouvement', path: '/admin/movements/create' },
+    { name: 'Mouvements', path: '/movement/history' },
+    { name: 'Préparations', path: '/preparations' },
+    { name: 'Nouvelle préparation', path: '/preparations/create' }
+  ],
+  driver: [
+    { name: 'Mouvements', path: '/movement/history' },
+    { name: 'Nouvelle préparation', path: '/preparations/create' }
+  ],
+  preparator: [
+    { name: 'Préparations', path: '/preparations' },
+    { name: 'Nouvelle préparation', path: '/preparations/create' }
+  ],
+  direction: [
+    { name: 'Rapports', path: '/reports' },
+    { name: 'Planning préparateurs', path: '/schedules' },
+    { name: 'Comparaison pointages', path: '/schedule-comparison' }
+  ]
+};
 
 const Navigation = () => {
   const { currentUser, logout } = useAuth();
@@ -9,183 +46,58 @@ const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   
-  // Gestion du redimensionnement
+  // Ajuster en fonction du redimensionnement
   useEffect(() => {
     const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-      if (window.innerWidth >= 768) {
-        setIsMenuOpen(false);
-      }
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (!mobile) setIsMenuOpen(false);
     };
 
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
   
-  // Fonction de navigation explicite
-  const goTo = (path) => {
+  // Navigation et déconnexion
+  const goTo = path => {
     setIsMenuOpen(false);
     navigate(path);
   };
   
-  // Gestion de la déconnexion
-  const handleLogout = () => {
-    logout()
-      .then(() => {
-        navigate('/login');
-      })
-      .catch(error => {
-        console.error('Erreur de déconnexion:', error);
-      });
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      console.error('Erreur de déconnexion:', error);
+    }
   };
   
-  // Rendu des liens de navigation selon le rôle de l'utilisateur
-  const renderNavLinks = () => {
-    const commonLinks = [
-      {
-        name: 'Tableau de bord',
-        path: '/dashboard',
-        visible: true
-      },
-      {
-        name: 'Pointage',
-        path: '/timelog',
-        // Masquer l'option de pointage pour les rôles admin et direction
-        visible: currentUser?.role !== 'direction' && currentUser?.role !== 'admin'
-      },
-      {
-        name: 'Profil',
-        path: '/profile',
-        visible: true
-      }
-    ];
+  // Générer les liens de navigation
+  const navLinks = useMemo(() => {
+    if (!currentUser) return [];
     
-    const roleSpecificLinks = {
-      admin: [
-        {
-          name: 'Nouveau mouvement',
-          path: '/admin/movements/create',
-          visible: true
-        },
-        {
-          name: 'Mouvements',
-          path: '/movement/history',
-          visible: true
-        },
-        {
-          name: 'Préparations',
-          path: '/preparations',
-          visible: true
-        },
-        {
-          name: 'Rapports',
-          path: '/reports',
-          visible: true
-        },
-        {
-          name: 'Planning préparateurs',
-          path: '/schedules',
-          visible: true
-        },
-        {
-          name: 'Comparaison pointages',
-          path: '/schedule-comparison',
-          visible: true
-        },
-        {
-          name: 'Administration',
-          path: '/admin',
-          visible: true
-        }
-      ],
-      'team-leader': [
-        {
-          name: 'Nouveau mouvement',
-          path: '/admin/movements/create',
-          visible: true
-        },
-        {
-          name: 'Mouvements',
-          path: '/movement/history',
-          visible: true
-        },
-        {
-          name: 'Préparations',
-          path: '/preparations',
-          visible: true
-        },
-        {
-          name: 'Nouvelle préparation',
-          path: '/preparations/create',
-          visible: true
-        }
-      ],
-      driver: [
-        {
-          name: 'Mouvements',
-          path: '/movement/history',
-          visible: true
-        },
-        {
-          name: 'Nouvelle préparation',
-          path: '/preparations/create',
-          visible: true
-        }
-      ],
-      preparator: [
-        {
-          name: 'Préparations',
-          path: '/preparations',
-          visible: true
-        },
-        {
-          name: 'Nouvelle préparation',
-          path: '/preparations/create',
-          visible: true
-        }
-      ],
-      direction: [
-        {
-          name: 'Rapports',
-          path: '/reports',
-          visible: true
-        },
-        {
-          name: 'Planning préparateurs',
-          path: '/schedules',
-          visible: true
-        },
-        {
-          name: 'Comparaison pointages',
-          path: '/schedule-comparison',
-          visible: true
-        },
-      ]
-    };
+    // Filtrer les liens communs
+    const links = roleLinks.common.filter(link => 
+      link.visibleFor.includes(currentUser.role)
+    );
     
-    // Combiner les liens communs et spécifiques au rôle
-    const links = [
-      ...commonLinks,
-      ...(roleSpecificLinks[currentUser?.role] || [])
-    ];
+    // Ajouter les liens spécifiques au rôle
+    if (roleLinks[currentUser.role]) {
+      links.push(...roleLinks[currentUser.role]);
+    }
     
-    // Filtrer les liens visibles
-    return links.filter(link => link.visible);
-  };
+    return links;
+  }, [currentUser]);
 
   return (
     <header className="header">
       <div className="container">
         <nav className="nav">
           {/* Logo */}
-          <div 
-            className="nav-logo" 
-            onClick={() => goTo('/dashboard')}
-          >
-            YSG
-          </div>
+          <div className="nav-logo" onClick={() => goTo('/dashboard')}>YSG</div>
           
-          {/* Hamburger button (visible only on mobile) */}
+          {/* Menu hamburger pour mobile */}
           {isMobile && (
             <button 
               className="hamburger-button"
@@ -199,24 +111,18 @@ const Navigation = () => {
             </button>
           )}
           
-          {/* Menu de navigation - version desktop ou mobile */}
+          {/* Menu de navigation */}
           <ul className={`nav-links ${isMobile ? (isMenuOpen ? 'mobile open' : 'mobile closed') : 'desktop'}`}>
-            {renderNavLinks().map((link, index) => (
+            {navLinks.map((link, index) => (
               <li key={index} className="nav-item">
-                <div 
-                  className="nav-link"
-                  onClick={() => goTo(link.path)}
-                >
+                <div className="nav-link" onClick={() => goTo(link.path)}>
                   {link.name}
                 </div>
               </li>
             ))}
             
             <li className="nav-item">
-              <div 
-                className="nav-link logout"
-                onClick={handleLogout}
-              >
+              <div className="nav-link logout" onClick={handleLogout}>
                 Déconnexion
               </div>
             </li>
@@ -224,12 +130,9 @@ const Navigation = () => {
         </nav>
       </div>
       
-      {/* Overlay pour fermer le menu - s'assurer qu'il est derrière le menu mais devant le contenu */}
+      {/* Overlay pour fermer le menu sur mobile */}
       {isMobile && isMenuOpen && (
-        <div 
-          className="menu-overlay"
-          onClick={() => setIsMenuOpen(false)}
-        ></div>
+        <div className="menu-overlay" onClick={() => setIsMenuOpen(false)}></div>
       )}
     </header>
   );

@@ -1,13 +1,11 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useMemo } from 'react';
 import authService from '../services/authService';
 
 // Création du contexte
 const AuthContext = createContext();
 
-// Hook personnalisé pour utiliser le contexte d'authentification
-export const useAuth = () => {
-  return useContext(AuthContext);
-};
+// Hook personnalisé pour utiliser le contexte
+export const useAuth = () => useContext(AuthContext);
 
 // Provider du contexte d'authentification
 export const AuthProvider = ({ children }) => {
@@ -15,7 +13,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
-  // Vérification du token au chargement
+  // Vérifier l'authentification au chargement
   useEffect(() => {
     const checkAuth = async () => {
       const token = localStorage.getItem('token');
@@ -39,7 +37,7 @@ export const AuthProvider = ({ children }) => {
     checkAuth();
   }, []);
   
-  // Fonction de connexion
+  // Fonctions d'authentification
   const login = async (username, password) => {
     try {
       setError(null);
@@ -48,48 +46,32 @@ export const AuthProvider = ({ children }) => {
       setCurrentUser(user);
       return user;
     } catch (err) {
-      setError(err.response?.data?.message || 'Erreur de connexion');
-      throw err;
+      const errorMessage = err.response?.data?.message || 'Erreur de connexion';
+      setError(errorMessage);
+      throw new Error(errorMessage);
     }
   };
   
-  // Fonction d'inscription
-  const register = async (userData) => {
-    try {
-      setError(null);
-      const { token, user } = await authService.register(userData);
-      localStorage.setItem('token', token);
-      setCurrentUser(user);
-      return user;
-    } catch (err) {
-      setError(err.response?.data?.message || 'Erreur d\'inscription');
-      throw err;
-    }
-  };
-  
-  // Fonction de déconnexion
   const logout = async () => {
     try {
       await authService.logout();
-    } catch (error) {
-      console.error('Erreur lors de la déconnexion:', error);
     } finally {
       localStorage.removeItem('token');
       setCurrentUser(null);
     }
   };
   
-  // Valeurs exposées par le contexte
-  const value = {
+  // Mémoriser la valeur du contexte pour éviter des re-renders inutiles
+  const value = useMemo(() => ({
     currentUser,
     loading,
     error,
     isAuthenticated: !!currentUser,
     login,
-    register,
     logout
-  };
+  }), [currentUser, loading, error]);
   
+  // Ne rendre les enfants que lorsque l'état d'authentification est déterminé
   return (
     <AuthContext.Provider value={value}>
       {!loading && children}

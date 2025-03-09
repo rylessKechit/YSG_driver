@@ -2,85 +2,24 @@
 import axios from 'axios';
 import { API_URL, ENDPOINTS } from '../config';
 
-// Configuration d'Axios
+// Configuration d'Axios avec intercepteurs
 const api = axios.create({
   baseURL: API_URL,
-  headers: {
-    'Content-Type': 'application/json'
-  }
+  headers: { 'Content-Type': 'application/json' }
 });
 
-// Système de cache
-const cache = {
-  data: {},
-  timestamps: {}
-};
+// Intercepteur pour ajouter le token aux requêtes
+api.interceptors.request.use(config => {
+  const token = localStorage.getItem('token');
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+}, error => Promise.reject(error));
 
-// Durée de validité du cache (en ms)
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-
-// Fonction pour récupérer les données avec cache
-const fetchWithCache = async (endpoint, options = {}) => {
-  const cacheKey = endpoint + JSON.stringify(options);
-  const now = Date.now();
-  
-  // Si les données sont en cache et toujours valides
-  if (
-    cache.data[cacheKey] && 
-    cache.timestamps[cacheKey] && 
-    now - cache.timestamps[cacheKey] < CACHE_DURATION
-  ) {
-    console.log(`Using cached data for: ${endpoint}`);
-    return cache.data[cacheKey];
-  }
-  
-  // Sinon, faire la requête
-  const response = await api.get(endpoint, options);
-  
-  // Mettre en cache
-  cache.data[cacheKey] = response.data;
-  cache.timestamps[cacheKey] = now;
-  
-  return response.data;
-};
-
-// Fonction pour invalider le cache
-const invalidateCache = (endpoint = null) => {
-  if (endpoint) {
-    // Invalider seulement les entrées qui commencent par cet endpoint
-    Object.keys(cache.data).forEach(key => {
-      if (key.startsWith(endpoint)) {
-        delete cache.data[key];
-        delete cache.timestamps[key];
-      }
-    });
-    console.log(`Cache invalidated for: ${endpoint}`);
-  } else {
-    // Invalider tout le cache
-    cache.data = {};
-    cache.timestamps = {};
-    console.log('Entire cache invalidated');
-  }
-};
-
-// Intercepteur pour ajouter le token à chaque requête
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
-// Intercepteur pour gérer les erreurs de réponse
+// Intercepteur pour gérer les 401 (token expiré)
 api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    // Si le token est expiré ou invalide (401), déconnectez l'utilisateur
-    if (error.response && error.response.status === 401) {
+  response => response,
+  error => {
+    if (error.response?.status === 401) {
       localStorage.removeItem('token');
       window.location.href = '/login';
     }
@@ -88,59 +27,80 @@ api.interceptors.response.use(
   }
 );
 
+// Système de cache simplifié
+const cache = {
+  data: {},
+  ttl: 5 * 60 * 1000, // 5 minutes
+  
+  get: function(key) {
+    const item = this.data[key];
+    if (!item) return null;
+    if (Date.now() - item.timestamp > this.ttl) {
+      delete this.data[key];
+      return null;
+    }
+    return item.value;
+  },
+  
+  set: function(key, value) {
+    this.data[key] = {
+      value,
+      timestamp: Date.now()
+    };
+  },
+  
+  clear: function(pattern = null) {
+    if (!pattern) {
+      this.data = {};
+      return;
+    }
+    
+    Object.keys(this.data).forEach(key => {
+      if (key.startsWith(pattern)) delete this.data[key];
+    });
+  }
+};
+
+// Fonction avec gestion de cache
+const fetchWithCache = async (endpoint, options = {}) => {
+  const cacheKey = endpoint + JSON.stringify(options);
+  const cachedData = cache.get(cacheKey);
+  
+  if (cachedData) return cachedData;
+  
+  const response = await api.get(endpoint, options);
+  cache.set(cacheKey, response.data);
+  return response.data;
+};
+
 // Service d'authentification
 const authService = {
-  // Connecter un utilisateur
   login: async (username, password) => {
-    try {
-      const response = await api.post(ENDPOINTS.AUTH.LOGIN, {
-        username,
-        password
-      });
-      // Vider le cache lors de la connexion
-      invalidateCache();
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
+    const response = await api.post(ENDPOINTS.AUTH.LOGIN, { username, password });
+    cache.clear();
+    return response.data;
   },
   
-  // Inscrire un nouvel utilisateur
   register: async (userData) => {
-    try {
-      const response = await api.post(ENDPOINTS.AUTH.REGISTER, userData);
-      // Vider le cache lors de l'inscription
-      invalidateCache();
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
+    const response = await api.post(ENDPOINTS.AUTH.REGISTER, userData);
+    cache.clear();
+    return response.data;
   },
   
-  // Récupérer les informations de l'utilisateur connecté
-  getCurrentUser: async () => {
-    try {
-      return await fetchWithCache(ENDPOINTS.AUTH.ME);
-    } catch (error) {
-      throw error;
-    }
-  },
+  getCurrentUser: async () => fetchWithCache(ENDPOINTS.AUTH.ME),
   
-  // Déconnecter l'utilisateur
   logout: async () => {
     try {
-      const response = await api.post(ENDPOINTS.AUTH.LOGOUT);
-      localStorage.removeItem('token');
-      // Vider le cache lors de la déconnexion
-      invalidateCache();
-      return response.data;
+      await api.post(ENDPOINTS.AUTH.LOGOUT);
     } catch (error) {
+      console.error('Erreur de déconnexion:', error);
+    } finally {
       localStorage.removeItem('token');
-      invalidateCache();
-      throw error;
+      cache.clear();
     }
   }
 };
 
+export const invalidateCache = cache.clear;
 export default authService;
-export { api, fetchWithCache, invalidateCache }; // Exporter les utilitaires de cache
+export { api, fetchWithCache, cache };

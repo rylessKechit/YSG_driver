@@ -1,6 +1,7 @@
 // src/components/dashboard/PreparationCard.js
 import React from 'react';
 import { Link } from 'react-router-dom';
+import '../../styles/PreparationCard.css';
 
 const PreparationCard = ({ preparation }) => {
   // Formatter la date
@@ -34,7 +35,7 @@ const PreparationCard = ({ preparation }) => {
     <div className="preparation-card">
       <div className="preparation-header">
         <h2 className="preparation-plate">{preparation.licensePlate}</h2>
-        <span className={`preparation-status status-${preparation.status}`}>
+        <span className={`status-badge status-${preparation.status}`}>
           {preparation.status === 'pending' && 'En attente'}
           {preparation.status === 'in-progress' && 'En cours'}
           {preparation.status === 'completed' && 'Terminée'}
@@ -42,20 +43,23 @@ const PreparationCard = ({ preparation }) => {
       </div>
       
       {preparation.vehicleModel && (
-        <p className="vehicle-model">{preparation.vehicleModel}</p>
+        <div className="vehicle-info">
+          <span className="vehicle-model">{preparation.vehicleModel}</span>
+          <span className="vehicle-serie">série {preparation.series || '3'}</span>
+        </div>
       )}
       
       <div className="preparation-info">
-        <div className="info-item">
-          <div className="info-label">Préparateur:</div>
+        <div className="info-group">
+          <label>Préparateur:</label>
           <div className="info-value">
             {preparation.userId ? preparation.userId.fullName : 'Non assigné'}
           </div>
         </div>
         
-        <div className="info-item">
-          <div className="info-label">Progression:</div>
-          <div className="info-value">{getCompletedTasks()}</div>
+        <div className="info-group">
+          <label>Progression:</label>
+          <div className="info-value progress-value">{getCompletedTasks()}</div>
         </div>
       </div>
       

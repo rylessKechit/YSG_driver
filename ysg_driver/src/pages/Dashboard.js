@@ -1,5 +1,5 @@
 // src/pages/Dashboard.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import timelogService from '../services/timelogService';
 import movementService from '../services/movementService';
@@ -8,105 +8,162 @@ import Navigation from '../components/Navigation';
 import WeeklySchedule from '../components/WeeklySchedule';
 import GreetingSection from '../components/dashboard/GreetingSection';
 import StatusCard from '../components/dashboard/StatusCard';
-import AssignedMovements from '../components/dashboard/AssignedMovements';
 import QuickActions from '../components/dashboard/QuickActions';
-import RecentMovements from '../components/dashboard/RecentMovements';
-import RecentPreparations from '../components/dashboard/RecentPreparations';
 import '../styles/Dashboard.css';
-import InProgressMovement from '../components/dashboard/InProgressMovement';
-import InProgressPreparations from '../components/dashboard/InProgressPreparations';
+
+// Importations dynamiques des composants selon le rôle
+const AssignedMovements = React.lazy(() => import('../components/dashboard/AssignedMovements'));
+const InProgressMovement = React.lazy(() => import('../components/dashboard/InProgressMovement'));
+const InProgressPreparations = React.lazy(() => import('../components/dashboard/InProgressPreparations'));
+const RecentMovements = React.lazy(() => import('../components/dashboard/RecentMovements'));
+const RecentPreparations = React.lazy(() => import('../components/dashboard/RecentPreparations'));
 
 const Dashboard = () => {
   const [activeTimeLog, setActiveTimeLog] = useState(null);
-  const [assignedMovements, setAssignedMovements] = useState([]);
-  const [inProgressMovements, setInProgressMovements] = useState([]);
-  const [recentMovements, setRecentMovements] = useState([]);
-  const [inProgressPreparations, setInProgressPreparations] = useState([]);
-  const [recentPreparations, setRecentPreparations] = useState([]);
+  const [movementsData, setMovementsData] = useState({
+    assigned: [],
+    inProgress: [],
+    recent: []
+  });
+  const [preparationsData, setPreparationsData] = useState({
+    inProgress: [],
+    recent: []
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { currentUser } = useAuth();
 
-  // Chargement des préparations
-  // Dans la fonction loadPreparations du Dashboard.js
-  const loadPreparations = async () => {
-    try {
-      if (currentUser?.role === 'preparator' || currentUser?.role === 'driver' || currentUser?.role === 'team-leader') {
-        // Une seule requête pour toutes les préparations de l'utilisateur
-        // Augmenter la limite pour obtenir suffisamment de données
-        const allPreparations = await preparationService.getPreparations(
-          null, 
-          50,  // Augmentation de la limite pour avoir assez de données
-          null, // Pas de filtre de statut
-          currentUser._id
-        );
-        
-        // Filtrer côté client
-        const completed = allPreparations.preparations.filter(p => p.status === 'completed');
-        const inProgress = allPreparations.preparations.filter(p => p.status === 'in-progress');
-        
-        setRecentPreparations(completed.slice(0, 5));
-        setInProgressPreparations(inProgress.slice(0, 5));
-      }
-    } catch (err) {
-      console.error('Erreur lors du chargement des préparations:', err);
-      setError('Erreur lors du chargement des données');
-    }
-  };
-
-  // Chargement des données du tableau de bord
+  // Fonction pour charger les données
   useEffect(() => {
-    // Dans useEffect de Dashboard.js
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
         
-        // Récupérer le pointage actif
+        // 1. Récupérer le pointage actif
         const timeLog = await timelogService.getActiveTimeLog()
           .catch(err => {
-            if (err.response && err.response.status === 404) {
-              return null; // Pas de pointage actif
-            }
+            if (err.response?.status === 404) return null;
             throw err;
           });
         
         setActiveTimeLog(timeLog);
         
-        // Si c'est un chauffeur, obtenir TOUS ses mouvements en une seule requête
-        if (currentUser?.role === 'driver') {
-          // On demande plus de mouvements (par ex. 30) pour avoir assez de données
-          // pour toutes les sections, sans pagination
-          const movementsData = await movementService.getMovements(1, 30, null);
-          const allMovements = movementsData.movements;
+        // 2. Charger les mouvements selon le rôle
+        if (['driver', 'team-leader', 'admin'].includes(currentUser?.role)) {
+          const movementsResponse = await movementService.getMovements(1, 30);
+          const allMovements = movementsResponse.movements || [];
           
-          // Filtrer les données côté client
-          const assigned = allMovements.filter(m => m.status === 'assigned');
-          const inProgress = allMovements.filter(m => m.status === 'in-progress');
-          const completed = allMovements.filter(m => m.status === 'completed');
-          
-          setAssignedMovements(assigned);
-          setInProgressMovements(inProgress);
-          // Prendre uniquement les 5 premiers mouvements complétés pour l'historique
-          setRecentMovements(completed.slice(0, 5));
-        } else if (['admin', 'team-leader'].includes(currentUser?.role)) {
-          // Pour les admin et team-leaders, garder la requête unique
-          const movementsData = await movementService.getMovements(1, 5, null);
-          setRecentMovements(movementsData.movements);
+          // Filtrer par statut
+          setMovementsData({
+            assigned: allMovements.filter(m => m.status === 'assigned'),
+            inProgress: allMovements.filter(m => m.status === 'in-progress'),
+            recent: allMovements.filter(m => m.status === 'completed').slice(0, 5)
+          });
         }
         
-        // Charger les préparations si nécessaire
-        await loadPreparations();
+        // 3. Charger les préparations si nécessaire
+        if (['preparator', 'driver', 'team-leader', 'admin'].includes(currentUser?.role)) {
+          const preparationsResponse = await preparationService.getPreparations(1, 50);
+          const allPreparations = preparationsResponse.preparations || [];
+          
+          setPreparationsData({
+            inProgress: allPreparations.filter(p => p.status === 'in-progress').slice(0, 5),
+            recent: allPreparations.filter(p => p.status === 'completed').slice(0, 5)
+          });
+        }
         
         setLoading(false);
       } catch (err) {
-        console.error('Erreur lors du chargement des données du tableau de bord:', err);
+        console.error('Erreur lors du chargement des données:', err);
         setError('Erreur lors du chargement des données');
         setLoading(false);
       }
     };
     
-    fetchDashboardData();
+    if (currentUser) {
+      fetchDashboardData();
+    }
   }, [currentUser]);
+
+  // Déterminer quels composants afficher selon le rôle
+  const componentsByRole = useMemo(() => {
+    if (!currentUser) return [];
+    
+    const roleComponents = [];
+    
+    // Tous les rôles ont GreetingSection et QuickActions
+    roleComponents.push({ component: 'greeting', label: 'Greeting' });
+    
+    // WeeklySchedule uniquement pour les préparateurs
+    if (currentUser.role === 'preparator') {
+      roleComponents.push({ component: 'weeklySchedule', label: 'Planning' });
+    }
+    
+    // StatusCard pour chauffeurs, préparateurs et chefs d'équipe
+    if (['driver', 'preparator', 'team-leader'].includes(currentUser.role)) {
+      roleComponents.push({ component: 'statusCard', label: 'StatusCard' });
+    }
+    
+    // Mouvements en cours pour chauffeurs et chefs d'équipe
+    if (['driver', 'team-leader'].includes(currentUser.role) && 
+        movementsData.inProgress.length > 0) {
+      roleComponents.push({ component: 'inProgressMovement', label: 'InProgressMovement' });
+    }
+    
+    // Mouvements assignés pour chauffeurs
+    if (currentUser.role === 'driver' && movementsData.assigned.length > 0) {
+      roleComponents.push({ component: 'assignedMovements', label: 'AssignedMovements' });
+    }
+    
+    // QuickActions pour tous
+    roleComponents.push({ component: 'quickActions', label: 'QuickActions' });
+    
+    // Préparations en cours pour préparateurs, chauffeurs et chefs d'équipe
+    if (['preparator', 'driver', 'team-leader'].includes(currentUser.role) && 
+        preparationsData.inProgress.length > 0) {
+      roleComponents.push({ component: 'inProgressPreparations', label: 'InProgressPreparations' });
+    }
+    
+    // Préparations récentes pour préparateurs, chauffeurs et chefs d'équipe
+    if (['preparator', 'driver', 'team-leader'].includes(currentUser.role) && 
+        preparationsData.recent.length > 0) {
+      roleComponents.push({ component: 'recentPreparations', label: 'RecentPreparations' });
+    }
+    
+    // Mouvements récents pour chauffeurs, chefs d'équipe et admin
+    if (['driver', 'team-leader', 'admin'].includes(currentUser.role) && 
+        movementsData.recent.length > 0) {
+      roleComponents.push({ component: 'recentMovements', label: 'RecentMovements' });
+    }
+    
+    return roleComponents;
+  }, [currentUser, movementsData, preparationsData]);
+
+  // Rendu du composant selon le type
+  const renderComponent = (componentType) => {
+    switch(componentType) {
+      case 'greeting':
+        return <GreetingSection currentUser={currentUser} />;
+      case 'weeklySchedule':
+        return <WeeklySchedule />;
+      case 'statusCard':
+        return <StatusCard activeTimeLog={activeTimeLog} />;
+      case 'quickActions':
+        return <QuickActions currentUser={currentUser} />;
+      case 'inProgressMovement':
+        return <InProgressMovement movements={movementsData.inProgress} />;
+      case 'assignedMovements':
+        return <AssignedMovements movements={movementsData.assigned} />;
+      case 'inProgressPreparations':
+        return <InProgressPreparations preparations={preparationsData.inProgress} />;
+      case 'recentPreparations':
+        return <RecentPreparations preparations={preparationsData.recent} />;
+      case 'recentMovements':
+        return <RecentMovements movements={movementsData.recent} />;
+      default:
+        return null;
+    }
+  };
 
   if (loading) {
     return (
@@ -125,12 +182,6 @@ const Dashboard = () => {
       <Navigation />
       
       <div className="dashboard-container">
-        {/* Section de salutation */}
-        <GreetingSection currentUser={currentUser} />
-
-        {/* Planning hebdomadaire pour les préparateurs */}
-        {currentUser.role === 'preparator' && <WeeklySchedule />}
-        
         {/* Affichage des erreurs */}
         {error && (
           <div className="alert alert-error">
@@ -139,39 +190,12 @@ const Dashboard = () => {
           </div>
         )}
         
-        {/* Statut de service */}
-        {(currentUser.role === 'driver' || currentUser.role === 'preparator' || currentUser.role === 'team-leader') && (
-          <StatusCard activeTimeLog={activeTimeLog} />
-        )}
-
-        {/* Mouvement in progress (chauffeurs seulement) */}
-        {((currentUser.role === 'driver' || currentUser.role === 'team-leader' || currentUser.role === 'preparator') && inProgressMovements.length > 0 ) && (
-          <InProgressMovement movements={inProgressMovements} />
-        )}
-        
-        {/* Mouvements assignés (chauffeurs seulement) */}
-        {(currentUser.role === 'driver' || currentUser.role === 'preparator') && assignedMovements.length > 0 && (
-          <AssignedMovements movements={assignedMovements} />
-        )}
-        
-        {/* Actions rapides */}
-        <QuickActions currentUser={currentUser} />
-
-        {/* Préparations en cours */}
-        {((currentUser.role === 'driver' || currentUser.role === 'team-leader') && inProgressMovements.length > 0 ) && (
-          <InProgressPreparations movements={inProgressPreparations} />
-        )}
-        
-        {/* Préparations récentes */}
-        {(currentUser.role === 'preparator' || currentUser.role === 'driver' || currentUser.role === 'team-leader') && 
-          recentPreparations.length > 0 && (
-          <RecentPreparations preparations={recentPreparations} />
-        )}
-        
-        {/* Mouvements récents (chauffeurs ou chefs d'équipe) */}
-        {((currentUser.role === 'driver' || currentUser.role === 'team-leader' || currentUser.role === 'preparator') && recentMovements.length > 0) && (
-          <RecentMovements movements={recentMovements} />
-        )}
+        {/* Afficher les composants selon le rôle */}
+        {componentsByRole.map((item, index) => (
+          <React.Fragment key={index}>
+            {renderComponent(item.component)}
+          </React.Fragment>
+        ))}
       </div>
     </div>
   );
