@@ -4,32 +4,44 @@ import { ENDPOINTS } from '../config';
 
 const timelogService = {
   // Démarrer un pointage
-  startTimeLog: async (locationData) => {
+  startTimeLog: async (data) => {
     try {
-      const response = await api.post(`${ENDPOINTS.TIMELOGS.BASE}/start`, {
-        location: locationData
-      });
-      // Invalider le cache des pointages
-      invalidateCache(ENDPOINTS.TIMELOGS.BASE);
-      invalidateCache(ENDPOINTS.TIMELOGS.ACTIVE);
+      // Assurez-vous que les données sont correctement structurées
+      const payload = {
+        location: data.location || {
+          name: 'Position non disponible',
+          coordinates: { latitude: null, longitude: null }
+        }
+      };
+      
+      console.log('Envoi des données au serveur:', payload);
+      
+      const response = await api.post(`${ENDPOINTS.TIMELOGS.BASE}/start`, payload);
       return response.data;
     } catch (error) {
+      console.error('Erreur dans le service timeLog (start):', error);
       throw error;
     }
   },
   
-  // Terminer un pointage
+  // Terminer un pointage - Implémentation du service
   endTimeLog: async (locationData, notes) => {
     try {
-      const response = await api.post(`${ENDPOINTS.TIMELOGS.BASE}/end`, {
-        location: locationData,
-        notes
-      });
-      // Invalider le cache des pointages
-      invalidateCache(ENDPOINTS.TIMELOGS.BASE);
-      invalidateCache(ENDPOINTS.TIMELOGS.ACTIVE);
+      // Assurez-vous que les données sont correctement structurées
+      const payload = {
+        location: locationData || {
+          name: 'Position non disponible',
+          coordinates: { latitude: null, longitude: null }
+        },
+        notes: notes || ''
+      };
+      
+      console.log('Envoi des données au serveur pour terminer:', payload);
+      
+      const response = await api.post(`${ENDPOINTS.TIMELOGS.BASE}/end`, payload);
       return response.data;
     } catch (error) {
+      console.error('Erreur dans le service timeLog (end):', error);
       throw error;
     }
   },

@@ -105,16 +105,30 @@ const TimeLog = () => {
           coordinates: { latitude: null, longitude: null }
         };
       }
-
-      const response = await timelogService.startTimeLog(locationData);
+  
+      console.log('Envoi de la requête de démarrage avec les données:', locationData);
       
-      setActiveTimeLog(response.timeLog);
+      // Appel au service avec une structure de données plus explicite
+      const response = await timelogService.startTimeLog({
+        location: locationData
+      });
       
-      // Notification de succès
-      setSuccess('Pointage démarré avec succès');
-      setTimeout(() => setSuccess(null), 3000);
+      console.log('Réponse du service:', response);
+      
+      if (response && response.timeLog) {
+        setActiveTimeLog(response.timeLog);
+        
+        // Notification de succès
+        setSuccess('Pointage démarré avec succès');
+        setTimeout(() => setSuccess(null), 3000);
+      } else {
+        throw new Error('Format de réponse invalide');
+      }
     } catch (err) {
-      console.error('Erreur lors du démarrage du pointage:', err);
+      console.error('Erreur détaillée lors du démarrage du pointage:', err);
+      if (err.response && err.response.data) {
+        console.error('Détails de l\'erreur:', err.response.data);
+      }
       setError(err.response?.data?.message || 'Erreur lors du démarrage du pointage. Veuillez réessayer.');
     } finally {
       setActionLoading(false);
@@ -126,6 +140,22 @@ const TimeLog = () => {
     try {
       setActionLoading(true);
       setError(null);
+      
+      // Récupérer la position actuelle si possible
+      let locationData;
+      try {
+        locationData = location || await getCurrentLocation();
+      } catch (geoError) {
+        console.error('Erreur de géolocalisation lors de la fin du service:', geoError);
+        // Continuer avec une localisation vide si la géolocalisation échoue
+        locationData = {
+          name: 'Position non disponible',
+          coordinates: { latitude: null, longitude: null }
+        };
+      }
+      
+      // Appeler le service pour terminer le pointage
+      await timelogService.endTimeLog(locationData, notes);
       
       setActiveTimeLog(null);
       setNotes('');
