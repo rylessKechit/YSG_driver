@@ -18,8 +18,8 @@ const InProgressMovement = ({ movements }) => {
             key={movement._id} 
             movement={movement}
             actionButton={
-              <Link to={`/movement/${movement._id}`} className="btn btn-primary btn-sm">
-                <i className="fas fa-play"></i> Terminer
+              <Link to={`/movement/${movement._id}`} className="btn btn-warning btn-sm">
+                <i class="fa-solid fa-flag-checkered"></i> Terminer
               </Link>
             }
           />

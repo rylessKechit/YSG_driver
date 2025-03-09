@@ -142,12 +142,16 @@ const preparationService = {
   },
   
   // Obtenir toutes les préparations
-  getPreparations: async (page = 1, limit = 10, status = null) => {
+  getPreparations: async (page = 1, limit = 10, status = null, userId = null) => {
     try {
       let url = `${ENDPOINTS.PREPARATIONS.BASE}?page=${page}&limit=${limit}`;
       
       if (status) {
         url += `&status=${status}`;
+      }
+      
+      if (userId) {
+        url += `&userId=${userId}`;
       }
       
       const response = await api.get(url);
@@ -156,6 +160,7 @@ const preparationService = {
       throw error;
     }
   },
+  
   
   // Obtenir une préparation spécifique
   getPreparation: async (preparationId) => {

@@ -430,7 +430,7 @@ router.post('/:id/photos', verifyToken, upload.array('photos', 5), async (req, r
 // Obtenir toutes les préparations (filtrées selon le rôle)
 router.get('/', verifyToken, async (req, res) => {
   try {
-    const { page = 1, limit = 10, status, day } = req.query;
+    const { page = 1, limit = 10, status, day, userId } = req.query;
     const skip = (page - 1) * limit;
     
     const query = {};
@@ -438,6 +438,11 @@ router.get('/', verifyToken, async (req, res) => {
     // Si c'est un préparateur, filtrer ses propres préparations
     if (req.user.role === 'preparator') {
       query.userId = req.user._id;
+    }
+    
+    // Si userId est fourni dans la requête, filtrer par ce userId (prend la priorité)
+    if (userId) {
+      query.userId = userId;
     }
     
     if (status) {

@@ -28,20 +28,32 @@ const Dashboard = () => {
   const { currentUser } = useAuth();
 
   // Chargement des préparations
-  const loadPreparations = async () => {
-    try {
-      if (currentUser?.role === 'preparator' || currentUser?.role === 'driver' || currentUser?.role === 'team-leader') {
-        const recentPreparations = await preparationService.getPreparations(null, 5, 'completed' || null);
-        setRecentPreparations(recentPreparations.preparations);
+  // Dans la fonction loadPreparations du Dashboard.js
+const loadPreparations = async () => {
+  try {
+    if (currentUser?.role === 'preparator' || currentUser?.role === 'driver' || currentUser?.role === 'team-leader') {
+      // Modifier la requête pour filtrer par userId
+      const recentPreparations = await preparationService.getPreparations(
+        null, 
+        5, 
+        'completed' || null, 
+        currentUser._id  // Ajouter le paramètre userId
+      );
+      setRecentPreparations(recentPreparations.preparations);
 
-        const inProgressPreparations = await preparationService.getPreparations(null, 5, 'in-progress' || null);
-        setInProgressPreparations(inProgressPreparations.preparations);
-      }
-    } catch (err) {
-      console.error('Erreur lors du chargement des préparations:', err);
-      setError('Erreur lors du chargement des données');
+      const inProgressPreparations = await preparationService.getPreparations(
+        null, 
+        5, 
+        'in-progress' || null,
+        currentUser._id  // Ajouter le paramètre userId
+      );
+      setInProgressPreparations(inProgressPreparations.preparations);
     }
-  };
+  } catch (err) {
+    console.error('Erreur lors du chargement des préparations:', err);
+    setError('Erreur lors du chargement des données');
+  }
+};
 
   // Chargement des données du tableau de bord
   useEffect(() => {
@@ -142,14 +154,16 @@ const Dashboard = () => {
         
         {/* Actions rapides */}
         <QuickActions currentUser={currentUser} />
-        
+
         {/* Préparations en cours */}
-        {(currentUser.role === 'preparator' || currentUser.role === 'driver' || currentUser.role === 'team-leader') && (
+        {(currentUser.role === 'preparator' || currentUser.role === 'driver' || currentUser.role === 'team-leader') && 
+          inProgressPreparations.length > 0 && (
           <InProgressPreparations preparations={inProgressPreparations} />
         )}
         
         {/* Préparations récentes */}
-        {(currentUser.role === 'preparator' || currentUser.role === 'driver' || currentUser.role === 'team-leader') && (
+        {(currentUser.role === 'preparator' || currentUser.role === 'driver' || currentUser.role === 'team-leader') && 
+          recentPreparations.length > 0 && (
           <RecentPreparations preparations={recentPreparations} />
         )}
         

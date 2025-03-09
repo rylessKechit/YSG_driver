@@ -390,6 +390,20 @@
   margin-bottom: 8px !important; /* Réduit l'espace entre le titre et la première carte */
 }
 
+.btn-success:hover {
+  background-color: #059669;
+}
+
+.btn-warning {
+  background-color: #f59e0b;
+  color: white;
+  border: none;
+}
+
+.btn-warning:hover {
+  background-color: #d97706;
+}
+
 /* Styles pour le mode MOBILE */
 @media (max-width: 950px) {
   /* Masquer le menu mobile par défaut */
