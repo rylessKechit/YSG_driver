@@ -13,27 +13,55 @@ const MovementHistory = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
+  const [allMovements, setAllMovements] = useState([]);
+  const [filteredMovements, setFilteredMovements] = useState([]);
+
 
   // Charger les mouvements
   const loadMovements = async () => {
     try {
       setLoading(true);
-      let response;
       
-      if (isSearching && searchQuery) {
-        response = await movementService.searchByLicensePlate(searchQuery);
-      } else {
-        response = await movementService.getMovements(page, 10, statusFilter || null);
-        setTotalPages(response.totalPages);
-      }
+      // Charger un plus grand nombre de mouvements en une seule requête
+      const response = await movementService.getMovements(1, 100, null);
       
-      setMovements(response.movements);
+      setAllMovements(response.movements);
+      setTotalPages(response.totalPages);
+      
+      // Appliquer les filtres côté client
+      applyFilters(response.movements);
+      
+      setLoading(false);
     } catch (err) {
       console.error('Erreur lors du chargement des mouvements:', err);
       setError('Erreur lors du chargement des données');
-    } finally {
       setLoading(false);
     }
+  };
+
+  // Fonction de filtrage côté client
+  const applyFilters = (movements) => {
+    let result = [...movements];
+    
+    // Filtrer par statut si nécessaire
+    if (statusFilter) {
+      result = result.filter(movement => movement.status === statusFilter);
+    }
+    
+    // Filtrer par recherche si nécessaire
+    if (isSearching && searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(movement => 
+        movement.licensePlate.toLowerCase().includes(query) ||
+        (movement.vehicleModel && movement.vehicleModel.toLowerCase().includes(query))
+      );
+    }
+    
+    // Pagination côté client
+    const startIndex = (page - 1) * 10;
+    const paginatedMovements = result.slice(startIndex, startIndex + 10);
+    
+    setFilteredMovements(paginatedMovements);
   };
 
   // Charger les mouvements au montage et quand les filtres changent
@@ -45,20 +73,23 @@ const MovementHistory = () => {
   const handleFilterChange = (e) => {
     setStatusFilter(e.target.value);
     setPage(1); // Réinitialiser à la première page
+    applyFilters(allMovements);
   };
 
   // Gestionnaire de recherche
   const handleSearch = (e) => {
     e.preventDefault();
     setIsSearching(!!searchQuery);
-    setPage(1);
+    setPage(1); // Réinitialiser à la première page
+    applyFilters(allMovements);
   };
 
   // Réinitialiser la recherche
   const resetSearch = () => {
     setSearchQuery('');
     setIsSearching(false);
-    setPage(1);
+    setPage(1); // Réinitialiser à la première page
+    applyFilters(allMovements);
   };
 
   // Formatter la date

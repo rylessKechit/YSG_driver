@@ -1,5 +1,5 @@
 // src/services/reportService.js
-import { api } from './authService';
+import { api, fetchWithCache, invalidateCache } from './authService';
 import { ENDPOINTS } from '../config';
 
 const downloadFile = (blob, filename) => {
@@ -44,6 +44,7 @@ const reportService = {
         url += `?${queryParams.join('&')}`;
       }
       
+      // Note: pas de cache pour les rapports, car ce sont des fichiers binaires
       // Faire la requête avec responseType 'blob' pour recevoir un fichier
       const response = await api.get(url, {
         responseType: 'blob'
@@ -84,6 +85,7 @@ const reportService = {
         url += `?${queryParams.join('&')}`;
       }
       
+      // Note: pas de cache pour les rapports, car ce sont des fichiers binaires
       // Faire la requête avec responseType 'blob' pour recevoir un fichier
       const response = await api.get(url, {
         responseType: 'blob'

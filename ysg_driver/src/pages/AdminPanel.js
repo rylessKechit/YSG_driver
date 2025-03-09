@@ -29,6 +29,8 @@ const AdminPanel = () => {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   
+  const [allUsers, setAllUsers] = useState([]);
+  
   const { currentUser } = useAuth();
   const navigate = useNavigate();
 
@@ -46,10 +48,11 @@ const AdminPanel = () => {
         setLoading(true);
         const data = await userService.getAllUsers();
         setUsers(data);
+        setAllUsers(data);
+        setLoading(false);
       } catch (err) {
         console.error('Erreur lors du chargement des utilisateurs:', err);
         setError('Erreur lors du chargement des utilisateurs');
-      } finally {
         setLoading(false);
       }
     };
@@ -114,35 +117,37 @@ const AdminPanel = () => {
       
       if (formMode === 'create') {
         // Créer un nouvel utilisateur
-        await userService.createUser(formData);
+        const response = await userService.createUser(formData);
+        // Mettre à jour localement
+        const newUsers = [...allUsers, response.user];
+        setAllUsers(newUsers);
+        setUsers(newUsers);
         setSuccess('Utilisateur créé avec succès');
       } else {
         // Modifier un utilisateur existant
-        const dataToUpdate = { ...formData };
-        // Ne pas envoyer le mot de passe s'il est vide
-        if (!dataToUpdate.password) {
-          delete dataToUpdate.password;
-        }
-        await userService.updateUser(selectedUser._id, dataToUpdate);
+        const response = await userService.updateUser(selectedUser._id, formData);
+        // Mettre à jour localement
+        const updatedUsers = allUsers.map(user => 
+          user._id === selectedUser._id ? response.user : user
+        );
+        setAllUsers(updatedUsers);
+        setUsers(updatedUsers);
         setSuccess('Utilisateur mis à jour avec succès');
       }
-      
-      // Recharger la liste des utilisateurs
-      const updatedUsers = await userService.getAllUsers();
-      setUsers(updatedUsers);
       
       // Réinitialiser le formulaire
       resetForm();
       
       // Effacer le message de succès après 3 secondes
       setTimeout(() => setSuccess(null), 3000);
+      setLoading(false);
     } catch (err) {
       setError(err.response?.data?.message || 'Erreur lors de l\'opération');
       console.error(err);
-    } finally {
       setLoading(false);
     }
   };
+  
 
   // Supprimer un utilisateur
   const handleDeleteUser = async (userId) => {
@@ -156,16 +161,19 @@ const AdminPanel = () => {
       
       await userService.deleteUser(userId);
       
-      // Mettre à jour la liste des utilisateurs
-      setUsers(users.filter(user => user._id !== userId));
+      // Mettre à jour localement
+      const remainingUsers = allUsers.filter(user => user._id !== userId);
+      setAllUsers(remainingUsers);
+      setUsers(remainingUsers);
+      
       setSuccess('Utilisateur supprimé avec succès');
       
       // Effacer le message de succès après 3 secondes
       setTimeout(() => setSuccess(null), 3000);
+      setLoading(false);
     } catch (err) {
       setError(err.response?.data?.message || 'Erreur lors de la suppression');
       console.error(err);
-    } finally {
       setLoading(false);
     }
   };

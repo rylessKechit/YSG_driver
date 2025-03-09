@@ -16,33 +16,52 @@ const PreparationList = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const { currentUser } = useAuth();
+  const [allPreparations, setAllPreparations] = useState([]);
+  const [filteredPreparations, setFilteredPreparations] = useState([]);
   
   // Fonction de chargement des préparations
   const loadPreparations = async () => {
     try {
-      // Éviter de recharger si déjà en cours de chargement
       if (loading) return;
       
       setLoading(true);
-      let response;
       
-      if (isSearching && searchQuery) {
-        // Si on est en mode recherche, utiliser l'endpoint de recherche
-        response = await preparationService.searchByLicensePlate(searchQuery);
-      } else {
-        // Sinon utiliser l'endpoint standard avec les paramètres de filtrage
-        
-        response = await preparationService.getPreparations(page, 100, statusFilter || null);
-        setTotalPages(response.totalPages);
-      }
+      // Charger un plus grand nombre de préparations en une seule requête
+      const response = await preparationService.getPreparations(1, 100, null);
       
-      setPreparations(response.preparations);
+      setAllPreparations(response.preparations);
+      setTotalPages(response.totalPages);
+      
+      // Appliquer les filtres côté client
+      applyFilters(response.preparations);
+      
+      setLoading(false);
     } catch (err) {
       console.error('Erreur lors du chargement des préparations:', err);
       setError('Erreur lors du chargement des données');
-    } finally {
       setLoading(false);
     }
+  };
+
+  // Nouvelle fonction pour filtrer côté client
+  const applyFilters = (preparations) => {
+    let result = [...preparations];
+    
+    // Filtrer par statut si nécessaire
+    if (statusFilter) {
+      result = result.filter(prep => prep.status === statusFilter);
+    }
+    
+    // Filtrer par recherche si nécessaire
+    if (isSearching && searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(prep => 
+        prep.licensePlate.toLowerCase().includes(query) ||
+        (prep.vehicleModel && prep.vehicleModel.toLowerCase().includes(query))
+      );
+    }
+    
+    setFilteredPreparations(result);
   };
   
   // Effet pour charger les préparations quand les filtres changent
@@ -53,21 +72,21 @@ const PreparationList = () => {
   // Gestionnaire de changement de filtre
   const handleFilterChange = (e) => {
     setStatusFilter(e.target.value);
-    setPage(1); // Réinitialiser à la première page
-  };
+    applyFilters(allPreparations);
+  };  
 
   // Gestionnaire de recherche
   const handleSearch = (e) => {
     e.preventDefault();
     setIsSearching(!!searchQuery);
-    setPage(1);
+    applyFilters(allPreparations);
   };
 
   // Réinitialiser la recherche
   const resetSearch = () => {
     setSearchQuery('');
     setIsSearching(false);
-    setPage(1);
+    applyFilters(allPreparations);
   };
 
   // Formatter la date

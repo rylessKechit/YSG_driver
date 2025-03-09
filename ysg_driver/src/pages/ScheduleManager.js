@@ -28,6 +28,8 @@ const ScheduleManager = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+
+  const [allScheduleEntries, setAllScheduleEntries] = useState([]);
   
   const { currentUser } = useAuth();
   const navigate = useNavigate();
@@ -41,6 +43,34 @@ const ScheduleManager = () => {
     { value: 'saturday', label: 'Samedi' },
     { value: 'sunday', label: 'Dimanche' }
   ];
+
+  const updateScheduleData = (entries) => {
+    // Restructurer les données pour un affichage plus facile
+    const scheduleByPreparator = {};
+    
+    preparators.forEach(preparator => {
+      scheduleByPreparator[preparator._id] = {
+        info: preparator,
+        schedule: {
+          monday: null,
+          tuesday: null,
+          wednesday: null,
+          thursday: null,
+          friday: null,
+          saturday: null,
+          sunday: null
+        }
+      };
+    });
+    
+    entries.forEach(entry => {
+      if (scheduleByPreparator[entry.userId]) {
+        scheduleByPreparator[entry.userId].schedule[entry.day] = entry;
+      }
+    });
+    
+    setScheduleData(Object.values(scheduleByPreparator));
+  };
 
   // Vérifier les permissions
   useEffect(() => {
@@ -64,7 +94,10 @@ const ScheduleManager = () => {
         
         // Charger tous les plannings
         const schedulesData = await scheduleService.getAllSchedules();
-        setScheduleData(schedulesData);
+        setAllScheduleEntries(schedulesData);
+        
+        // Mettre à jour les données affichées
+        updateScheduleData(schedulesData);
         
         setLoading(false);
       } catch (err) {
@@ -76,6 +109,7 @@ const ScheduleManager = () => {
     
     fetchData();
   }, []);
+  
 
   // Gérer les changements dans le formulaire
   const handleChange = (e) => {
@@ -137,9 +171,10 @@ const ScheduleManager = () => {
       
       await scheduleService.deleteScheduleEntry(entryId);
       
-      // Recharger les données
-      const updatedSchedules = await scheduleService.getAllSchedules();
-      setScheduleData(updatedSchedules);
+      // Mettre à jour localement
+      const updatedEntries = allScheduleEntries.filter(entry => entry._id !== entryId);
+      setAllScheduleEntries(updatedEntries);
+      updateScheduleData(updatedEntries);
       
       setSuccess('Entrée supprimée avec succès');
       setTimeout(() => setSuccess(null), 3000);
@@ -156,32 +191,31 @@ const ScheduleManager = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!formData.userId || !formData.day) {
-      setError('Veuillez remplir tous les champs obligatoires');
-      return;
-    }
-    
     try {
       setLoading(true);
       setError(null);
       
-      // Si nous sommes en mode édition, inclure l'ID dans les données
-      const dataToSubmit = editMode 
-        ? { ...formData, _id: currentEntryId }
-        : formData;
+      // Envoyer les données au serveur
+      const response = await scheduleService.saveScheduleEntry(formData);
+      const newEntry = response.scheduleEntry;
       
-      await scheduleService.saveScheduleEntry(dataToSubmit);
+      // Mettre à jour localement
+      let updatedEntries;
+      if (editMode) {
+        updatedEntries = allScheduleEntries.map(entry => 
+          entry._id === currentEntryId ? newEntry : entry
+        );
+      } else {
+        updatedEntries = [...allScheduleEntries, newEntry];
+      }
       
-      // Recharger les données
-      const updatedSchedules = await scheduleService.getAllSchedules();
-      setScheduleData(updatedSchedules);
+      setAllScheduleEntries(updatedEntries);
+      updateScheduleData(updatedEntries);
       
       setSuccess(editMode ? 'Planning mis à jour avec succès' : 'Planning créé avec succès');
       setTimeout(() => setSuccess(null), 3000);
       
-      // Réinitialiser le formulaire
       handleCancel();
-      
       setLoading(false);
     } catch (err) {
       console.error('Erreur lors de la sauvegarde:', err);

@@ -29,34 +29,34 @@ const Dashboard = () => {
 
   // Chargement des préparations
   // Dans la fonction loadPreparations du Dashboard.js
-const loadPreparations = async () => {
-  try {
-    if (currentUser?.role === 'preparator' || currentUser?.role === 'driver' || currentUser?.role === 'team-leader') {
-      // Modifier la requête pour filtrer par userId
-      const recentPreparations = await preparationService.getPreparations(
-        null, 
-        5, 
-        'completed' || null, 
-        currentUser._id  // Ajouter le paramètre userId
-      );
-      setRecentPreparations(recentPreparations.preparations);
-
-      const inProgressPreparations = await preparationService.getPreparations(
-        null, 
-        5, 
-        'in-progress' || null,
-        currentUser._id  // Ajouter le paramètre userId
-      );
-      setInProgressPreparations(inProgressPreparations.preparations);
+  const loadPreparations = async () => {
+    try {
+      if (currentUser?.role === 'preparator' || currentUser?.role === 'driver' || currentUser?.role === 'team-leader') {
+        // Une seule requête pour toutes les préparations de l'utilisateur
+        // Augmenter la limite pour obtenir suffisamment de données
+        const allPreparations = await preparationService.getPreparations(
+          null, 
+          50,  // Augmentation de la limite pour avoir assez de données
+          null, // Pas de filtre de statut
+          currentUser._id
+        );
+        
+        // Filtrer côté client
+        const completed = allPreparations.preparations.filter(p => p.status === 'completed');
+        const inProgress = allPreparations.preparations.filter(p => p.status === 'in-progress');
+        
+        setRecentPreparations(completed.slice(0, 5));
+        setInProgressPreparations(inProgress.slice(0, 5));
+      }
+    } catch (err) {
+      console.error('Erreur lors du chargement des préparations:', err);
+      setError('Erreur lors du chargement des données');
     }
-  } catch (err) {
-    console.error('Erreur lors du chargement des préparations:', err);
-    setError('Erreur lors du chargement des données');
-  }
-};
+  };
 
   // Chargement des données du tableau de bord
   useEffect(() => {
+    // Dans useEffect de Dashboard.js
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
@@ -72,23 +72,25 @@ const loadPreparations = async () => {
         
         setActiveTimeLog(timeLog);
         
-        // Si c'est un chauffeur, obtenir ses mouvements assignés
+        // Si c'est un chauffeur, obtenir TOUS ses mouvements en une seule requête
         if (currentUser?.role === 'driver') {
-          const assignedData = await movementService.getMovements(1, 5, 'assigned');
-          setAssignedMovements(assignedData.movements);
-
-          const inProgressData = await movementService.getMovements(1, 5, 'in-progress');
-          setInProgressMovements(inProgressData.movements);
-
-        }
-        
-        // Récupérer les mouvements récents (terminés pour les chauffeurs, tous pour les admins)
-        if (['driver', 'admin', 'team-leader'].includes(currentUser?.role)) {
-          const movementsData = await movementService.getMovements(
-            1, 
-            5, 
-            currentUser?.role === 'driver' ? 'completed' : null
-          );
+          // On demande plus de mouvements (par ex. 30) pour avoir assez de données
+          // pour toutes les sections, sans pagination
+          const movementsData = await movementService.getMovements(1, 30, null);
+          const allMovements = movementsData.movements;
+          
+          // Filtrer les données côté client
+          const assigned = allMovements.filter(m => m.status === 'assigned');
+          const inProgress = allMovements.filter(m => m.status === 'in-progress');
+          const completed = allMovements.filter(m => m.status === 'completed');
+          
+          setAssignedMovements(assigned);
+          setInProgressMovements(inProgress);
+          // Prendre uniquement les 5 premiers mouvements complétés pour l'historique
+          setRecentMovements(completed.slice(0, 5));
+        } else if (['admin', 'team-leader'].includes(currentUser?.role)) {
+          // Pour les admin et team-leaders, garder la requête unique
+          const movementsData = await movementService.getMovements(1, 5, null);
           setRecentMovements(movementsData.movements);
         }
         

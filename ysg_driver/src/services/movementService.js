@@ -1,5 +1,5 @@
 // src/services/movementService.js
-import { api } from './authService';
+import { api, fetchWithCache, invalidateCache } from './authService';
 import { ENDPOINTS } from '../config';
 
 const movementService = {
@@ -7,6 +7,8 @@ const movementService = {
   createMovement: async (movementData) => {
     try {
       const response = await api.post(ENDPOINTS.MOVEMENTS.BASE, movementData);
+      // Invalider le cache des mouvements
+      invalidateCache(ENDPOINTS.MOVEMENTS.BASE);
       return response.data;
     } catch (error) {
       throw error;
@@ -16,8 +18,16 @@ const movementService = {
   // Obtenir les chauffeurs en service (admin ou team-leader)
   getDriversOnDuty: async () => {
     try {
-      const response = await api.get(`${ENDPOINTS.MOVEMENTS.BASE}/drivers-on-duty`);
-      return response.data;
+      return await fetchWithCache(`${ENDPOINTS.MOVEMENTS.BASE}/drivers-on-duty`);
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Obtenir tous les chauffeurs (en service ou non)
+  getAllDrivers: async () => {
+    try {
+      return await fetchWithCache(`${ENDPOINTS.MOVEMENTS.BASE}/all-drivers`);
     } catch (error) {
       throw error;
     }
@@ -27,6 +37,9 @@ const movementService = {
   prepareMovement: async (movementId) => {
     try {
       const response = await api.post(`${ENDPOINTS.MOVEMENTS.DETAIL(movementId)}/prepare`);
+      // Invalider le cache du mouvement spécifique et de la liste
+      invalidateCache(ENDPOINTS.MOVEMENTS.DETAIL(movementId));
+      invalidateCache(ENDPOINTS.MOVEMENTS.BASE);
       return response.data;
     } catch (error) {
       throw error;
@@ -37,6 +50,9 @@ const movementService = {
   startMovement: async (movementId) => {
     try {
       const response = await api.post(`${ENDPOINTS.MOVEMENTS.DETAIL(movementId)}/start`);
+      // Invalider le cache du mouvement spécifique et de la liste
+      invalidateCache(ENDPOINTS.MOVEMENTS.DETAIL(movementId));
+      invalidateCache(ENDPOINTS.MOVEMENTS.BASE);
       return response.data;
     } catch (error) {
       throw error;
@@ -46,8 +62,10 @@ const movementService = {
   // Terminer un mouvement (chauffeur)
   completeMovement: async (movementId, notesData) => {
     try {
-      // Passer notesData directement comme corps de la requête
       const response = await api.post(`${ENDPOINTS.MOVEMENTS.DETAIL(movementId)}/complete`, notesData);
+      // Invalider le cache du mouvement spécifique et de la liste
+      invalidateCache(ENDPOINTS.MOVEMENTS.DETAIL(movementId));
+      invalidateCache(ENDPOINTS.MOVEMENTS.BASE);
       return response.data;
     } catch (error) {
       throw error;
@@ -58,6 +76,9 @@ const movementService = {
   cancelMovement: async (movementId) => {
     try {
       const response = await api.post(`${ENDPOINTS.MOVEMENTS.DETAIL(movementId)}/cancel`);
+      // Invalider le cache du mouvement spécifique et de la liste
+      invalidateCache(ENDPOINTS.MOVEMENTS.DETAIL(movementId));
+      invalidateCache(ENDPOINTS.MOVEMENTS.BASE);
       return response.data;
     } catch (error) {
       throw error;
@@ -68,6 +89,9 @@ const movementService = {
   reassignMovement: async (movementId, userId) => {
     try {
       const response = await api.post(`${ENDPOINTS.MOVEMENTS.DETAIL(movementId)}/reassign`, { userId });
+      // Invalider le cache du mouvement spécifique et de la liste
+      invalidateCache(ENDPOINTS.MOVEMENTS.DETAIL(movementId));
+      invalidateCache(ENDPOINTS.MOVEMENTS.BASE);
       return response.data;
     } catch (error) {
       throw error;
@@ -86,13 +110,15 @@ const movementService = {
           }
         }
       );
+      // Invalider le cache du mouvement spécifique
+      invalidateCache(ENDPOINTS.MOVEMENTS.DETAIL(movementId));
       return response.data;
     } catch (error) {
       throw error;
     }
   },
   
-  // Obtenir tous les mouvements
+  // Obtenir tous les mouvements avec cache
   getMovements: async (page = 1, limit = 10, status = null) => {
     try {
       let url = `${ENDPOINTS.MOVEMENTS.BASE}?page=${page}&limit=${limit}`;
@@ -101,38 +127,25 @@ const movementService = {
         url += `&status=${status}`;
       }
       
-      const response = await api.get(url);
-      return response.data;
+      return await fetchWithCache(url);
     } catch (error) {
       throw error;
     }
   },
   
-  // Obtenir un mouvement spécifique
+  // Obtenir un mouvement spécifique avec cache
   getMovement: async (movementId) => {
     try {
-      const response = await api.get(ENDPOINTS.MOVEMENTS.DETAIL(movementId));
-      return response.data;
+      return await fetchWithCache(ENDPOINTS.MOVEMENTS.DETAIL(movementId));
     } catch (error) {
       throw error;
     }
   },
   
-  // Rechercher des mouvements par plaque d'immatriculation
+  // Rechercher des mouvements par plaque d'immatriculation avec cache
   searchByLicensePlate: async (licensePlate) => {
     try {
-      const response = await api.get(`${ENDPOINTS.MOVEMENTS.BASE}/search?licensePlate=${licensePlate}`);
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
-  },
-
-  // Obtenir tous les chauffeurs (en service ou non)
-  getAllDrivers: async () => {
-    try {
-      const response = await api.get(`${ENDPOINTS.MOVEMENTS.BASE}/all-drivers`);
-      return response.data;
+      return await fetchWithCache(`${ENDPOINTS.MOVEMENTS.BASE}/search?licensePlate=${licensePlate}`);
     } catch (error) {
       throw error;
     }
@@ -142,6 +155,9 @@ const movementService = {
   assignDriver: async (movementId, driverId) => {
     try {
       const response = await api.post(`${ENDPOINTS.MOVEMENTS.DETAIL(movementId)}/assign`, { userId: driverId });
+      // Invalider le cache du mouvement spécifique et de la liste
+      invalidateCache(ENDPOINTS.MOVEMENTS.DETAIL(movementId));
+      invalidateCache(ENDPOINTS.MOVEMENTS.BASE);
       return response.data;
     } catch (error) {
       throw error;
@@ -152,6 +168,8 @@ const movementService = {
   deleteMovement: async (movementId) => {
     try {
       const response = await api.delete(ENDPOINTS.MOVEMENTS.DETAIL(movementId));
+      // Invalider le cache de la liste des mouvements
+      invalidateCache(ENDPOINTS.MOVEMENTS.BASE);
       return response.data;
     } catch (error) {
       throw error;

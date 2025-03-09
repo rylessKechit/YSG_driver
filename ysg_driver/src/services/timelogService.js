@@ -1,4 +1,5 @@
-import { api } from './authService';
+// src/services/timelogService.js
+import { api, fetchWithCache, invalidateCache } from './authService';
 import { ENDPOINTS } from '../config';
 
 const timelogService = {
@@ -8,6 +9,9 @@ const timelogService = {
       const response = await api.post(`${ENDPOINTS.TIMELOGS.BASE}/start`, {
         location: locationData
       });
+      // Invalider le cache des pointages
+      invalidateCache(ENDPOINTS.TIMELOGS.BASE);
+      invalidateCache(ENDPOINTS.TIMELOGS.ACTIVE);
       return response.data;
     } catch (error) {
       throw error;
@@ -21,17 +25,19 @@ const timelogService = {
         location: locationData,
         notes
       });
+      // Invalider le cache des pointages
+      invalidateCache(ENDPOINTS.TIMELOGS.BASE);
+      invalidateCache(ENDPOINTS.TIMELOGS.ACTIVE);
       return response.data;
     } catch (error) {
       throw error;
     }
   },
   
-  // Récupérer le pointage actif
+  // Récupérer le pointage actif avec cache
   getActiveTimeLog: async () => {
     try {
-      const response = await api.get(`${ENDPOINTS.TIMELOGS.ACTIVE}`);
-      return response.data;
+      return await fetchWithCache(ENDPOINTS.TIMELOGS.ACTIVE);
     } catch (error) {
       if (error.response && error.response.status === 404) {
         return null; // Aucun pointage actif
@@ -40,7 +46,7 @@ const timelogService = {
     }
   },
   
-  // Récupérer l'historique des pointages
+  // Récupérer l'historique des pointages avec cache
   getTimeLogs: async (page = 1, limit = 10, status = null) => {
     try {
       let url = `${ENDPOINTS.TIMELOGS.BASE}?page=${page}&limit=${limit}`;
@@ -49,8 +55,7 @@ const timelogService = {
         url += `&status=${status}`;
       }
       
-      const response = await api.get(url);
-      return response.data;
+      return await fetchWithCache(url);
     } catch (error) {
       throw error;
     }

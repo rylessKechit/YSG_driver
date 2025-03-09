@@ -1,5 +1,5 @@
 // src/services/preparationService.js
-import { api } from './authService';
+import { api, fetchWithCache, invalidateCache } from './authService';
 import { ENDPOINTS } from '../config';
 
 const preparationService = {
@@ -7,23 +7,24 @@ const preparationService = {
   createPreparation: async (preparationData) => {
     try {
       const response = await api.post(ENDPOINTS.PREPARATIONS.BASE, preparationData);
+      // Invalider le cache des préparations
+      invalidateCache(ENDPOINTS.PREPARATIONS.BASE);
       return response.data;
     } catch (error) {
       throw error;
     }
   },
   
-  // Obtenir les préparateurs en service (admin seulement)
+  // Obtenir les préparateurs en service (admin seulement) avec cache
   getPreparatorsOnDuty: async () => {
     try {
-      const response = await api.get(`${ENDPOINTS.PREPARATIONS.BASE}/preparators-on-duty`);
-      return response.data;
+      return await fetchWithCache(`${ENDPOINTS.PREPARATIONS.BASE}/preparators-on-duty`);
     } catch (error) {
       throw error;
     }
   },
   
-  // NOUVELLE MÉTHODE: Démarrer une tâche avec photo "before"
+  // Démarrer une tâche avec photo "before"
   startTask: async (preparationId, taskType, photo, notes) => {
     try {
       const formData = new FormData();
@@ -39,13 +40,16 @@ const preparationService = {
           }
         }
       );
+      // Invalider le cache de la préparation spécifique et de la liste
+      invalidateCache(ENDPOINTS.PREPARATIONS.DETAIL(preparationId));
+      invalidateCache(ENDPOINTS.PREPARATIONS.BASE);
       return response.data;
     } catch (error) {
       throw error;
     }
   },
   
-  // NOUVELLE MÉTHODE: Terminer une tâche avec photo "after"
+  // Terminer une tâche avec photo "after"
   completeTask: async (preparationId, taskType, photo, additionalData = {}) => {
     try {
       const formData = new FormData();
@@ -71,13 +75,16 @@ const preparationService = {
           }
         }
       );
+      // Invalider le cache de la préparation spécifique et de la liste
+      invalidateCache(ENDPOINTS.PREPARATIONS.DETAIL(preparationId));
+      invalidateCache(ENDPOINTS.PREPARATIONS.BASE);
       return response.data;
     } catch (error) {
       throw error;
     }
   },
   
-  // NOUVELLE MÉTHODE: Ajouter une photo additionnelle à une tâche
+  // Ajouter une photo additionnelle à une tâche
   addTaskPhoto: async (preparationId, taskType, photo, description) => {
     try {
       const formData = new FormData();
@@ -93,6 +100,8 @@ const preparationService = {
           }
         }
       );
+      // Invalider le cache de la préparation spécifique
+      invalidateCache(ENDPOINTS.PREPARATIONS.DETAIL(preparationId));
       return response.data;
     } catch (error) {
       throw error;
@@ -103,6 +112,9 @@ const preparationService = {
   completePreparation: async (preparationId, data) => {
     try {
       const response = await api.put(`${ENDPOINTS.PREPARATIONS.DETAIL(preparationId)}/complete`, data);
+      // Invalider le cache de la préparation spécifique et de la liste
+      invalidateCache(ENDPOINTS.PREPARATIONS.DETAIL(preparationId));
+      invalidateCache(ENDPOINTS.PREPARATIONS.BASE);
       return response.data;
     } catch (error) {
       throw error;
@@ -135,13 +147,15 @@ const preparationService = {
           }
         }
       );
+      // Invalider le cache de la préparation spécifique
+      invalidateCache(ENDPOINTS.PREPARATIONS.DETAIL(preparationId));
       return response.data;
     } catch (error) {
       throw error;
     }
   },
   
-  // Obtenir toutes les préparations
+  // Obtenir toutes les préparations avec cache
   getPreparations: async (page = 1, limit = 10, status = null, userId = null) => {
     try {
       let url = `${ENDPOINTS.PREPARATIONS.BASE}?page=${page}&limit=${limit}`;
@@ -154,29 +168,25 @@ const preparationService = {
         url += `&userId=${userId}`;
       }
       
-      const response = await api.get(url);
-      return response.data;
+      return await fetchWithCache(url);
     } catch (error) {
       throw error;
     }
   },
   
-  
-  // Obtenir une préparation spécifique
+  // Obtenir une préparation spécifique avec cache
   getPreparation: async (preparationId) => {
     try {
-      const response = await api.get(ENDPOINTS.PREPARATIONS.DETAIL(preparationId));
-      return response.data;
+      return await fetchWithCache(ENDPOINTS.PREPARATIONS.DETAIL(preparationId));
     } catch (error) {
       throw error;
     }
   },
   
-  // Rechercher des préparations par plaque d'immatriculation
+  // Rechercher des préparations par plaque d'immatriculation avec cache
   searchByLicensePlate: async (licensePlate) => {
     try {
-      const response = await api.get(`${ENDPOINTS.PREPARATIONS.BASE}/search/plate?licensePlate=${licensePlate}`);
-      return response.data;
+      return await fetchWithCache(`${ENDPOINTS.PREPARATIONS.BASE}/search/plate?licensePlate=${licensePlate}`);
     } catch (error) {
       throw error;
     }
