@@ -18,7 +18,6 @@ const checkDriverActiveTimeLog = async (driverId) => {
 };
 
 // Créer un nouveau mouvement (réservé aux admins)
-// Modifier la route de création du mouvement (POST /)
 router.post('/', verifyToken, canCreateMovement, async (req, res) => {
   try {
     const {
@@ -27,6 +26,7 @@ router.post('/', verifyToken, canCreateMovement, async (req, res) => {
       vehicleModel,
       departureLocation,
       arrivalLocation,
+      deadline, // Nouvelle propriété pour la deadline
       notes
     } = req.body;
     
@@ -67,7 +67,7 @@ router.post('/', verifyToken, canCreateMovement, async (req, res) => {
       status = 'assigned';
     }
     
-    // Créer le mouvement
+    // Créer le mouvement avec la nouvelle propriété deadline
     const movement = new Movement({
       assignedBy: req.user._id, // Admin qui assigne
       licensePlate,
@@ -75,7 +75,8 @@ router.post('/', verifyToken, canCreateMovement, async (req, res) => {
       departureLocation,
       arrivalLocation,
       status,
-      notes
+      notes,
+      deadline: deadline || null // Ajout de la deadline
     });
     
     // Si un chauffeur est fourni, l'assigner
@@ -84,12 +85,27 @@ router.post('/', verifyToken, canCreateMovement, async (req, res) => {
       movement.timeLogId = timeLogId;
 
       if (whatsAppService.isClientReady() && driver.phone) {
-        const message = `🚗 Nouveau mouvement assigné!\n\n` +
+        // Message WhatsApp mis à jour pour inclure la deadline
+        let message = `🚗 Nouveau mouvement assigné!\n\n` +
                         `Véhicule: ${movement.licensePlate}\n` +
                         `Départ: ${movement.departureLocation.name}\n` +
-                        `Arrivée: ${movement.arrivalLocation.name}\n\n` +
-                        `Statut: ${movement.status === 'assigned' ? 'Prêt à démarrer' : 'En attente'}\n` +
-                        `Pour plus de détails, consultez l'application.`;
+                        `Arrivée: ${movement.arrivalLocation.name}\n\n`;
+        
+        // Ajouter la deadline si elle existe
+        if (movement.deadline) {
+          const deadlineDate = new Date(movement.deadline);
+          const formattedDeadline = deadlineDate.toLocaleString('fr-FR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+          message += `⏰ Deadline: ${formattedDeadline}\n\n`;
+        }
+        
+        message += `Statut: ${movement.status === 'assigned' ? 'Prêt à démarrer' : 'En attente'}\n` +
+                  `Pour plus de détails, consultez l'application.`;
                         
         await whatsAppService.sendMessage(driver.phone, message);
       }
@@ -254,6 +270,7 @@ router.post('/:id/start', verifyToken, async (req, res) => {
 });
 
 // Ajouter une route pour assigner un chauffeur à un mouvement existant
+// Extrait de server/routes/movement.routes.js - Mise à jour de la route POST /:id/assign
 router.post('/:id/assign', verifyToken, canAssignMovement, async (req, res) => {
   try {
     const { userId } = req.body;
@@ -301,13 +318,28 @@ router.post('/:id/assign', verifyToken, canAssignMovement, async (req, res) => {
     // Envoyer une notification WhatsApp au chauffeur
     try {
       if (whatsAppService.isClientReady() && driver.phone) {
-        const message = `🚗 Nouveau mouvement assigné!\n\n` +
+        // Message WhatsApp mis à jour pour inclure la deadline
+        let message = `🚗 Nouveau mouvement assigné!\n\n` +
                         `Véhicule: ${movement.licensePlate}\n` +
                         `Départ: ${movement.departureLocation.name}\n` +
-                        `Arrivée: ${movement.arrivalLocation.name}\n\n` +
-                        `Statut: ${movement.status === 'assigned' ? 'Prêt à démarrer' : 'En attente'}\n` +
-                        `Pour plus de détails, consultez l'application.`;
-                        
+                        `Arrivée: ${movement.arrivalLocation.name}\n\n`;
+        
+        // Ajouter la deadline si elle existe
+        if (movement.deadline) {
+          const deadlineDate = new Date(movement.deadline);
+          const formattedDeadline = deadlineDate.toLocaleString('fr-FR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+          message += `⏰ Deadline: ${formattedDeadline}\n\n`;
+        }
+        
+        message += `Statut: ${movement.status === 'assigned' ? 'Prêt à démarrer' : 'En attente'}\n` +
+                  `Pour plus de détails, consultez l'application.`;
+                      
         await whatsAppService.sendMessage(driver.phone, message);
       }
     } catch (whatsappError) {
@@ -638,8 +670,21 @@ router.get('/', verifyToken, async (req, res) => {
       query.status = status;
     }
     
+    // Déterminer l'ordre de tri en fonction du statut
+    let sortOptions = { createdAt: -1 }; // Par défaut, tri par date de création (descendant)
+    
+    // Pour les statuts 'pending' et 'assigned', on trie d'abord par deadline
+    if (status === 'pending' || status === 'assigned' || !status) {
+      sortOptions = { 
+        // D'abord trier les mouvements avec deadline (mettre en premier)
+        'deadline': 1, 
+        // Ensuite trier par date de création pour ceux sans deadline
+        'createdAt': -1 
+      };
+    }
+    
     const movements = await Movement.find(query)
-      .sort({ createdAt: -1 })
+      .sort(sortOptions)
       .skip(skip)
       .limit(parseInt(limit))
       .populate('userId', 'username fullName')

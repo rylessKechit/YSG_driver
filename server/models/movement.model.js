@@ -1,4 +1,4 @@
-// server/models/movement.model.js
+// server/models/movement.model.js - Ajout du champ deadline
 const mongoose = require('mongoose');
 
 const photoSchema = new mongoose.Schema({
@@ -77,6 +77,10 @@ const movementSchema = new mongoose.Schema({
   arrivalTime: {
     type: Date
   },
+  // Nouveau champ pour la deadline
+  deadline: {
+    type: Date
+  },
   status: {
     type: String,
     enum: ['pending', 'assigned', 'preparing', 'in-progress', 'completed', 'cancelled'],
@@ -94,6 +98,8 @@ const movementSchema = new mongoose.Schema({
 movementSchema.index({ licensePlate: 1 });
 // Index pour rechercher les mouvements d'un utilisateur
 movementSchema.index({ userId: 1, status: 1 });
+// Nouvel index pour trier efficacement par deadline
+movementSchema.index({ status: 1, deadline: 1 });
 
 const Movement = mongoose.model('Movement', movementSchema);
 

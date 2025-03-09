@@ -3,7 +3,7 @@ import { api } from './authService';
 import { ENDPOINTS } from '../config';
 
 const movementService = {
-  // Créer un nouveau mouvement (admin seulement)
+  // Créer un nouveau mouvement (admin ou team-leader)
   createMovement: async (movementData) => {
     try {
       const response = await api.post(ENDPOINTS.MOVEMENTS.BASE, movementData);
@@ -13,7 +13,7 @@ const movementService = {
     }
   },
   
-  // Obtenir les chauffeurs en service (admin seulement)
+  // Obtenir les chauffeurs en service (admin ou team-leader)
   getDriversOnDuty: async () => {
     try {
       const response = await api.get(`${ENDPOINTS.MOVEMENTS.BASE}/drivers-on-duty`);
@@ -54,7 +54,7 @@ const movementService = {
     }
   },
   
-  // Annuler un mouvement (admin seulement)
+  // Annuler un mouvement (admin ou team-leader)
   cancelMovement: async (movementId) => {
     try {
       const response = await api.post(`${ENDPOINTS.MOVEMENTS.DETAIL(movementId)}/cancel`);
@@ -64,7 +64,7 @@ const movementService = {
     }
   },
   
-  // Réassigner un mouvement (admin seulement)
+  // Réassigner un mouvement (admin ou team-leader)
   reassignMovement: async (movementId, userId) => {
     try {
       const response = await api.post(`${ENDPOINTS.MOVEMENTS.DETAIL(movementId)}/reassign`, { userId });

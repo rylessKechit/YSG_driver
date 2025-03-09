@@ -17,8 +17,35 @@ const MovementCard = ({ movement, actionButton }) => {
     });
   };
 
+  // Vérifier si la deadline est proche (moins de 24h)
+  const isDeadlineUrgent = () => {
+    if (!movement.deadline) return false;
+    
+    const deadline = new Date(movement.deadline);
+    const now = new Date();
+    const timeUntilDeadline = deadline.getTime() - now.getTime();
+    // Moins de 24 heures
+    return timeUntilDeadline > 0 && timeUntilDeadline < 24 * 60 * 60 * 1000;
+  };
+
+  // Vérifier si la deadline est expirée
+  const isDeadlineExpired = () => {
+    if (!movement.deadline) return false;
+    
+    const deadline = new Date(movement.deadline);
+    const now = new Date();
+    return deadline < now;
+  };
+
+  // Déterminer la classe de la carte en fonction de la deadline
+  const getCardClass = () => {
+    if (isDeadlineExpired()) return "movement-card deadline-expired";
+    if (isDeadlineUrgent()) return "movement-card deadline-urgent";
+    return "movement-card";
+  };
+
   return (
-    <div className="movement-card">
+    <div className={getCardClass()}>
       <div className="movement-header">
         <div className="vehicle-info">
           <span className="license-plate">{movement.licensePlate}</span>
@@ -58,6 +85,18 @@ const MovementCard = ({ movement, actionButton }) => {
           </div>
         </div>
       </div>
+      
+      {/* Affichage de la deadline si elle existe */}
+      {movement.deadline && (
+        <div className={`deadline-info ${isDeadlineUrgent() ? 'urgent' : ''} ${isDeadlineExpired() ? 'expired' : ''}`}>
+          <i className="fas fa-clock"></i>
+          <span>
+            {isDeadlineExpired() 
+              ? `Deadline expirée: ${formatDate(movement.deadline)}` 
+              : `Deadline: ${formatDate(movement.deadline)}`}
+          </span>
+        </div>
+      )}
       
       <div className="movement-footer">
         <div className="movement-date">

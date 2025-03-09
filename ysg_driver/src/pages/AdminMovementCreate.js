@@ -20,6 +20,7 @@ const AdminMovementCreate = () => {
       name: '',
       coordinates: { latitude: null, longitude: null }
     },
+    deadline: '',
     notes: ''
   });
   
@@ -31,6 +32,11 @@ const AdminMovementCreate = () => {
   const [success, setSuccess] = useState(null);
   const { currentUser } = useAuth();
   const navigate = useNavigate();
+
+  const getCurrentDateTime = () => {
+    const now = new Date();
+    return now.toISOString().slice(0, 16);
+  };
 
   // Vérifier que l'utilisateur est admin
   useEffect(() => {
@@ -192,7 +198,7 @@ const AdminMovementCreate = () => {
         ) : (
           <div className="card">
             <div className="card-body">
-              <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit}>
                 <div className="form-section">
                   <h2 className="section-title">
                     <i className="fas fa-user"></i> Sélection du chauffeur (optionnel)
@@ -348,6 +354,32 @@ const AdminMovementCreate = () => {
                     >
                       <i className="fas fa-map-pin"></i> Utiliser ma position actuelle
                     </button>
+                  </div>
+                </div>
+
+                {/* Nouveau bloc pour la deadline */}
+                <div className="form-section">
+                  <h2 className="section-title">
+                    <i className="fas fa-clock"></i> Deadline (Optionnel)
+                  </h2>
+                  
+                  <div className="form-group">
+                    <label htmlFor="deadline" className="form-label">
+                      Date et heure limite d'arrivée
+                    </label>
+                    <input
+                      type="datetime-local"
+                      id="deadline"
+                      name="deadline"
+                      value={formData.deadline}
+                      onChange={handleChange}
+                      className="form-input"
+                      min={getCurrentDateTime()}
+                    />
+                    <p className="form-hint">
+                      Indiquez la date et l'heure auxquelles le véhicule doit arriver à destination.
+                      Cette information sera partagée avec le chauffeur.
+                    </p>
                   </div>
                 </div>
                 

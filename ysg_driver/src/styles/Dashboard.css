@@ -546,3 +546,72 @@
   border: none;
   font-weight: 600;
 }
+
+/* Styles pour les deadlines */
+.deadline-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin: 8px 0;
+  background-color: #f3f4f6;
+  color: #4b5563;
+  font-size: 0.875rem;
+}
+
+.deadline-info.urgent {
+  background-color: #fff7ed;
+  color: #c2410c;
+  font-weight: 500;
+  border-left: 4px solid #f97316;
+}
+
+.deadline-info.expired {
+  background-color: #fef2f2;
+  color: #b91c1c;
+  font-weight: 500;
+  border-left: 4px solid #ef4444;
+}
+
+/* Styles pour les cartes avec deadline */
+.movement-card.deadline-urgent {
+  border-left: 4px solid #f97316;
+  position: relative;
+}
+
+.movement-card.deadline-urgent::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 20px 20px 0;
+  border-color: transparent #f97316 transparent transparent;
+}
+
+.movement-card.deadline-expired {
+  border-left: 4px solid #ef4444;
+  position: relative;
+}
+
+.movement-card.deadline-expired::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 20px 20px 0;
+  border-color: transparent #ef4444 transparent transparent;
+}
+
+/* Ajuster la marge pour compenser la bordure gauche */
+.movement-card.deadline-urgent,
+.movement-card.deadline-expired {
+  margin-left: 4px;
+  padding-left: 12px;
+}

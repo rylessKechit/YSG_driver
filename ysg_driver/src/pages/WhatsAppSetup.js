@@ -31,7 +31,7 @@ const WhatsAppSetup = () => {
     checkStatus();
     
     // Vérifier le statut toutes les 10 secondes
-    const interval = setInterval(checkStatus, 10000);
+    const interval = setInterval(checkStatus, 20000);
     
     return () => clearInterval(interval);
   }, []);
