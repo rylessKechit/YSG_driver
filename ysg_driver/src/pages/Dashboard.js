@@ -145,12 +145,12 @@ const Dashboard = () => {
         )}
 
         {/* Mouvement in progress (chauffeurs seulement) */}
-        {((currentUser.role === 'driver' | currentUser.role === 'team-leader') && inProgressMovements.length > 0 ) && (
+        {((currentUser.role === 'driver' || currentUser.role === 'team-leader' || currentUser.role === 'preparator') && inProgressMovements.length > 0 ) && (
           <InProgressMovement movements={inProgressMovements} />
         )}
         
         {/* Mouvements assignés (chauffeurs seulement) */}
-        {currentUser.role === 'driver' && assignedMovements.length > 0 && (
+        {(currentUser.role === 'driver' || currentUser.role === 'preparator') && assignedMovements.length > 0 && (
           <AssignedMovements movements={assignedMovements} />
         )}
         
@@ -158,9 +158,8 @@ const Dashboard = () => {
         <QuickActions currentUser={currentUser} />
 
         {/* Préparations en cours */}
-        {(currentUser.role === 'preparator' || currentUser.role === 'driver' || currentUser.role === 'team-leader') && 
-          inProgressPreparations.length > 0 && (
-          <InProgressPreparations preparations={inProgressPreparations} />
+        {((currentUser.role === 'driver' || currentUser.role === 'team-leader') && inProgressMovements.length > 0 ) && (
+          <InProgressPreparations movements={inProgressPreparations} />
         )}
         
         {/* Préparations récentes */}
