@@ -88,6 +88,11 @@ const Navigation = () => {
           visible: true
         },
         {
+          name: 'Comparaison pointages',
+          path: '/schedule-comparison',
+          visible: true
+        },
+        {
           name: 'Administration',
           path: '/admin',
           visible: true
@@ -148,6 +153,11 @@ const Navigation = () => {
         {
           name: 'Planning préparateurs',
           path: '/schedules',
+          visible: true
+        },
+        {
+          name: 'Comparaison pointages',
+          path: '/schedule-comparison',
           visible: true
         },
       ]

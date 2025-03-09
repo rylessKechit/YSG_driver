@@ -67,19 +67,31 @@ const ScheduleComparison = () => {
     const fetchUsers = async () => {
       try {
         setLoading(true);
+        console.log('Tentative de chargement des utilisateurs...');
         const allUsers = await userService.getAllUsers();
+        console.log('Utilisateurs chargés:', allUsers);
+        
         // Filtrer les utilisateurs qui sont des préparateurs
         const preparators = allUsers.filter(user => user.role === 'preparator');
+        console.log('Préparateurs filtrés:', preparators);
+        
         setUsers(preparators);
         
-        if (preparators.length > 0) {
+        if (preparators && preparators.length > 0) {
           setSelectedUser(preparators[0]._id);
+          console.log('Premier préparateur sélectionné:', preparators[0]);
+        } else {
+          console.log('Aucun préparateur trouvé');
+          // Si aucun préparateur n'est trouvé, on affiche un message différent 
+          // qui indique plus clairement le problème
+          setError('Aucun utilisateur avec le rôle "préparateur" n\'a été trouvé. Veuillez en créer un dans l\'administration.');
         }
         
         setLoading(false);
       } catch (err) {
         console.error('Erreur lors du chargement des préparateurs:', err);
-        setError('Erreur lors du chargement des préparateurs');
+        // Message d'erreur plus détaillé pour aider au débogage
+        setError(`Erreur lors du chargement des préparateurs: ${err.message || 'Erreur inconnue'}`);
         setLoading(false);
       }
     };
@@ -96,36 +108,60 @@ const ScheduleComparison = () => {
         setLoading(true);
         setError(null);
 
-        // Charger le planning
-        const schedule = await scheduleService.getUserSchedule(selectedUser);
-        setScheduleData(schedule);
+        console.log('Chargement des données pour l\'utilisateur:', selectedUser);
 
-        // Charger les pointages (on prend un plus grand nombre pour être sûr d'avoir ceux de la semaine)
-        const timelogs = await timelogService.getTimeLogs(1, 100);
+        // Charger le planning
+        console.log('Tentative de chargement du planning...');
+        const schedule = await scheduleService.getUserSchedule(selectedUser);
+        console.log('Planning chargé:', schedule);
+        setScheduleData(schedule || []); // Assurer que c'est toujours un tableau même si vide
+
+        // Charger les pointages - MODIFICATIONS POUR CORRIGER LE PROBLÈME
+        console.log('Tentative de chargement des pointages...');
+        const timelogs = await timelogService.getTimeLogs(1, 500); // Augmenter le nombre pour être sûr
+        console.log('Pointages bruts chargés:', timelogs);
         
         // Filtrer les pointages pour l'utilisateur sélectionné et dans la plage de dates
         const startDate = new Date(dateRange.startDate);
         startDate.setHours(0, 0, 0, 0);
+        const startStr = startDate.toISOString();
         
         const endDate = new Date(dateRange.endDate);
         endDate.setHours(23, 59, 59, 999);
+        const endStr = endDate.toISOString();
         
-        const filteredTimelogs = timelogs.timeLogs.filter(log => {
-          const logDate = new Date(log.startTime);
-          return log.userId === selectedUser && 
-                 logDate >= startDate && 
-                 logDate <= endDate;
+        console.log('Filtrage des pointages du', startStr, 'au', endStr, 'pour l\'utilisateur', selectedUser);
+        
+        // S'assurer que timelogs contient la propriété timeLogs avant de filtrer
+        const timeLogsArray = timelogs && timelogs.timeLogs ? timelogs.timeLogs : [];
+        console.log('Nombre total de pointages récupérés:', timeLogsArray.length);
+        
+        // Ajouter des logs détaillés pour chaque pointage
+        timeLogsArray.forEach(log => {
+          console.log(`Pointage ID:${log._id}, Utilisateur:${log.userId}, Date:${new Date(log.startTime).toLocaleString()}, Status:${log.status}`);
         });
         
+        const filteredTimelogs = timeLogsArray.filter(log => {
+          const logDate = new Date(log.startTime);
+          const isCorrectUser = log.userId === selectedUser;
+          const isInDateRange = logDate >= startDate && logDate <= endDate;
+          
+          console.log(`Log pour ${new Date(log.startTime).toLocaleString()}: bon utilisateur=${isCorrectUser}, dans plage=${isInDateRange}`);
+          
+          return isCorrectUser && isInDateRange;
+        });
+        
+        console.log('Pointages filtrés après vérification complète:', filteredTimelogs);
         setTimelogData(filteredTimelogs);
 
         // Créer les données de comparaison
-        generateComparisonData(schedule, filteredTimelogs);
+        generateComparisonData(schedule || [], filteredTimelogs);
         
         setLoading(false);
       } catch (err) {
         console.error('Erreur lors du chargement des données:', err);
-        setError('Erreur lors du chargement des données');
+        // Message d'erreur plus détaillé
+        setError(`Erreur lors du chargement des données: ${err.message || 'Erreur inconnue'}`);
         setLoading(false);
       }
     };
@@ -142,11 +178,20 @@ const ScheduleComparison = () => {
       const dayDate = weekDates[day.value];
       const scheduleEntry = schedule.find(entry => entry.day === day.value);
       
-      // Trouver les pointages pour ce jour
+      // Trouver les pointages pour ce jour - MODIFICATION ICI POUR CORRIGER LE PROBLÈME
       const dayTimelogs = timelogs.filter(log => {
+        // Convertir les deux dates en chaînes de format YYYY-MM-DD pour comparer uniquement les jours
         const logDate = new Date(log.startTime);
-        return logDate.toDateString() === dayDate.toDateString();
+        const logDateStr = logDate.toISOString().split('T')[0];
+        const dayDateStr = dayDate.toISOString().split('T')[0];
+        
+        // Log pour débogage
+        console.log(`Comparaison: log=${logDateStr}, jour=${dayDateStr}, même jour=${logDateStr === dayDateStr}`);
+        
+        return logDateStr === dayDateStr;
       });
+
+      console.log(`Pointages pour ${day.label} (${dayDate.toLocaleDateString()}):`, dayTimelogs);
 
       // Calculer les écarts
       let startDiff = null;
@@ -169,6 +214,8 @@ const ScheduleComparison = () => {
         // Calculer l'écart d'heure de début (en minutes)
         startDiff = actualStartMinutesFromMidnight - scheduledStartMinutesFromMidnight;
         
+        console.log(`Écart de début pour ${day.label}: ${startDiff} minutes`);
+        
         // Prendre le dernier pointage terminé comme heure de départ
         const completedLogs = dayTimelogs.filter(log => log.status === 'completed');
         if (completedLogs.length > 0) {
@@ -179,6 +226,8 @@ const ScheduleComparison = () => {
           // Calculer l'écart d'heure de fin (en minutes)
           endDiff = actualEndMinutesFromMidnight - scheduledEndMinutesFromMidnight;
           
+          console.log(`Écart de fin pour ${day.label}: ${endDiff} minutes`);
+          
           // Calculer le temps total travaillé
           dayTimelogs.forEach(log => {
             if (log.status === 'completed' && log.endTime) {
@@ -186,9 +235,29 @@ const ScheduleComparison = () => {
               const end = new Date(log.endTime);
               const durationMinutes = (end - start) / (1000 * 60);
               totalWorkedMinutes += durationMinutes;
+              console.log(`Pointage ${log._id}: Durée = ${durationMinutes} minutes`);
             }
           });
+          
+          console.log(`Temps total travaillé pour ${day.label}: ${totalWorkedMinutes} minutes`);
+        } else {
+          console.log(`Pas de pointages complétés pour ${day.label}`);
         }
+      } else if (dayTimelogs.length > 0) {
+        // Si pas d'horaire prévu mais des pointages existent quand même
+        console.log(`Pointages trouvés pour ${day.label} mais pas d'horaire prévu ou horaire de repos`);
+        
+        // Calculer le temps total travaillé même s'il n'y a pas d'horaire prévu
+        dayTimelogs.forEach(log => {
+          if (log.status === 'completed' && log.endTime) {
+            const start = new Date(log.startTime);
+            const end = new Date(log.endTime);
+            const durationMinutes = (end - start) / (1000 * 60);
+            totalWorkedMinutes += durationMinutes;
+          }
+        });
+      } else {
+        console.log(`Pas de pointages pour ${day.label}`);
       }
 
       comparison.push({
@@ -379,19 +448,41 @@ const ScheduleComparison = () => {
         <div className="filters-section">
           <div className="user-filter">
             <label htmlFor="user-select">Préparateur:</label>
-            <select 
-              id="user-select" 
-              value={selectedUser} 
-              onChange={handleUserChange}
-              className="filter-select"
-            >
-              {users.map(user => (
-                <option key={user._id} value={user._id}>
-                  {user.fullName}
-                </option>
-              ))}
-            </select>
+            {users && users.length > 0 ? (
+              <select 
+                id="user-select" 
+                value={selectedUser} 
+                onChange={handleUserChange}
+                className="filter-select"
+              >
+                {users.map(user => (
+                  <option key={user._id} value={user._id}>
+                    {user.fullName}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <select 
+                id="user-select" 
+                disabled
+                className="filter-select"
+              >
+                <option>Aucun préparateur disponible</option>
+              </select>
+            )}
           </div>
+          
+          {users && users.length === 0 && currentUser.role === 'admin' && (
+            <div className="add-preparator-shortcut">
+              <button 
+                onClick={() => navigate('/admin')}
+                className="btn btn-primary"
+              >
+                <i className="fas fa-plus-circle"></i> Ajouter un préparateur
+              </button>
+              <span className="helper-text">Aucun préparateur trouvé. Vous devez en créer un dans l'administration.</span>
+            </div>
+          )}
           
           <div className="date-navigation">
             <button 
@@ -447,7 +538,9 @@ const ScheduleComparison = () => {
                               {day.scheduled.startTime} - {day.scheduled.endTime}
                             </span>
                           ) : (
-                            <span className="rest-day-label">Repos</span>
+                            <span className="rest-day-label">
+                              <i className="fas fa-bed"></i> Repos
+                            </span>
                           )
                         ) : (
                           <span className="not-scheduled">Non planifié</span>

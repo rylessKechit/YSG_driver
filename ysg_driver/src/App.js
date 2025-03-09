@@ -25,6 +25,7 @@ import PreparationCreate from './pages/PreparationCreate';
 import Reports from './pages/Reports';
 
 import ScheduleManager from './pages/ScheduleManager';
+import ScheduleComparison from './pages/ScheduleComparison';
 
 import WhatsAppSetup from './pages/WhatsAppSetup';
 
@@ -142,6 +143,14 @@ const AppContent = () => {
         />
         
         {/* Routes Admin */}
+        <Route 
+          path="/schedule-comparison" 
+          element={
+            <ProtectedRoute requiredRoles={['admin', 'direction']}>
+              <ScheduleComparison />
+            </ProtectedRoute>
+          } 
+        />
         <Route 
           path="/admin" 
           element={

@@ -39,6 +39,12 @@ const QuickActions = ({ currentUser }) => {
               </div>
               <span className="action-title">Planning préparateurs</span>
             </Link>
+            <Link to="/schedule-comparison" className="action-card">
+              <div className="action-icon">
+                <i className="fas fa-chart-line"></i>
+              </div>
+              <span className="action-title">Comparaison pointages</span>
+            </Link>
             <Link to="/admin" className="action-card">
               <div className="action-icon">
                 <i className="fas fa-user-shield"></i>
@@ -113,6 +119,12 @@ const QuickActions = ({ currentUser }) => {
                 <i className="fas fa-calendar-week"></i>
               </div>
               <span className="action-title">Planning préparateurs</span>
+            </Link>
+            <Link to="/schedule-comparison" className="action-card">
+              <div className="action-icon">
+                <i className="fas fa-chart-line"></i>
+              </div>
+              <span className="action-title">Comparaison pointages</span>
             </Link>
             <Link to="/profile" className="action-card">
               <div className="action-icon">

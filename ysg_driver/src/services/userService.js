@@ -1,6 +1,6 @@
 // src/services/userService.js
 import { api, fetchWithCache, invalidateCache } from './authService';
-import { ENDPOINTS } from '../config';
+import { ENDPOINTS, API_URL } from '../config';
 
 const userService = {
   // Obtenir le profil de l'utilisateur avec cache
@@ -40,11 +40,54 @@ const userService = {
   // --- Méthodes administratives ---
   
   // Obtenir tous les utilisateurs (admin seulement) avec cache
+  // Remplacez la fonction getAllUsers dans src/services/userService.js par cette version améliorée
+
+  // Obtenir tous les utilisateurs (admin seulement) avec cache
   getAllUsers: async () => {
     try {
-      return await fetchWithCache(ENDPOINTS.USERS.BASE);
+      // Log de l'URL complète pour vérification
+      const url = ENDPOINTS.USERS.BASE;
+      
+      // Vérifier si le token est présent
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.error('Token manquant pour l\'authentification');
+        throw new Error('Non authentifié - token manquant');
+      }
+      
+      // Tenter de récupérer les données avec le cache
+      const data = await fetchWithCache(url);
+      
+      // Vérifier si les données sont valides
+      if (!Array.isArray(data)) {
+        console.error('Les données reçues ne sont pas un tableau:', data);
+        return []; // Retourner un tableau vide plutôt que de planter
+      }
+      
+      return data;
     } catch (error) {
-      throw error;
+      console.error('Erreur détaillée dans getAllUsers:', error);
+      
+      // Tenter d'extraire plus d'informations sur l'erreur
+      let errorMessage = 'Une erreur s\'est produite lors de la récupération des utilisateurs';
+      
+      if (error.response) {
+        console.error('Réponse d\'erreur du serveur:', error.response);
+        errorMessage += ` - Statut: ${error.response.status}`;
+        
+        if (error.response.data && error.response.data.message) {
+          errorMessage += ` - Message: ${error.response.data.message}`;
+        }
+      } else if (error.request) {
+        console.error('Requête envoyée mais pas de réponse:', error.request);
+        errorMessage += ' - Aucune réponse du serveur';
+      } else {
+        console.error('Erreur de configuration:', error.message);
+        errorMessage += ` - ${error.message}`;
+      }
+      
+      // Lancer une erreur plus descriptive
+      throw new Error(errorMessage);
     }
   },
   

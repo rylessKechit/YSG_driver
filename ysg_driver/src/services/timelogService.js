@@ -55,8 +55,20 @@ const timelogService = {
         url += `&status=${status}`;
       }
       
-      return await fetchWithCache(url);
+      console.log('Récupération des pointages:', url);
+      
+      // Pour les pointages récents, ne pas utiliser le cache pour avoir des données fraîches
+      const response = await api.get(url);
+      console.log('Réponse des pointages:', response.data);
+      
+      // Si les données ne contiennent pas la propriété timeLogs, ajustez le format
+      if (response.data && !response.data.timeLogs && Array.isArray(response.data)) {
+        return { timeLogs: response.data, totalPages: 1 };
+      }
+      
+      return response.data;
     } catch (error) {
+      console.error('Erreur détaillée lors de la récupération des pointages:', error);
       throw error;
     }
   }
