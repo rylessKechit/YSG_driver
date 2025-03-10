@@ -1,5 +1,5 @@
-// src/services/preparationService.js
-import { api, fetchWithCache, invalidateCache } from './authService';
+// src/services/preparationService.js (sans système de cache)
+import { api, fetchWithCache } from './authService';
 import { ENDPOINTS } from '../config';
 
 const preparationService = {
@@ -7,15 +7,13 @@ const preparationService = {
   createPreparation: async (preparationData) => {
     try {
       const response = await api.post(ENDPOINTS.PREPARATIONS.BASE, preparationData);
-      // Invalider le cache des préparations
-      invalidateCache(ENDPOINTS.PREPARATIONS.BASE);
       return response.data;
     } catch (error) {
       throw error;
     }
   },
   
-  // Obtenir les préparateurs en service (admin seulement) avec cache
+  // Obtenir les préparateurs en service (admin seulement) sans cache
   getPreparatorsOnDuty: async () => {
     try {
       return await fetchWithCache(`${ENDPOINTS.PREPARATIONS.BASE}/preparators-on-duty`);
@@ -40,9 +38,6 @@ const preparationService = {
           }
         }
       );
-      // Invalider le cache de la préparation spécifique et de la liste
-      invalidateCache(ENDPOINTS.PREPARATIONS.DETAIL(preparationId));
-      invalidateCache(ENDPOINTS.PREPARATIONS.BASE);
       return response.data;
     } catch (error) {
       throw error;
@@ -75,9 +70,6 @@ const preparationService = {
           }
         }
       );
-      // Invalider le cache de la préparation spécifique et de la liste
-      invalidateCache(ENDPOINTS.PREPARATIONS.DETAIL(preparationId));
-      invalidateCache(ENDPOINTS.PREPARATIONS.BASE);
       return response.data;
     } catch (error) {
       throw error;
@@ -100,8 +92,6 @@ const preparationService = {
           }
         }
       );
-      // Invalider le cache de la préparation spécifique
-      invalidateCache(ENDPOINTS.PREPARATIONS.DETAIL(preparationId));
       return response.data;
     } catch (error) {
       throw error;
@@ -112,9 +102,6 @@ const preparationService = {
   completePreparation: async (preparationId, data) => {
     try {
       const response = await api.put(`${ENDPOINTS.PREPARATIONS.DETAIL(preparationId)}/complete`, data);
-      // Invalider le cache de la préparation spécifique et de la liste
-      invalidateCache(ENDPOINTS.PREPARATIONS.DETAIL(preparationId));
-      invalidateCache(ENDPOINTS.PREPARATIONS.BASE);
       return response.data;
     } catch (error) {
       throw error;
@@ -147,15 +134,13 @@ const preparationService = {
           }
         }
       );
-      // Invalider le cache de la préparation spécifique
-      invalidateCache(ENDPOINTS.PREPARATIONS.DETAIL(preparationId));
       return response.data;
     } catch (error) {
       throw error;
     }
   },
   
-  // Obtenir toutes les préparations avec cache
+  // Obtenir toutes les préparations sans cache
   getPreparations: async (page = 1, limit = 10, status = null, userId = null) => {
     try {
       let url = `${ENDPOINTS.PREPARATIONS.BASE}?page=${page}&limit=${limit}`;
@@ -174,7 +159,7 @@ const preparationService = {
     }
   },
   
-  // Obtenir une préparation spécifique avec cache
+  // Obtenir une préparation spécifique sans cache
   getPreparation: async (preparationId) => {
     try {
       return await fetchWithCache(ENDPOINTS.PREPARATIONS.DETAIL(preparationId));
@@ -183,7 +168,7 @@ const preparationService = {
     }
   },
   
-  // Rechercher des préparations par plaque d'immatriculation avec cache
+  // Rechercher des préparations par plaque d'immatriculation sans cache
   searchByLicensePlate: async (licensePlate) => {
     try {
       return await fetchWithCache(`${ENDPOINTS.PREPARATIONS.BASE}/search/plate?licensePlate=${licensePlate}`);

@@ -1,17 +1,8 @@
-// src/services/movementService.js
-import { api, fetchWithCache, cache } from './authService';
+// src/services/movementService.js (sans système de cache)
+import { api, fetchWithCache } from './authService';
 import { ENDPOINTS } from '../config';
 
-// Fonctions auxiliaires
-const clearMovementsCache = (movementId = null) => {
-  // Invalider le cache pour un mouvement spécifique ou tous les mouvements
-  cache.clear(ENDPOINTS.MOVEMENTS.BASE);
-  if (movementId) {
-    cache.clear(ENDPOINTS.MOVEMENTS.DETAIL(movementId));
-  }
-};
-
-// Service des mouvements
+// Service des mouvements (sans aucun cache)
 const movementService = {
   // OBTENIR DES DONNÉES
   
@@ -48,7 +39,6 @@ const movementService = {
   // Créer un nouveau mouvement
   createMovement: async (movementData) => {
     const response = await api.post(ENDPOINTS.MOVEMENTS.BASE, movementData);
-    clearMovementsCache();
     return response.data;
   },
   
@@ -58,21 +48,18 @@ const movementService = {
       `${ENDPOINTS.MOVEMENTS.DETAIL(movementId)}/assign`, 
       { userId: driverId }
     );
-    clearMovementsCache(movementId);
     return response.data;
   },
   
   // Préparer un mouvement
   prepareMovement: async (movementId) => {
     const response = await api.post(`${ENDPOINTS.MOVEMENTS.DETAIL(movementId)}/prepare`);
-    clearMovementsCache(movementId);
     return response.data;
   },
   
   // Démarrer un mouvement
   startMovement: async (movementId) => {
     const response = await api.post(`${ENDPOINTS.MOVEMENTS.DETAIL(movementId)}/start`);
-    clearMovementsCache(movementId);
     return response.data;
   },
   
@@ -82,14 +69,12 @@ const movementService = {
       `${ENDPOINTS.MOVEMENTS.DETAIL(movementId)}/complete`, 
       notesData
     );
-    clearMovementsCache(movementId);
     return response.data;
   },
   
   // Annuler un mouvement
   cancelMovement: async (movementId) => {
     const response = await api.post(`${ENDPOINTS.MOVEMENTS.DETAIL(movementId)}/cancel`);
-    clearMovementsCache(movementId);
     return response.data;
   },
   
@@ -100,14 +85,12 @@ const movementService = {
       formData,
       { headers: { 'Content-Type': 'multipart/form-data' } }
     );
-    cache.clear(ENDPOINTS.MOVEMENTS.DETAIL(movementId));
     return response.data;
   },
   
   // Supprimer un mouvement
   deleteMovement: async (movementId) => {
     const response = await api.delete(ENDPOINTS.MOVEMENTS.DETAIL(movementId));
-    clearMovementsCache();
     return response.data;
   }
 };

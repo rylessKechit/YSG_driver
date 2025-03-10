@@ -1,4 +1,4 @@
-// src/services/authService.js
+// src/services/authService.js (sans système de cache)
 import axios from 'axios';
 import { API_URL, ENDPOINTS } from '../config';
 
@@ -27,49 +27,9 @@ api.interceptors.response.use(
   }
 );
 
-// Système de cache simplifié
-const cache = {
-  data: {},
-  ttl: 5 * 60 * 1000, // 5 minutes
-  
-  get: function(key) {
-    const item = this.data[key];
-    if (!item) return null;
-    if (Date.now() - item.timestamp > this.ttl) {
-      delete this.data[key];
-      return null;
-    }
-    return item.value;
-  },
-  
-  set: function(key, value) {
-    this.data[key] = {
-      value,
-      timestamp: Date.now()
-    };
-  },
-  
-  clear: function(pattern = null) {
-    if (!pattern) {
-      this.data = {};
-      return;
-    }
-    
-    Object.keys(this.data).forEach(key => {
-      if (key.startsWith(pattern)) delete this.data[key];
-    });
-  }
-};
-
-// Fonction avec gestion de cache
-const fetchWithCache = async (endpoint, options = {}) => {
-  const cacheKey = endpoint + JSON.stringify(options);
-  const cachedData = cache.get(cacheKey);
-  
-  if (cachedData) return cachedData;
-  
+// Fonction directe sans cache
+const fetchWithoutCache = async (endpoint, options = {}) => {
   const response = await api.get(endpoint, options);
-  cache.set(cacheKey, response.data);
   return response.data;
 };
 
@@ -77,17 +37,15 @@ const fetchWithCache = async (endpoint, options = {}) => {
 const authService = {
   login: async (username, password) => {
     const response = await api.post(ENDPOINTS.AUTH.LOGIN, { username, password });
-    cache.clear();
     return response.data;
   },
   
   register: async (userData) => {
     const response = await api.post(ENDPOINTS.AUTH.REGISTER, userData);
-    cache.clear();
     return response.data;
   },
   
-  getCurrentUser: async () => fetchWithCache(ENDPOINTS.AUTH.ME),
+  getCurrentUser: async () => fetchWithoutCache(ENDPOINTS.AUTH.ME),
   
   logout: async () => {
     try {
@@ -96,11 +54,12 @@ const authService = {
       console.error('Erreur de déconnexion:', error);
     } finally {
       localStorage.removeItem('token');
-      cache.clear();
     }
   }
 };
 
-export const invalidateCache = cache.clear;
+// Fonction vide pour compatibilité avec le code existant (ne fait rien)
+const invalidateCache = () => {}; 
+
 export default authService;
-export { api, fetchWithCache, cache };
+export { api, fetchWithoutCache as fetchWithCache, invalidateCache };

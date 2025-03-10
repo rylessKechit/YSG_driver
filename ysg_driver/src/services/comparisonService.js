@@ -1,4 +1,4 @@
-// src/services/comparisonService.js
+// src/services/comparisonService.js (sans système de cache)
 import { api, fetchWithCache, invalidateCache } from './authService';
 import { ENDPOINTS } from '../config';
 
@@ -17,7 +17,7 @@ const comparisonService = {
         url += `&endDate=${endDate}`;
       }
       
-      // Utiliser le cache pour éviter des requêtes inutiles
+      // Accès direct à l'API sans cache
       return await fetchWithCache(url);
     } catch (error) {
       throw error;
@@ -29,7 +29,6 @@ const comparisonService = {
     try {
       const url = `${ENDPOINTS.REPORTS.COMPARISON}?userId=${userId}&startDate=${startDate}&endDate=${endDate}`;
       
-      // Pour les rapports, on ne veut pas utiliser le cache car les données peuvent changer
       const response = await api.get(url);
       return response.data;
     } catch (error) {
@@ -46,7 +45,6 @@ const comparisonService = {
         url += `&role=${role}`;
       }
       
-      // Pour les statistiques, on ne veut pas utiliser le cache car les données peuvent changer
       const response = await api.get(url);
       return response.data;
     } catch (error) {

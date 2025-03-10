@@ -1,5 +1,5 @@
-// src/services/timelogService.js
-import { api, fetchWithCache, invalidateCache } from './authService';
+// src/services/timelogService.js (sans système de cache)
+import { api, fetchWithCache } from './authService';
 import { ENDPOINTS } from '../config';
 
 const timelogService = {
@@ -46,7 +46,7 @@ const timelogService = {
     }
   },
   
-  // Récupérer le pointage actif avec cache
+  // Récupérer le pointage actif sans cache
   getActiveTimeLog: async () => {
     try {
       return await fetchWithCache(ENDPOINTS.TIMELOGS.ACTIVE);
@@ -58,7 +58,7 @@ const timelogService = {
     }
   },
   
-  // Récupérer l'historique des pointages avec cache
+  // Récupérer l'historique des pointages sans cache
   getTimeLogs: async (page = 1, limit = 10, status = null) => {
     try {
       let url = `${ENDPOINTS.TIMELOGS.BASE}?page=${page}&limit=${limit}`;
@@ -69,7 +69,7 @@ const timelogService = {
       
       console.log('Récupération des pointages:', url);
       
-      // Pour les pointages récents, ne pas utiliser le cache pour avoir des données fraîches
+      // Toujours obtenir des données fraîches
       const response = await api.get(url);
       console.log('Réponse des pointages:', response.data);
       

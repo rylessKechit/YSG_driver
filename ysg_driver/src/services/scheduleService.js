@@ -1,9 +1,9 @@
-// src/services/scheduleService.js
-import { api, fetchWithCache, invalidateCache } from './authService';
+// src/services/scheduleService.js (sans système de cache)
+import { api, fetchWithCache } from './authService';
 import { ENDPOINTS } from '../config';
 
 const scheduleService = {
-  // Obtenir tous les préparateurs avec cache
+  // Obtenir tous les préparateurs sans cache
   getPreparators: async () => {
     try {
       return await fetchWithCache(ENDPOINTS.SCHEDULES.PREPARATORS);
@@ -12,7 +12,7 @@ const scheduleService = {
     }
   },
   
-  // Obtenir le planning d'un utilisateur avec cache
+  // Obtenir le planning d'un utilisateur sans cache
   getUserSchedule: async (userId) => {
     try {
       return await fetchWithCache(ENDPOINTS.SCHEDULES.USER(userId));
@@ -21,7 +21,7 @@ const scheduleService = {
     }
   },
   
-  // Obtenir le planning complet de tous les préparateurs avec cache
+  // Obtenir le planning complet de tous les préparateurs sans cache
   getAllSchedules: async () => {
     try {
       return await fetchWithCache(ENDPOINTS.SCHEDULES.ALL);
@@ -34,12 +34,6 @@ const scheduleService = {
   saveScheduleEntry: async (entryData) => {
     try {
       const response = await api.post(ENDPOINTS.SCHEDULES.BASE, entryData);
-      // Invalider les caches liés aux plannings
-      invalidateCache(ENDPOINTS.SCHEDULES.BASE);
-      invalidateCache(ENDPOINTS.SCHEDULES.ALL);
-      if (entryData.userId) {
-        invalidateCache(ENDPOINTS.SCHEDULES.USER(entryData.userId));
-      }
       return response.data;
     } catch (error) {
       throw error;
@@ -50,9 +44,6 @@ const scheduleService = {
   deleteScheduleEntry: async (entryId) => {
     try {
       const response = await api.delete(`${ENDPOINTS.SCHEDULES.BASE}/${entryId}`);
-      // Invalider les caches liés aux plannings
-      invalidateCache(ENDPOINTS.SCHEDULES.BASE);
-      invalidateCache(ENDPOINTS.SCHEDULES.ALL);
       return response.data;
     } catch (error) {
       throw error;
