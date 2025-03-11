@@ -50,8 +50,6 @@ const authService = {
   logout: async () => {
     try {
       await api.post(ENDPOINTS.AUTH.LOGOUT);
-    } catch (error) {
-      console.error('Erreur de déconnexion:', error);
     } finally {
       localStorage.removeItem('token');
     }

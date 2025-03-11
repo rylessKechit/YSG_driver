@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import '../styles/Login.css';
-// Placeholder pour le logo (vous devrez avoir un fichier logo réel ou le commenter)
-// import logo from '../assets/logo.png';
 
 const Login = () => {
   const [username, setUsername] = useState('');
@@ -50,34 +48,15 @@ const Login = () => {
     <div className="login-container">
       <div className="login-card">
         <div className="logo-container">
-          {/* Commentez ou remplacez si vous n'avez pas de logo */}
-          {/* <img 
-            src={logo} 
-            alt="Logo" 
-            className="logo" 
-          /> */}
-          <h1 className="page-title">
-            Système de Gestion des Chauffeurs
-          </h1>
-          <p className="page-subtitle">
-            Connectez-vous pour accéder à votre compte
-          </p>
+          <h1 className="page-title">Système de Gestion des Chauffeurs</h1>
+          <p className="page-subtitle">Connectez-vous pour accéder à votre compte</p>
         </div>
 
-        {error && (
-          <div className="error-message">
-            {error}
-          </div>
-        )}
+        {error && <div className="error-message">{error}</div>}
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label 
-              htmlFor="username" 
-              className="form-label"
-            >
-              Nom d'utilisateur
-            </label>
+            <label htmlFor="username" className="form-label">Nom d'utilisateur</label>
             <input
               type="text"
               id="username"
@@ -90,12 +69,7 @@ const Login = () => {
           </div>
           
           <div className="form-group-large">
-            <label 
-              htmlFor="password" 
-              className="form-label"
-            >
-              Mot de passe
-            </label>
+            <label htmlFor="password" className="form-label">Mot de passe</label>
             <input
               type="password"
               id="password"

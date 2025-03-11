@@ -6,16 +6,8 @@ import '../styles/Profile.css';
 
 const Profile = () => {
   const { currentUser, logout } = useAuth();
-  const [profileData, setProfileData] = useState({
-    fullName: '',
-    email: '',
-    phone: ''
-  });
-  const [passwordData, setPasswordData] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: ''
-  });
+  const [profileData, setProfileData] = useState({ fullName: '', email: '', phone: '' });
+  const [passwordData, setPasswordData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [loading, setLoading] = useState(false);
   const [profileError, setProfileError] = useState(null);
   const [passwordError, setPasswordError] = useState(null);
@@ -33,22 +25,15 @@ const Profile = () => {
     }
   }, [currentUser]);
 
-  // Gérer les changements dans le formulaire de profil
+  // Gérer les changements dans les formulaires
   const handleProfileChange = (e) => {
     const { name, value } = e.target;
-    setProfileData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setProfileData(prev => ({ ...prev, [name]: value }));
   };
-
-  // Gérer les changements dans le formulaire de mot de passe
+  
   const handlePasswordChange = (e) => {
     const { name, value } = e.target;
-    setPasswordData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setPasswordData(prev => ({ ...prev, [name]: value }));
   };
 
   // Mettre à jour le profil
@@ -122,23 +107,12 @@ const Profile = () => {
         <div className="profile-info-card">
           <h2 className="section-title">Informations personnelles</h2>
           
-          {profileError && (
-            <div className="error-message">
-              {profileError}
-            </div>
-          )}
-          
-          {profileSuccess && (
-            <div className="success-message">
-              {profileSuccess}
-            </div>
-          )}
+          {profileError && <div className="error-message">{profileError}</div>}
+          {profileSuccess && <div className="success-message">{profileSuccess}</div>}
           
           <form onSubmit={handleUpdateProfile} className="profile-form">
             <div className="form-group">
-              <label htmlFor="fullName" className="form-label">
-                Nom complet
-              </label>
+              <label htmlFor="fullName" className="form-label">Nom complet</label>
               <input
                 type="text"
                 id="fullName"
@@ -151,9 +125,7 @@ const Profile = () => {
             </div>
             
             <div className="form-group">
-              <label htmlFor="email" className="form-label">
-                Email
-              </label>
+              <label htmlFor="email" className="form-label">Email</label>
               <input
                 type="email"
                 id="email"
@@ -166,9 +138,7 @@ const Profile = () => {
             </div>
             
             <div className="form-group">
-              <label htmlFor="phone" className="form-label">
-                Téléphone
-              </label>
+              <label htmlFor="phone" className="form-label">Téléphone</label>
               <input
                 type="tel"
                 id="phone"
@@ -180,11 +150,7 @@ const Profile = () => {
               />
             </div>
             
-            <button
-              type="submit"
-              className="btn btn-primary"
-              disabled={loading}
-            >
+            <button type="submit" className="btn btn-primary" disabled={loading}>
               {loading ? 'Mise à jour...' : 'Mettre à jour le profil'}
             </button>
           </form>
@@ -193,23 +159,12 @@ const Profile = () => {
         <div className="change-password-card">
           <h2 className="section-title">Changer le mot de passe</h2>
           
-          {passwordError && (
-            <div className="error-message">
-              {passwordError}
-            </div>
-          )}
-          
-          {passwordSuccess && (
-            <div className="success-message">
-              {passwordSuccess}
-            </div>
-          )}
+          {passwordError && <div className="error-message">{passwordError}</div>}
+          {passwordSuccess && <div className="success-message">{passwordSuccess}</div>}
           
           <form onSubmit={handleChangePassword} className="password-form">
             <div className="form-group">
-              <label htmlFor="currentPassword" className="form-label">
-                Mot de passe actuel
-              </label>
+              <label htmlFor="currentPassword" className="form-label">Mot de passe actuel</label>
               <input
                 type="password"
                 id="currentPassword"
@@ -222,9 +177,7 @@ const Profile = () => {
             </div>
             
             <div className="form-group">
-              <label htmlFor="newPassword" className="form-label">
-                Nouveau mot de passe
-              </label>
+              <label htmlFor="newPassword" className="form-label">Nouveau mot de passe</label>
               <input
                 type="password"
                 id="newPassword"
@@ -235,15 +188,11 @@ const Profile = () => {
                 required
                 minLength="6"
               />
-              <p className="help-text">
-                Le mot de passe doit contenir au moins 6 caractères
-              </p>
+              <p className="help-text">Le mot de passe doit contenir au moins 6 caractères</p>
             </div>
             
             <div className="form-group">
-              <label htmlFor="confirmPassword" className="form-label">
-                Confirmer le nouveau mot de passe
-              </label>
+              <label htmlFor="confirmPassword" className="form-label">Confirmer le nouveau mot de passe</label>
               <input
                 type="password"
                 id="confirmPassword"
@@ -255,20 +204,14 @@ const Profile = () => {
               />
             </div>
             
-            <button
-              type="submit"
-              className="btn btn-primary"
-              disabled={loading}
-            >
+            <button type="submit" className="btn btn-primary" disabled={loading}>
               {loading ? 'Modification...' : 'Changer le mot de passe'}
             </button>
           </form>
         </div>
         
         <div className="account-actions">
-          <button onClick={logout} className="btn btn-danger">
-            Se déconnecter
-          </button>
+          <button onClick={logout} className="btn btn-danger">Se déconnecter</button>
         </div>
       </div>
     </div>

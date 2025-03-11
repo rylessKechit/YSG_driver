@@ -17,25 +17,12 @@ const MovementCard = ({ movement, actionButton }) => {
     });
   };
 
-  // Vérifier si la deadline est proche (moins de 24h)
-  const isDeadlineUrgent = () => {
-    if (!movement.deadline) return false;
-    
-    const deadline = new Date(movement.deadline);
-    const now = new Date();
-    const timeUntilDeadline = deadline.getTime() - now.getTime();
-    // Moins de 24 heures
-    return timeUntilDeadline > 0 && timeUntilDeadline < 24 * 60 * 60 * 1000;
-  };
+  // Vérifier si la deadline est proche ou expirée
+  const isDeadlineUrgent = () => movement.deadline && 
+    (new Date(movement.deadline).getTime() - new Date().getTime() > 0) && 
+    (new Date(movement.deadline).getTime() - new Date().getTime() < 24 * 60 * 60 * 1000);
 
-  // Vérifier si la deadline est expirée
-  const isDeadlineExpired = () => {
-    if (!movement.deadline) return false;
-    
-    const deadline = new Date(movement.deadline);
-    const now = new Date();
-    return deadline < now;
-  };
+  const isDeadlineExpired = () => movement.deadline && new Date(movement.deadline) < new Date();
 
   // Déterminer la classe de la carte en fonction de la deadline
   const getCardClass = () => {
@@ -44,22 +31,27 @@ const MovementCard = ({ movement, actionButton }) => {
     return "movement-card";
   };
 
+  // Mapper les statuts aux labels et icônes
+  const statusMap = {
+    'pending': { icon: 'fa-hourglass-start', label: 'En attente' },
+    'assigned': { icon: 'fa-user-check', label: 'Assigné' },
+    'preparing': { icon: 'fa-tools', label: 'En préparation' },
+    'in-progress': { icon: 'fa-spinner', label: 'En cours' },
+    'completed': { icon: 'fa-check-circle', label: 'Terminé' },
+    'cancelled': { icon: 'fa-times-circle', label: 'Annulé' }
+  };
+
+  const status = statusMap[movement.status] || { icon: 'fa-question-circle', label: 'Inconnu' };
+
   return (
     <div className={getCardClass()}>
       <div className="movement-header">
         <div className="vehicle-info">
           <span className="license-plate">{movement.licensePlate}</span>
-          {movement.vehicleModel && (
-            <span className="vehicle-model">{movement.vehicleModel}</span>
-          )}
+          {movement.vehicleModel && <span className="vehicle-model">{movement.vehicleModel}</span>}
         </div>
         <span className={`badge badge-${movement.status}`}>
-          {movement.status === 'pending' && <><i className="fas fa-hourglass-start"></i> En attente</>}
-          {movement.status === 'assigned' && <><i className="fas fa-user-check"></i> Assigné</>}
-          {movement.status === 'preparing' && <><i className="fas fa-tools"></i> En préparation</>}
-          {movement.status === 'in-progress' && <><i className="fas fa-spinner"></i> En cours</>}
-          {movement.status === 'completed' && <><i className="fas fa-check-circle"></i> Terminé</>}
-          {movement.status === 'cancelled' && <><i className="fas fa-times-circle"></i> Annulé</>}
+          <i className={`fas ${status.icon}`}></i> {status.label}
         </span>
       </div>
       
@@ -105,9 +97,7 @@ const MovementCard = ({ movement, actionButton }) => {
             : `Créé le ${formatDate(movement.createdAt)}`}
         </div>
         
-        {actionButton ? (
-          actionButton
-        ) : (
+        {actionButton ? actionButton : (
           <Link to={`/movement/${movement._id}`} className="view-details">
             Voir les détails <i className="fas fa-chevron-right"></i>
           </Link>

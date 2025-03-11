@@ -58,78 +58,23 @@ const routes = [
   { path: '/profile', element: <Profile />, protected: true },
   
   // Routes Chauffeur
-  { 
-    path: '/movement/history', 
-    element: <MovementHistory />, 
-    protected: true,
-    roles: ['admin', 'driver', 'team-leader']
-  },
-  { 
-    path: '/movement/:id', 
-    element: <MovementDetail />, 
-    protected: true,
-    roles: ['admin', 'driver', 'team-leader']
-  },
+  { path: '/movement/history', element: <MovementHistory />, protected: true, roles: ['admin', 'driver', 'team-leader'] },
+  { path: '/movement/:id', element: <MovementDetail />, protected: true, roles: ['admin', 'driver', 'team-leader'] },
   
   // Routes Préparateur
-  { 
-    path: '/preparations', 
-    element: <PreparationList />, 
-    protected: true,
-    roles: ['admin', 'preparator', 'driver', 'team-leader']
-  },
-  { 
-    path: '/preparations/:id', 
-    element: <PreparationDetail />, 
-    protected: true,
-    roles: ['admin', 'preparator', 'driver', 'team-leader']
-  },
-  { 
-    path: '/preparations/create', 
-    element: <PreparationCreate />, 
-    protected: true,
-    roles: ['admin', 'preparator', 'driver', 'team-leader']
-  },
+  { path: '/preparations', element: <PreparationList />, protected: true, roles: ['admin', 'preparator', 'driver', 'team-leader'] },
+  { path: '/preparations/:id', element: <PreparationDetail />, protected: true, roles: ['admin', 'preparator', 'driver', 'team-leader'] },
+  { path: '/preparations/create', element: <PreparationCreate />, protected: true, roles: ['admin', 'preparator', 'driver', 'team-leader'] },
   
   // Routes Admin
-  { 
-    path: '/schedule-comparison', 
-    element: <ScheduleComparison />, 
-    protected: true,
-    roles: ['admin', 'direction']
-  },
-  { 
-    path: '/admin', 
-    element: <AdminPanel />, 
-    protected: true,
-    roles: ['admin']
-  },
-  { 
-    path: '/admin/whatsapp-setup', 
-    element: <WhatsAppSetup />, 
-    protected: true,
-    roles: ['admin']
-  },
-  { 
-    path: '/admin/movements/create', 
-    element: <AdminMovementCreate />, 
-    protected: true,
-    roles: ['admin', 'team-leader']
-  },
+  { path: '/schedule-comparison', element: <ScheduleComparison />, protected: true, roles: ['admin', 'direction'] },
+  { path: '/admin', element: <AdminPanel />, protected: true, roles: ['admin'] },
+  { path: '/admin/whatsapp-setup', element: <WhatsAppSetup />, protected: true, roles: ['admin'] },
+  { path: '/admin/movements/create', element: <AdminMovementCreate />, protected: true, roles: ['admin', 'team-leader'] },
   
   // Routes Rapports (Admin et Direction)
-  { 
-    path: '/reports', 
-    element: <Reports />, 
-    protected: true,
-    roles: ['admin', 'direction']
-  },
-  { 
-    path: '/schedules', 
-    element: <ScheduleManager />, 
-    protected: true,
-    roles: ['admin', 'direction']
-  }
+  { path: '/reports', element: <Reports />, protected: true, roles: ['admin', 'direction'] },
+  { path: '/schedules', element: <ScheduleManager />, protected: true, roles: ['admin', 'direction'] }
 ];
 
 // Composant principal avec les routes
@@ -137,31 +82,13 @@ const AppContent = () => (
   <Router>
     <Suspense fallback={<LoadingFallback />}>
       <Routes>
-        {routes.map((route, index) => {
-          // Appliquer la protection si nécessaire
-          if (route.protected) {
-            return (
-              <Route
-                key={index}
-                path={route.path}
-                element={
-                  <ProtectedRoute requiredRoles={route.roles || []}>
-                    {route.element}
-                  </ProtectedRoute>
-                }
-              />
-            );
-          }
-          
-          // Route publique
-          return (
-            <Route
-              key={index}
-              path={route.path}
-              element={route.element}
-            />
-          );
-        })}
+        {routes.map((route, index) => (
+          <Route key={index} path={route.path} element={route.protected ? (
+            <ProtectedRoute requiredRoles={route.roles || []}>
+              {route.element}
+            </ProtectedRoute>
+          ) : route.element} />
+        ))}
       </Routes>
     </Suspense>
   </Router>

@@ -20,20 +20,12 @@ const RecentPreparations = React.lazy(() => import('../components/dashboard/Rece
 
 const Dashboard = () => {
   const [activeTimeLog, setActiveTimeLog] = useState(null);
-  const [movementsData, setMovementsData] = useState({
-    assigned: [],
-    inProgress: [],
-    recent: []
-  });
-  const [preparationsData, setPreparationsData] = useState({
-    inProgress: [],
-    recent: []
-  });
+  const [movementsData, setMovementsData] = useState({ assigned: [], inProgress: [], recent: [] });
+  const [preparationsData, setPreparationsData] = useState({ inProgress: [], recent: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { currentUser } = useAuth();
 
-  // Fonction pour charger les données
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
@@ -41,128 +33,94 @@ const Dashboard = () => {
         
         // 1. Récupérer le pointage actif
         const timeLog = await timelogService.getActiveTimeLog()
-          .catch(err => {
-            if (err.response?.status === 404) return null;
-            throw err;
-          });
-        
+          .catch(err => err.response?.status === 404 ? null : Promise.reject(err));
         setActiveTimeLog(timeLog);
         
         // 2. Charger les mouvements selon le rôle
         if (['driver', 'team-leader', 'admin'].includes(currentUser?.role)) {
-          const movementsResponse = await movementService.getMovements(1, 30);
-          const allMovements = movementsResponse.movements || [];
+          const { movements = [] } = await movementService.getMovements(1, 30);
           
-          // Filtrer par statut
           setMovementsData({
-            assigned: allMovements.filter(m => m.status === 'assigned'),
-            inProgress: allMovements.filter(m => m.status === 'in-progress'),
-            recent: allMovements.filter(m => m.status === 'completed').slice(0, 5)
+            assigned: movements.filter(m => m.status === 'assigned'),
+            inProgress: movements.filter(m => m.status === 'in-progress'),
+            recent: movements.filter(m => m.status === 'completed').slice(0, 5)
           });
         }
         
         // 3. Charger les préparations si nécessaire
         if (['preparator', 'driver', 'team-leader', 'admin'].includes(currentUser?.role)) {
-          const preparationsResponse = await preparationService.getPreparations(1, 50);
-          const allPreparations = preparationsResponse.preparations || [];
+          const { preparations = [] } = await preparationService.getPreparations(1, 50);
           
           setPreparationsData({
-            inProgress: allPreparations.filter(p => p.status === 'in-progress').slice(0, 5),
-            recent: allPreparations.filter(p => p.status === 'completed').slice(0, 5)
+            inProgress: preparations.filter(p => p.status === 'in-progress').slice(0, 5),
+            recent: preparations.filter(p => p.status === 'completed').slice(0, 5)
           });
         }
-        
-        setLoading(false);
       } catch (err) {
         console.error('Erreur lors du chargement des données:', err);
         setError('Erreur lors du chargement des données');
+      } finally {
         setLoading(false);
       }
     };
     
-    if (currentUser) {
-      fetchDashboardData();
-    }
+    currentUser && fetchDashboardData();
   }, [currentUser]);
 
   // Déterminer quels composants afficher selon le rôle
   const componentsByRole = useMemo(() => {
     if (!currentUser) return [];
     
-    const roleComponents = [];
-    
-    // Tous les rôles ont GreetingSection et QuickActions
-    roleComponents.push({ component: 'greeting', label: 'Greeting' });
+    const roleComponents = [{ component: 'greeting', label: 'Greeting' }];
     
     // WeeklySchedule uniquement pour les préparateurs
-    if (currentUser.role === 'preparator') {
+    currentUser.role === 'preparator' && 
       roleComponents.push({ component: 'weeklySchedule', label: 'Planning' });
-    }
     
     // StatusCard pour chauffeurs, préparateurs et chefs d'équipe
-    if (['driver', 'preparator', 'team-leader'].includes(currentUser.role)) {
+    ['driver', 'preparator', 'team-leader'].includes(currentUser.role) && 
       roleComponents.push({ component: 'statusCard', label: 'StatusCard' });
-    }
     
     // Mouvements en cours pour chauffeurs et chefs d'équipe
-    if (['driver', 'team-leader'].includes(currentUser.role) && 
-        movementsData.inProgress.length > 0) {
+    (['driver', 'team-leader'].includes(currentUser.role) && movementsData.inProgress.length > 0) && 
       roleComponents.push({ component: 'inProgressMovement', label: 'InProgressMovement' });
-    }
     
     // Mouvements assignés pour chauffeurs
-    if (currentUser.role === 'driver' && movementsData.assigned.length > 0) {
+    (currentUser.role === 'driver' && movementsData.assigned.length > 0) && 
       roleComponents.push({ component: 'assignedMovements', label: 'AssignedMovements' });
-    }
     
     // QuickActions pour tous
     roleComponents.push({ component: 'quickActions', label: 'QuickActions' });
     
     // Préparations en cours pour préparateurs, chauffeurs et chefs d'équipe
-    if (['preparator', 'driver', 'team-leader'].includes(currentUser.role) && 
-        preparationsData.inProgress.length > 0) {
+    (['preparator', 'driver', 'team-leader'].includes(currentUser.role) && preparationsData.inProgress.length > 0) && 
       roleComponents.push({ component: 'inProgressPreparations', label: 'InProgressPreparations' });
-    }
     
     // Préparations récentes pour préparateurs, chauffeurs et chefs d'équipe
-    if (['preparator', 'driver', 'team-leader'].includes(currentUser.role) && 
-        preparationsData.recent.length > 0) {
+    (['preparator', 'driver', 'team-leader'].includes(currentUser.role) && preparationsData.recent.length > 0) && 
       roleComponents.push({ component: 'recentPreparations', label: 'RecentPreparations' });
-    }
     
     // Mouvements récents pour chauffeurs, chefs d'équipe et admin
-    if (['driver', 'team-leader', 'admin'].includes(currentUser.role) && 
-        movementsData.recent.length > 0) {
+    (['driver', 'team-leader', 'admin'].includes(currentUser.role) && movementsData.recent.length > 0) && 
       roleComponents.push({ component: 'recentMovements', label: 'RecentMovements' });
-    }
     
     return roleComponents;
   }, [currentUser, movementsData, preparationsData]);
 
   // Rendu du composant selon le type
   const renderComponent = (componentType) => {
-    switch(componentType) {
-      case 'greeting':
-        return <GreetingSection currentUser={currentUser} />;
-      case 'weeklySchedule':
-        return <WeeklySchedule />;
-      case 'statusCard':
-        return <StatusCard activeTimeLog={activeTimeLog} />;
-      case 'quickActions':
-        return <QuickActions currentUser={currentUser} />;
-      case 'inProgressMovement':
-        return <InProgressMovement movements={movementsData.inProgress} />;
-      case 'assignedMovements':
-        return <AssignedMovements movements={movementsData.assigned} />;
-      case 'inProgressPreparations':
-        return <InProgressPreparations preparations={preparationsData.inProgress} />;
-      case 'recentPreparations':
-        return <RecentPreparations preparations={preparationsData.recent} />;
-      case 'recentMovements':
-        return <RecentMovements movements={movementsData.recent} />;
-      default:
-        return null;
-    }
+    const components = {
+      greeting: <GreetingSection currentUser={currentUser} />,
+      weeklySchedule: <WeeklySchedule />,
+      statusCard: <StatusCard activeTimeLog={activeTimeLog} />,
+      quickActions: <QuickActions currentUser={currentUser} />,
+      inProgressMovement: <InProgressMovement movements={movementsData.inProgress} />,
+      assignedMovements: <AssignedMovements movements={movementsData.assigned} />,
+      inProgressPreparations: <InProgressPreparations preparations={preparationsData.inProgress} />,
+      recentPreparations: <RecentPreparations preparations={preparationsData.recent} />,
+      recentMovements: <RecentMovements movements={movementsData.recent} />
+    };
+    return components[componentType] || null;
   };
 
   if (loading) {
@@ -180,17 +138,13 @@ const Dashboard = () => {
   return (
     <div>
       <Navigation />
-      
       <div className="dashboard-container">
-        {/* Affichage des erreurs */}
         {error && (
           <div className="alert alert-error">
             <div className="alert-icon">⚠️</div>
             <div className="alert-content">{error}</div>
           </div>
         )}
-        
-        {/* Afficher les composants selon le rôle */}
         {componentsByRole.map((item, index) => (
           <React.Fragment key={index}>
             {renderComponent(item.component)}

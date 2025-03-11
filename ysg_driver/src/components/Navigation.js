@@ -51,7 +51,7 @@ const Navigation = () => {
     const handleResize = () => {
       const mobile = window.innerWidth < 768;
       setIsMobile(mobile);
-      if (!mobile) setIsMenuOpen(false);
+      !mobile && setIsMenuOpen(false);
     };
 
     window.addEventListener('resize', handleResize);
@@ -99,14 +99,9 @@ const Navigation = () => {
           
           {/* Menu hamburger pour mobile */}
           {isMobile && (
-            <button 
-              className="hamburger-button"
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-            >
+            <button className="hamburger-button" onClick={() => setIsMenuOpen(!isMenuOpen)}>
               <div className={`hamburger-icon ${isMenuOpen ? 'open' : ''}`}>
-                <span></span>
-                <span></span>
-                <span></span>
+                <span></span><span></span><span></span>
               </div>
             </button>
           )}
@@ -115,16 +110,11 @@ const Navigation = () => {
           <ul className={`nav-links ${isMobile ? (isMenuOpen ? 'mobile open' : 'mobile closed') : 'desktop'}`}>
             {navLinks.map((link, index) => (
               <li key={index} className="nav-item">
-                <div className="nav-link" onClick={() => goTo(link.path)}>
-                  {link.name}
-                </div>
+                <div className="nav-link" onClick={() => goTo(link.path)}>{link.name}</div>
               </li>
             ))}
-            
             <li className="nav-item">
-              <div className="nav-link logout" onClick={handleLogout}>
-                Déconnexion
-              </div>
+              <div className="nav-link logout" onClick={handleLogout}>Déconnexion</div>
             </li>
           </ul>
         </nav>

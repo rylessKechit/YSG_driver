@@ -3,7 +3,6 @@ import React from 'react';
 import PhotoAccordionItem from './PhotoAccordionItem';
 
 const PhotoUploadSection = ({ 
-  movement, 
   photosStatus, 
   expandedSection, 
   selectedFiles,
@@ -56,11 +55,9 @@ const PhotoUploadSection = ({
   ];
 
   // Check if all required photos have been taken
-  const allRequiredPhotosTaken = () => {
-    // Vérification explicite du statut des photos
-    if (!photosStatus) return false;
-    return Object.values(photosStatus).every(status => status === true);
-  };
+  const allRequiredPhotosTaken = () => (
+    photosStatus && Object.values(photosStatus).every(status => status === true)
+  );
 
   return (
     <div className="detail-section photo-upload-section">
@@ -69,9 +66,7 @@ const PhotoUploadSection = ({
       </h2>
       
       <div className="photo-guidelines">
-        <p className="guidelines-intro">
-          {instructionText}
-        </p>
+        <p className="guidelines-intro">{instructionText}</p>
       </div>
       
       {/* Accordéon des zones à photographier */}

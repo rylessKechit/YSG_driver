@@ -20,14 +20,11 @@ const PhotoAccordionItem = ({
   
   // Effet pour gérer l'URL de prévisualisation
   useEffect(() => {
-    
     if (selectedFile) {
       const url = URL.createObjectURL(selectedFile);
       setPreviewUrl(url);
       
-      return () => {
-        URL.revokeObjectURL(url);
-      };
+      return () => URL.revokeObjectURL(url);
     } else {
       setPreviewUrl(null);
     }
@@ -70,9 +67,7 @@ const PhotoAccordionItem = ({
       borderRadius: '4px',
       backgroundColor: '#f9fafb'
     },
-    uploadButton: {
-      marginTop: '10px'
-    },
+    uploadButton: { marginTop: '10px' },
     completedSection: {
       borderLeft: '4px solid #10b981',
       backgroundColor: '#ecfdf5'
@@ -99,11 +94,10 @@ const PhotoAccordionItem = ({
           <span>{label}</span>
         </div>
         <div className="photo-section-actions">
-          {completed ? (
-            <span className="photo-status-text" style={{ color: '#10b981', fontWeight: '500' }}>Complété</span>
-          ) : (
+          {completed ? 
+            <span className="photo-status-text" style={{ color: '#10b981', fontWeight: '500' }}>Complété</span> : 
             <span className="photo-status-text">À photographier</span>
-          )}
+          }
           <i className={`fas fa-chevron-${expanded ? 'up' : 'down'}`}></i>
         </div>
       </div>
@@ -113,19 +107,19 @@ const PhotoAccordionItem = ({
           {completed ? (
             <div className="completed-photo">
               <div style={styles.previewContainer}>
-              {photoUrl ? (
-                <img 
-                  src={photoUrl} 
-                  alt={label} 
-                  className="preview-image"
-                  style={styles.previewImage}
-                  onClick={() => window.open(photoUrl, '_blank')}
-                />
-              ) : (
-                <div style={styles.previewContainer}>
-                  <p>Aucune image disponible</p>
-                </div>
-              )}
+                {photoUrl ? (
+                  <img 
+                    src={photoUrl} 
+                    alt={label} 
+                    className="preview-image"
+                    style={styles.previewImage}
+                    onClick={() => window.open(photoUrl, '_blank')}
+                  />
+                ) : (
+                  <div style={styles.previewContainer}>
+                    <p>Aucune image disponible</p>
+                  </div>
+                )}
               </div>
               <button 
                 className="btn btn-secondary photo-replace-btn" 

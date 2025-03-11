@@ -51,7 +51,7 @@ const WeeklySchedule = () => {
   
   const weekDates = getWeekDates();
 
-  // Fonction pour obtenir les dates précises (en objets Date) pour chaque jour de la semaine
+  // Fonction pour obtenir les dates précises pour chaque jour de la semaine
   const getWeekDateObjects = () => {
     const dateObjects = {};
     const weekStart = new Date(today);
@@ -67,7 +67,7 @@ const WeeklySchedule = () => {
     return dateObjects;
   };
 
-  // Vérifier si une date spécifique correspond à un jour particulier de la semaine en cours
+  // Vérifier si une date correspond à un jour de la semaine
   const isDateInDay = (date, dayValue) => {
     const weekDateObjects = getWeekDateObjects();
     const dayDate = weekDateObjects[dayValue];
@@ -89,13 +89,13 @@ const WeeklySchedule = () => {
         return isDateInDay(timelog.startTime, dayValue);
       }
       
-      // Pour les pointages terminés, vérifier si soit le début soit la fin est dans ce jour
+      // Pour les pointages terminés, vérifier si début ou fin est dans ce jour
       return isDateInDay(timelog.startTime, dayValue) || 
              (timelog.endTime && isDateInDay(timelog.endTime, dayValue));
     });
   };
 
-  // Formater l'heure pour l'affichage
+  // Formater l'heure
   const formatTime = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);
@@ -113,7 +113,7 @@ const WeeklySchedule = () => {
         const scheduleData = await scheduleService.getUserSchedule(currentUser._id);
         setSchedule(scheduleData);
         
-        // Charger les pointages (les 50 derniers devraient être suffisants pour voir la semaine)
+        // Charger les pointages
         const timelogsData = await timelogService.getTimeLogs(1, 50);
         setTimelogs(timelogsData.timeLogs || []);
         
@@ -134,18 +134,10 @@ const WeeklySchedule = () => {
   }
 
   // Obtenir l'entrée de planning pour un jour spécifique
-  const getEntryForDay = (day) => {
-    return schedule.find(entry => entry.day === day);
-  };
+  const getEntryForDay = (day) => schedule.find(entry => entry.day === day);
   
   // Gérer le clic sur un jour pour l'étendre/réduire
-  const toggleDayExpansion = (day) => {
-    if (expandedDay === day) {
-      setExpandedDay(null);
-    } else {
-      setExpandedDay(day);
-    }
-  };
+  const toggleDayExpansion = (day) => setExpandedDay(expandedDay === day ? null : day);
 
   // Obtenir l'entrée de planning pour le jour actuel
   const currentDayEntry = getEntryForDay(currentDay);

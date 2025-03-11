@@ -19,7 +19,7 @@ const TimeLog = () => {
 
   // Rediriger si l'utilisateur est admin ou direction
   useEffect(() => {
-    if (currentUser && (currentUser.role === 'admin' || currentUser.role === 'direction')) {
+    if (currentUser && ['admin', 'direction'].includes(currentUser.role)) {
       navigate('/dashboard');
     }
   }, [currentUser, navigate]);
@@ -39,7 +39,7 @@ const TimeLog = () => {
               latitude: position.coords.latitude,
               longitude: position.coords.longitude
             },
-            name: 'Position actuelle' // Vous pourriez utiliser une API de reverse geocoding pour obtenir l'adresse réelle
+            name: 'Position actuelle'
           };
           setLocation(locationData);
           resolve(locationData);
@@ -55,7 +55,7 @@ const TimeLog = () => {
   // Charger le pointage actif au chargement de la page
   useEffect(() => {
     // Ne pas charger le pointage si l'utilisateur est admin ou direction
-    if (currentUser && (currentUser.role === 'admin' || currentUser.role === 'direction')) {
+    if (currentUser && ['admin', 'direction'].includes(currentUser.role)) {
       setLoading(false);
       return;
     }
@@ -65,18 +65,13 @@ const TimeLog = () => {
         setLoading(true);
         setError(null);
         const data = await timelogService.getActiveTimeLog();
-        
         setActiveTimeLog(data);
         
         // Obtenir la position actuelle en arrière-plan
-        getCurrentLocation().catch(err => {
-          console.error('Erreur de géolocalisation:', err);
-          // Ne pas mettre d'erreur sur setError car ce n'est pas bloquant
-        });
+        getCurrentLocation().catch(err => console.error('Erreur de géolocalisation:', err));
       } catch (err) {
         console.error('Erreur lors du chargement du pointage actif:', err);
-        if (err.response && err.response.status === 404) {
-        } else {
+        if (!(err.response && err.response.status === 404)) {
           setError('Erreur lors du chargement du pointage actif. Veuillez réessayer.');
         }
       } finally {
@@ -99,26 +94,16 @@ const TimeLog = () => {
         locationData = location || await getCurrentLocation();
       } catch (geoError) {
         console.error('Erreur de géolocalisation lors du démarrage:', geoError);
-        // Continuer avec une localisation vide si la géolocalisation échoue
         locationData = {
           name: 'Position non disponible',
           coordinates: { latitude: null, longitude: null }
         };
       }
-  
-      console.log('Envoi de la requête de démarrage avec les données:', locationData);
       
-      // Appel au service avec une structure de données plus explicite
-      const response = await timelogService.startTimeLog({
-        location: locationData
-      });
-      
-      console.log('Réponse du service:', response);
+      const response = await timelogService.startTimeLog({ location: locationData });
       
       if (response && response.timeLog) {
         setActiveTimeLog(response.timeLog);
-        
-        // Notification de succès
         setSuccess('Pointage démarré avec succès');
         setTimeout(() => setSuccess(null), 3000);
       } else {
@@ -126,9 +111,6 @@ const TimeLog = () => {
       }
     } catch (err) {
       console.error('Erreur détaillée lors du démarrage du pointage:', err);
-      if (err.response && err.response.data) {
-        console.error('Détails de l\'erreur:', err.response.data);
-      }
       setError(err.response?.data?.message || 'Erreur lors du démarrage du pointage. Veuillez réessayer.');
     } finally {
       setActionLoading(false);
@@ -146,22 +128,18 @@ const TimeLog = () => {
       try {
         locationData = location || await getCurrentLocation();
       } catch (geoError) {
-        console.error('Erreur de géolocalisation lors de la fin du service:', geoError);
-        // Continuer avec une localisation vide si la géolocalisation échoue
         locationData = {
           name: 'Position non disponible',
           coordinates: { latitude: null, longitude: null }
         };
       }
       
-      // Appeler le service pour terminer le pointage
       await timelogService.endTimeLog(locationData, notes);
       
       setActiveTimeLog(null);
       setNotes('');
-      
-      // Notification de succès
       setSuccess('Pointage terminé avec succès');
+      
       setTimeout(() => {
         setSuccess(null);
         navigate('/dashboard');
@@ -186,19 +164,18 @@ const TimeLog = () => {
     );
   }
 
+  // Vérification si l'utilisateur est admin ou direction
+  const isUnauthorized = currentUser && ['admin', 'direction'].includes(currentUser.role);
+  
   return (
     <div>
       <Navigation />
       
-      {/* Vérification pour ne pas afficher le contenu si l'utilisateur est admin ou direction */}
-      {currentUser && (currentUser.role === 'admin' || currentUser.role === 'direction') ? (
+      {isUnauthorized ? (
         <div className="unauthorized-message">
           <h2>Accès non autorisé</h2>
           <p>Votre rôle ne permet pas d'accéder à la fonctionnalité de pointage.</p>
-          <button 
-            onClick={() => navigate('/dashboard')}
-            className="btn btn-primary"
-          >
+          <button onClick={() => navigate('/dashboard')} className="btn btn-primary">
             Retour au tableau de bord
           </button>
         </div>
@@ -206,17 +183,8 @@ const TimeLog = () => {
         <div className="timelog-container">
           <h1 className="timelog-title">Pointage de service</h1>
           
-          {error && (
-            <div className="error-message">
-              {error}
-            </div>
-          )}
-          
-          {success && (
-            <div className="success-message">
-              {success}
-            </div>
-          )}
+          {error && <div className="error-message">{error}</div>}
+          {success && <div className="success-message">{success}</div>}
           
           <div className="timelog-card">
             <div className="status-section">
@@ -230,15 +198,11 @@ const TimeLog = () => {
             {activeTimeLog ? (
               <div>
                 <div className="timestamp">
-                  <p>
-                    Service démarré le {new Date(activeTimeLog.startTime).toLocaleString()}
-                  </p>
+                  <p>Service démarré le {new Date(activeTimeLog.startTime).toLocaleString()}</p>
                 </div>
                 
                 <div className="notes-section">
-                  <label htmlFor="notes" className="notes-label">
-                    Notes de fin de service
-                  </label>
+                  <label htmlFor="notes" className="notes-label">Notes de fin de service</label>
                   <textarea
                     id="notes"
                     value={notes}
@@ -249,7 +213,7 @@ const TimeLog = () => {
                   ></textarea>
                 </div>
                 
-                <button
+                <button 
                   onClick={handleEndTimeLog}
                   disabled={actionLoading}
                   className="btn-end"

@@ -2,20 +2,19 @@
 import { api, fetchWithCache } from './authService';
 import { ENDPOINTS } from '../config';
 
+const defaultLocation = {
+  name: 'Position non disponible',
+  coordinates: { latitude: null, longitude: null }
+};
+
 const timelogService = {
   // Démarrer un pointage
   startTimeLog: async (data) => {
     try {
       // Assurez-vous que les données sont correctement structurées
-      const payload = {
-        location: data.location || {
-          name: 'Position non disponible',
-          coordinates: { latitude: null, longitude: null }
-        }
-      };
+      const payload = { location: data.location || defaultLocation };
       
       console.log('Envoi des données au serveur:', payload);
-      
       const response = await api.post(`${ENDPOINTS.TIMELOGS.BASE}/start`, payload);
       return response.data;
     } catch (error) {
@@ -24,19 +23,14 @@ const timelogService = {
     }
   },
   
-  // Terminer un pointage - Implémentation du service
+  // Terminer un pointage
   endTimeLog: async (locationData, notes) => {
     try {
       // Assurez-vous que les données sont correctement structurées
       const payload = {
-        location: locationData || {
-          name: 'Position non disponible',
-          coordinates: { latitude: null, longitude: null }
-        },
+        location: locationData || defaultLocation,
         notes: notes || ''
       };
-      
-      console.log('Envoi des données au serveur pour terminer:', payload);
       
       const response = await api.post(`${ENDPOINTS.TIMELOGS.BASE}/end`, payload);
       return response.data;
@@ -62,16 +56,10 @@ const timelogService = {
   getTimeLogs: async (page = 1, limit = 10, status = null) => {
     try {
       let url = `${ENDPOINTS.TIMELOGS.BASE}?page=${page}&limit=${limit}`;
-      
-      if (status) {
-        url += `&status=${status}`;
-      }
-      
-      console.log('Récupération des pointages:', url);
+      if (status) url += `&status=${status}`;
       
       // Toujours obtenir des données fraîches
       const response = await api.get(url);
-      console.log('Réponse des pointages:', response.data);
       
       // Si les données ne contiennent pas la propriété timeLogs, ajustez le format
       if (response.data && !response.data.timeLogs && Array.isArray(response.data)) {

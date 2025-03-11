@@ -5,160 +5,48 @@ import { Link } from 'react-router-dom';
 const QuickActions = ({ currentUser }) => {
   // Fonction pour rendre les actions selon le rôle
   const renderActionsByRole = () => {
-    switch (currentUser.role) {
-      case 'admin':
-        return (
-          <>
-            <Link to="/admin/movements/create" className="action-card">
-              <div className="action-icon">
-                <i className="fas fa-plus-circle"></i>
-              </div>
-              <span className="action-title">Créer un mouvement</span>
-            </Link>
-            <Link to="/movement/history" className="action-card">
-              <div className="action-icon">
-                <i className="fas fa-history"></i>
-              </div>
-              <span className="action-title">Historique des mouvements</span>
-            </Link>
-            <Link to="/preparations" className="action-card">
-              <div className="action-icon">
-                <i className="fas fa-tools"></i>
-              </div>
-              <span className="action-title">Historique des préparations</span>
-            </Link>
-            <Link to="/reports" className="action-card">
-              <div className="action-icon">
-                <i className="fas fa-file-excel"></i>
-              </div>
-              <span className="action-title">Rapports</span>
-            </Link>
-            <Link to="/schedules" className="action-card">
-              <div className="action-icon">
-                <i className="fas fa-calendar-week"></i>
-              </div>
-              <span className="action-title">Planning préparateurs</span>
-            </Link>
-            <Link to="/schedule-comparison" className="action-card">
-              <div className="action-icon">
-                <i className="fas fa-chart-line"></i>
-              </div>
-              <span className="action-title">Comparaison pointages</span>
-            </Link>
-            <Link to="/admin" className="action-card">
-              <div className="action-icon">
-                <i className="fas fa-user-shield"></i>
-              </div>
-              <span className="action-title">Administration</span>
-            </Link>
-          </>
-        );
-      case 'team-leader':
-        return (
-          <>
-            <Link to="/admin/movements/create" className="action-card">
-              <div className="action-icon">
-                <i className="fas fa-plus-circle"></i>
-              </div>
-              <span className="action-title">Créer un mouvement</span>
-            </Link>
-            <Link to="/preparations/create" className="action-card">
-              <div className="action-icon">
-                <i className="fas fa-tools"></i>
-              </div>
-              <span className="action-title">Créer une préparation</span>
-            </Link>
-            <Link to="/movement/history" className="action-card">
-              <div className="action-icon">
-                <i className="fas fa-history"></i>
-              </div>
-              <span className="action-title">Historique</span>
-            </Link>
-            <Link to="/profile" className="action-card">
-              <div className="action-icon">
-                <i className="fas fa-user"></i>
-              </div>
-              <span className="action-title">Mon profil</span>
-            </Link>
-          </>
-        );
-      case 'preparator':
-        return (
-          <>
-            <Link to="/preparations/create" className="action-card">
-              <div className="action-icon">
-                <i className="fas fa-plus-circle"></i>
-              </div>
-              <span className="action-title">Créer une préparation</span>
-            </Link>
-            <Link to="/preparations" className="action-card">
-              <div className="action-icon">
-                <i className="fas fa-clipboard-list"></i>
-              </div>
-              <span className="action-title">Historique des préparations</span>
-            </Link>
-            <Link to="/profile" className="action-card">
-              <div className="action-icon">
-                <i className="fas fa-user"></i>
-              </div>
-              <span className="action-title">Mon profil</span>
-            </Link>
-          </>
-        );
-      case 'direction':
-        return (
-          <>
-            <Link to="/reports" className="action-card">
-              <div className="action-icon">
-                <i className="fas fa-file-excel"></i>
-              </div>
-              <span className="action-title">Rapports</span>
-            </Link>
-            <Link to="/schedules" className="action-card">
-              <div className="action-icon">
-                <i className="fas fa-calendar-week"></i>
-              </div>
-              <span className="action-title">Planning préparateurs</span>
-            </Link>
-            <Link to="/schedule-comparison" className="action-card">
-              <div className="action-icon">
-                <i className="fas fa-chart-line"></i>
-              </div>
-              <span className="action-title">Comparaison pointages</span>
-            </Link>
-            <Link to="/profile" className="action-card">
-              <div className="action-icon">
-                <i className="fas fa-user"></i>
-              </div>
-              <span className="action-title">Mon profil</span>
-            </Link>
-          </>
-        );
-      // Chauffeur (default)
-      default:
-        return (
-          <>
-            <Link to="/preparations/create" className="action-card">
-              <div className="action-icon">
-                <i className="fas fa-plus-circle"></i>
-              </div>
-              <span className="action-title">Créer une préparation</span>
-            </Link>
-            <Link to="/movement/history" className="action-card">
-              <div className="action-icon">
-                <i className="fas fa-history"></i>
-              </div>
-              <span className="action-title">Historique</span>
-            </Link>
-            <Link to="/profile" className="action-card">
-              <div className="action-icon">
-                <i className="fas fa-user"></i>
-              </div>
-              <span className="action-title">Mon profil</span>
-            </Link>
-          </>
-        );
-    }
+    const actions = {
+      admin: [
+        { path: '/admin/movements/create', icon: 'fas fa-plus-circle', title: 'Créer un mouvement' },
+        { path: '/movement/history', icon: 'fas fa-history', title: 'Historique des mouvements' },
+        { path: '/preparations', icon: 'fas fa-tools', title: 'Historique des préparations' },
+        { path: '/reports', icon: 'fas fa-file-excel', title: 'Rapports' },
+        { path: '/schedules', icon: 'fas fa-calendar-week', title: 'Planning préparateurs' },
+        { path: '/schedule-comparison', icon: 'fas fa-chart-line', title: 'Comparaison pointages' },
+        { path: '/admin', icon: 'fas fa-user-shield', title: 'Administration' }
+      ],
+      'team-leader': [
+        { path: '/admin/movements/create', icon: 'fas fa-plus-circle', title: 'Créer un mouvement' },
+        { path: '/preparations/create', icon: 'fas fa-tools', title: 'Créer une préparation' },
+        { path: '/movement/history', icon: 'fas fa-history', title: 'Historique' },
+        { path: '/profile', icon: 'fas fa-user', title: 'Mon profil' }
+      ],
+      preparator: [
+        { path: '/preparations/create', icon: 'fas fa-plus-circle', title: 'Créer une préparation' },
+        { path: '/preparations', icon: 'fas fa-clipboard-list', title: 'Historique des préparations' },
+        { path: '/profile', icon: 'fas fa-user', title: 'Mon profil' }
+      ],
+      direction: [
+        { path: '/reports', icon: 'fas fa-file-excel', title: 'Rapports' },
+        { path: '/schedules', icon: 'fas fa-calendar-week', title: 'Planning préparateurs' },
+        { path: '/schedule-comparison', icon: 'fas fa-chart-line', title: 'Comparaison pointages' },
+        { path: '/profile', icon: 'fas fa-user', title: 'Mon profil' }
+      ],
+      driver: [
+        { path: '/preparations/create', icon: 'fas fa-plus-circle', title: 'Créer une préparation' },
+        { path: '/movement/history', icon: 'fas fa-history', title: 'Historique' },
+        { path: '/profile', icon: 'fas fa-user', title: 'Mon profil' }
+      ]
+    };
+
+    return (actions[currentUser.role] || actions.driver).map((action, index) => (
+      <Link key={index} to={action.path} className="action-card">
+        <div className="action-icon">
+          <i className={action.icon}></i>
+        </div>
+        <span className="action-title">{action.title}</span>
+      </Link>
+    ));
   };
 
   return (
