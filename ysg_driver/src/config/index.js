@@ -37,5 +37,12 @@ export const ENDPOINTS = {
     USER: (userId) => `/schedules/user/${userId}`,
     ALL: '/schedules/all',
     PREPARATORS: '/schedules/preparators'
+  },
+  ANALYTICS_ENDPOINTS: {
+    PREPARATOR_PERFORMANCE: '/api/analytics/preparator-performance',
+    TASK_METRICS: '/api/analytics/task-metrics',
+    DAILY_METRICS: '/api/analytics/daily-metrics',
+    COMPARATIVE_METRICS: '/api/analytics/comparative-metrics',
+    GLOBAL_METRICS: '/api/analytics/global-metrics'
   }
 };

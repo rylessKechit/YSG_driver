@@ -6,6 +6,8 @@ const PerformanceOverview = ({ performanceData }) => {
   
   // Convertir les minutes en format heures:minutes
   const formatTime = (minutes) => {
+    if (minutes === null || isNaN(minutes)) return 'N/A';
+    
     const hours = Math.floor(minutes / 60);
     const mins = Math.round(minutes % 60);
     

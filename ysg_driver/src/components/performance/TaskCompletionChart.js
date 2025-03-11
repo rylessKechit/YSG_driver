@@ -5,7 +5,7 @@ const TaskCompletionChart = ({ performanceData }) => {
   const [chartType, setChartType] = useState('average'); // 'average' ou 'count'
   const { preparatorsData } = performanceData;
   
-  // Définition des tâches avec leur noms et couleurs
+  // Définition des tâches avec leurs noms et couleurs
   const taskTypes = [
     { key: 'exteriorWashing', label: 'Lavage extérieur', color: '#3b82f6' },
     { key: 'interiorCleaning', label: 'Nettoyage intérieur', color: '#10b981' },
@@ -15,24 +15,33 @@ const TaskCompletionChart = ({ performanceData }) => {
 
   // Formatage du temps en minutes en format lisible
   const formatTime = (minutes) => {
+    if (minutes === undefined || minutes === null) return 'N/A';
     return `${minutes} min`;
   };
 
   // Obtenir le nom du préparateur à partir de son ID
   const getPreparatorName = (id) => {
     const preparator = preparatorsData.find(p => p.preparatorId === id);
-    return preparator ? `Préparateur ${preparator.preparatorId.slice(0, 5)}...` : 'Inconnu';
+    if (!preparator) return 'Inconnu';
+    
+    // Vérifier si nous avons le nom complet dans les données
+    if (preparator.fullName) return preparator.fullName;
+    
+    // Sinon, retourner un identifiant partiel
+    return `Préparateur ${preparator.preparatorId.slice(0, 5)}...`;
   };
 
   // Calculer la largeur maximale pour les barres
   const getMaxValue = () => {
     if (chartType === 'average') {
+      // Maximum des temps moyens de toutes les tâches
       return Math.max(...preparatorsData.flatMap(p => 
-        Object.values(p.metrics.taskMetrics).map(task => task.avgTime)
+        Object.values(p.metrics.taskMetrics).map(task => task.avgTime || 0)
       )) * 1.2; // Ajouter 20% de marge
     } else {
+      // Maximum des compteurs de toutes les tâches
       return Math.max(...preparatorsData.flatMap(p => 
-        Object.values(p.metrics.taskMetrics).map(task => task.count)
+        Object.values(p.metrics.taskMetrics).map(task => task.count || 0)
       )) * 1.2; // Ajouter 20% de marge
     }
   };
@@ -81,8 +90,8 @@ const TaskCompletionChart = ({ performanceData }) => {
 
             <div className="task-bars">
               {taskTypes.map((task) => {
-                const taskData = preparator.metrics.taskMetrics[task.key];
-                const value = chartType === 'average' ? taskData.avgTime : taskData.count;
+                const taskData = preparator.metrics.taskMetrics[task.key] || {avgTime: 0, count: 0};
+                const value = chartType === 'average' ? (taskData.avgTime || 0) : (taskData.count || 0);
                 const barWidth = getBarWidth(value);
                 
                 return (

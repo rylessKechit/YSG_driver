@@ -29,7 +29,7 @@ const PreparatorPerformance = () => {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
 
-  // Rediriger si l'utilisateur n'est pas admin
+  // Rediriger si l'utilisateur n'est pas admin ou direction
   useEffect(() => {
     if (currentUser && currentUser.role !== 'admin' && currentUser.role !== 'direction') {
       navigate('/dashboard');
@@ -41,17 +41,21 @@ const PreparatorPerformance = () => {
     const fetchPreparators = async () => {
       try {
         setLoading(true);
+        // Obtenir tous les utilisateurs
         const users = await userService.getAllUsers();
+        // Filtrer pour ne garder que les préparateurs
         const preparators = users.filter(user => user.role === 'preparator');
         setAllPreparators(preparators);
         
         // Sélectionner les 3 premiers préparateurs par défaut (ou moins s'il n'y en a pas assez)
-        setSelectedPreparators(preparators.slice(0, Math.min(3, preparators.length)).map(p => p._id));
+        if (preparators.length > 0) {
+          setSelectedPreparators(preparators.slice(0, Math.min(3, preparators.length)).map(p => p._id));
+        }
         
         setLoading(false);
       } catch (err) {
         console.error('Erreur lors du chargement des préparateurs:', err);
-        setError('Erreur lors du chargement des préparateurs');
+        setError('Erreur lors du chargement des préparateurs: ' + err.message);
         setLoading(false);
       }
     };
@@ -80,7 +84,7 @@ const PreparatorPerformance = () => {
         setLoading(false);
       } catch (err) {
         console.error('Erreur lors du chargement des données de performance:', err);
-        setError('Erreur lors du chargement des données de performance');
+        setError('Erreur lors du chargement des données de performance: ' + err.message);
         setLoading(false);
       }
     };
