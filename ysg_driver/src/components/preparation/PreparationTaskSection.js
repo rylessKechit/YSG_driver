@@ -11,7 +11,6 @@ const PreparationTaskSection = ({
   onCompleteTask, 
   onAddTaskPhoto, 
   onParkingTask,
-  onResetPhotoStatus,
   uploadingPhoto,
   getPhotoUrlByType
 }) => {
@@ -25,103 +24,73 @@ const PreparationTaskSection = ({
   const [taskNotes, setTaskNotes] = useState('');
   const [refuelingAmount, setRefuelingAmount] = useState('');
 
-  // Gestion des photos
-  const handlePhotoBeforeChange = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setPhotoBeforeFile(file);
-      
-      // Créer une URL pour la prévisualisation
-      const previewUrl = URL.createObjectURL(file);
-      setPhotoBeforePreview(previewUrl);
+  // Création de prévisualisations lors de la sélection de photos
+  const handlePhotoChange = (file, setFile, setPreview) => {
+    if (file) {
+      setFile(file);
+      setPreview(URL.createObjectURL(file));
     }
   };
 
-  const handlePhotoAfterChange = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setPhotoAfterFile(file);
-      
-      // Créer une URL pour la prévisualisation
-      const previewUrl = URL.createObjectURL(file);
-      setPhotoAfterPreview(previewUrl);
-    }
-  };
-
-  const handleAdditionalPhotoChange = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setAdditionalPhotoFile(file);
-      
-      // Créer une URL pour la prévisualisation
-      const previewUrl = URL.createObjectURL(file);
-      setAdditionalPhotoPreview(previewUrl);
-    }
-  };
-
-  // Gérer le début d'une tâche
-  const handleStartTask = () => {
-    onStartTask(taskType, photoBeforeFile, taskNotes);
-    setPhotoBeforeFile(null);
-    setPhotoBeforePreview(null);
-    setTaskNotes('');
-  };
-
-  // Gérer la fin d'une tâche
-  const handleCompleteTask = () => {
-    const additionalData = { notes: taskNotes };
-    if (taskType === 'refueling' && refuelingAmount) {
-      additionalData.amount = refuelingAmount;
-    }
+  // Actions pour chaque type de tâche
+  const taskActions = {
+    startTask: () => {
+      onStartTask(taskType, photoBeforeFile, taskNotes);
+      setPhotoBeforeFile(null);
+      setPhotoBeforePreview(null);
+      setTaskNotes('');
+    },
     
-    onCompleteTask(taskType, photoAfterFile, additionalData);
-    setPhotoAfterFile(null);
-    setPhotoAfterPreview(null);
-    setTaskNotes('');
-    setRefuelingAmount('');
-  };
-
-  // Gérer l'ajout d'une photo additionnelle
-  const handleAddAdditionalPhoto = () => {
-    onAddTaskPhoto(taskType, additionalPhotoFile, additionalPhotoDescription);
-    setAdditionalPhotoFile(null);
-    setAdditionalPhotoPreview(null);
-    setAdditionalPhotoDescription('');
-  };
-
-  // Gérer le stationnement en une étape
-  const handleParkingTask = () => {
-    onParkingTask(taskType, photoAfterFile, taskNotes);
-    setPhotoAfterFile(null);
-    setPhotoAfterPreview(null);
-    setTaskNotes('');
-  };
-
-  // Obtenir le libellé d'une tâche
-  const getTaskLabel = (taskType) => {
-    switch (taskType) {
-      case 'exteriorWashing': return 'Lavage extérieur';
-      case 'interiorCleaning': return 'Nettoyage intérieur';
-      case 'refueling': return 'Mise de carburant';
-      case 'parking': return 'Stationnement';
-      default: return 'Tâche inconnue';
+    completeTask: () => {
+      const additionalData = { notes: taskNotes };
+      if (taskType === 'refueling' && refuelingAmount) {
+        additionalData.amount = refuelingAmount;
+      }
+      
+      onCompleteTask(taskType, photoAfterFile, additionalData);
+      setPhotoAfterFile(null);
+      setPhotoAfterPreview(null);
+      setTaskNotes('');
+      setRefuelingAmount('');
+    },
+    
+    addAdditionalPhoto: () => {
+      onAddTaskPhoto(taskType, additionalPhotoFile, additionalPhotoDescription);
+      setAdditionalPhotoFile(null);
+      setAdditionalPhotoPreview(null);
+      setAdditionalPhotoDescription('');
+    },
+    
+    parkingTask: () => {
+      onParkingTask(taskType, photoAfterFile, taskNotes);
+      setPhotoAfterFile(null);
+      setPhotoAfterPreview(null);
+      setTaskNotes('');
     }
   };
 
-  // Obtenir le libellé du statut d'une tâche
+  // Labels pour l'interface
+  const getTaskLabel = () => {
+    const labels = {
+      exteriorWashing: 'Lavage extérieur',
+      interiorCleaning: 'Nettoyage intérieur',
+      refueling: 'Mise de carburant',
+      parking: 'Stationnement'
+    };
+    return labels[taskType] || 'Tâche inconnue';
+  };
+
   const getTaskStatusLabel = (status) => {
-    switch (status) {
-      case 'not_started': return 'Non commencée';
-      case 'in_progress': return 'En cours';
-      case 'completed': return 'Terminée';
-      default: return 'Statut inconnu';
-    }
+    const statusLabels = {
+      not_started: 'Non commencée',
+      in_progress: 'En cours',
+      completed: 'Terminée'
+    };
+    return statusLabels[status] || 'Statut inconnu';
   };
 
   // Ouvrir l'image en plein écran
-  const openFullScreenImage = (url) => {
-    window.open(url, '_blank');
-  };
+  const openFullScreenImage = (url) => window.open(url, '_blank');
 
   const task = preparation.tasks[taskType] || { status: 'not_started' };
   const isExpanded = expandedTask === taskType;
@@ -132,7 +101,7 @@ const PreparationTaskSection = ({
         className={`task-header ${isExpanded ? 'expanded' : ''}`}
         onClick={() => onToggleTask(taskType)}
       >
-        <h3 className="task-title">{getTaskLabel(taskType)}</h3>
+        <h3 className="task-title">{getTaskLabel()}</h3>
         <div className="task-header-info">
           <span className={`task-status ${task.status}`}>
             {getTaskStatusLabel(task.status)}
@@ -143,14 +112,11 @@ const PreparationTaskSection = ({
       
       {isExpanded && (
         <div className="task-content">
+          {/* Informations de la tâche */}
           {task.startedAt && (
             <div className="task-info">
               <i className="fas fa-clock"></i> Commencée: {new Date(task.startedAt).toLocaleDateString('fr-FR', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
+                day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
               })}
             </div>
           )}
@@ -158,11 +124,7 @@ const PreparationTaskSection = ({
           {task.completedAt && (
             <div className="task-info">
               <i className="fas fa-check-circle"></i> Terminée: {new Date(task.completedAt).toLocaleDateString('fr-FR', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
+                day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
               })}
             </div>
           )}
@@ -173,13 +135,9 @@ const PreparationTaskSection = ({
             </div>
           )}
           
-          {task.notes && (
-            <div className="task-notes">
-              <strong>Notes:</strong> {task.notes}
-            </div>
-          )}
+          {task.notes && <div className="task-notes"><strong>Notes:</strong> {task.notes}</div>}
           
-          {/* Photos avant/après si complétées */}
+          {/* Photos avant/après */}
           {(task.photos?.before || task.photos?.after) && (
             <div className="task-photos">
               {task.photos.before && (
@@ -193,11 +151,7 @@ const PreparationTaskSection = ({
                   />
                   <div className="photo-timestamp">
                     {new Date(task.photos.before.timestamp).toLocaleDateString('fr-FR', {
-                      day: '2-digit',
-                      month: '2-digit',
-                      year: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
+                      day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
                     })}
                   </div>
                 </div>
@@ -214,11 +168,7 @@ const PreparationTaskSection = ({
                   />
                   <div className="photo-timestamp">
                     {new Date(task.photos.after.timestamp).toLocaleDateString('fr-FR', {
-                      day: '2-digit',
-                      month: '2-digit',
-                      year: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
+                      day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
                     })}
                   </div>
                 </div>
@@ -227,8 +177,7 @@ const PreparationTaskSection = ({
           )}
           
           {/* Photos additionnelles */}
-          {task.photos?.additional && 
-           task.photos.additional.length > 0 && (
+          {task.photos?.additional && task.photos.additional.length > 0 && (
             <div className="additional-photos">
               <div className="additional-photos-title">Photos additionnelles ({task.photos.additional.length})</div>
               <div className="additional-photos-grid">
@@ -241,9 +190,7 @@ const PreparationTaskSection = ({
                       onClick={() => openFullScreenImage(photo.url)}
                     />
                     {photo.description && (
-                      <div className="additional-photo-description">
-                        {photo.description}
-                      </div>
+                      <div className="additional-photo-description">{photo.description}</div>
                     )}
                   </div>
                 ))}
@@ -252,8 +199,7 @@ const PreparationTaskSection = ({
           )}
           
           {/* Message pour tâche non démarrée */}
-          {task.status === 'not_started' && 
-           !task.startedAt && (
+          {task.status === 'not_started' && !task.startedAt && (
             <div className="task-not-started-message">
               <i className="fas fa-info-circle"></i>
               <span>Cette tâche n'a pas encore été démarrée.</span>
@@ -268,7 +214,7 @@ const PreparationTaskSection = ({
                 <div className="task-step">
                   <div className="task-step-header">
                     <span className="step-number">1</span>
-                    <span>Commencer {getTaskLabel(taskType).toLowerCase()}</span>
+                    <span>Commencer {getTaskLabel().toLowerCase()}</span>
                   </div>
                   
                   <p>Prenez une photo de l'état initial avant de commencer la tâche.</p>
@@ -278,7 +224,11 @@ const PreparationTaskSection = ({
                       type="file"
                       accept="image/*"
                       capture="environment"
-                      onChange={handlePhotoBeforeChange}
+                      onChange={(e) => e.target.files?.[0] && handlePhotoChange(
+                        e.target.files[0],
+                        setPhotoBeforeFile,
+                        setPhotoBeforePreview
+                      )}
                       className="form-input"
                     />
                     
@@ -301,11 +251,11 @@ const PreparationTaskSection = ({
                     </div>
                     
                     <button 
-                      onClick={handleStartTask}
+                      onClick={taskActions.startTask}
                       className="btn btn-primary"
                       disabled={!photoBeforeFile || uploadingPhoto}
                     >
-                      {uploadingPhoto ? 'Traitement...' : `Commencer ${getTaskLabel(taskType).toLowerCase()}`}
+                      {uploadingPhoto ? 'Traitement...' : `Commencer ${getTaskLabel().toLowerCase()}`}
                     </button>
                   </div>
                 </div>
@@ -316,7 +266,7 @@ const PreparationTaskSection = ({
                 <div className="task-step">
                   <div className="task-step-header">
                     <span className="step-number">2</span>
-                    <span>Terminer {getTaskLabel(taskType).toLowerCase()}</span>
+                    <span>Terminer {getTaskLabel().toLowerCase()}</span>
                   </div>
                   
                   <p>Prenez une photo pour documenter le travail effectué.</p>
@@ -326,7 +276,11 @@ const PreparationTaskSection = ({
                       type="file"
                       accept="image/*"
                       capture="environment"
-                      onChange={handlePhotoAfterChange}
+                      onChange={(e) => e.target.files?.[0] && handlePhotoChange(
+                        e.target.files[0],
+                        setPhotoAfterFile,
+                        setPhotoAfterPreview
+                      )}
                       className="form-input"
                     />
                     
@@ -366,11 +320,11 @@ const PreparationTaskSection = ({
                     </div>
                     
                     <button 
-                      onClick={handleCompleteTask}
+                      onClick={taskActions.completeTask}
                       className="btn btn-success"
                       disabled={!photoAfterFile || (taskType === 'refueling' && !refuelingAmount) || uploadingPhoto}
                     >
-                      {uploadingPhoto ? 'Traitement...' : `Terminer ${getTaskLabel(taskType).toLowerCase()}`}
+                      {uploadingPhoto ? 'Traitement...' : `Terminer ${getTaskLabel().toLowerCase()}`}
                     </button>
                   </div>
                 </div>
@@ -391,7 +345,11 @@ const PreparationTaskSection = ({
                       type="file"
                       accept="image/*"
                       capture="environment"
-                      onChange={handlePhotoAfterChange}
+                      onChange={(e) => e.target.files?.[0] && handlePhotoChange(
+                        e.target.files[0],
+                        setPhotoAfterFile,
+                        setPhotoAfterPreview
+                      )}
                       className="form-input"
                     />
                     
@@ -414,7 +372,7 @@ const PreparationTaskSection = ({
                     </div>
                     
                     <button 
-                      onClick={handleParkingTask}
+                      onClick={taskActions.parkingTask}
                       className="btn btn-success"
                       disabled={!photoAfterFile || uploadingPhoto}
                     >
@@ -437,7 +395,11 @@ const PreparationTaskSection = ({
                       type="file"
                       accept="image/*"
                       capture="environment"
-                      onChange={handleAdditionalPhotoChange}
+                      onChange={(e) => e.target.files?.[0] && handlePhotoChange(
+                        e.target.files[0],
+                        setAdditionalPhotoFile,
+                        setAdditionalPhotoPreview
+                      )}
                       className="form-input"
                     />
                     
@@ -461,7 +423,7 @@ const PreparationTaskSection = ({
                     </div>
                     
                     <button 
-                      onClick={handleAddAdditionalPhoto}
+                      onClick={taskActions.addAdditionalPhoto}
                       className="btn btn-photo"
                       disabled={!additionalPhotoFile || uploadingPhoto}
                     >

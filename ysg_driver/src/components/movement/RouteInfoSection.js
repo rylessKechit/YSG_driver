@@ -3,47 +3,49 @@ import React from 'react';
 import DateDisplay from '../ui/DateDisplay';
 
 const RouteInfoSection = ({ movement }) => {
+  // Composant pour afficher un point de l'itinéraire (départ ou arrivée)
+  const RoutePoint = ({ type, location, time }) => {
+    const isArrival = type === 'arrival';
+    
+    return (
+      <div className="route-point">
+        <div className={`point-marker ${type}`}></div>
+        <div className="point-details">
+          <div className="point-type">{isArrival ? 'Arrivée' : 'Départ'}</div>
+          <div className="point-name">{location.name}</div>
+          <div className="point-time">
+            <DateDisplay date={time} />
+          </div>
+          {location.coordinates?.latitude && (
+            <div className="point-coordinates">
+              Lat: {location.coordinates.latitude.toFixed(4)}, 
+              Lng: {location.coordinates.longitude.toFixed(4)}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="detail-section route-info">
       <h2 className="section-title">
         <i className="fas fa-map-marker-alt"></i> Itinéraire
       </h2>
       <div className="route-map">
-        <div className="route-point">
-          <div className="point-marker departure"></div>
-          <div className="point-details">
-            <div className="point-type">Départ</div>
-            <div className="point-name">{movement.departureLocation.name}</div>
-            <div className="point-time">
-              <DateDisplay date={movement.departureTime} />
-            </div>
-            {movement.departureLocation.coordinates && movement.departureLocation.coordinates.latitude && (
-              <div className="point-coordinates">
-                Lat: {movement.departureLocation.coordinates.latitude.toFixed(4)}, 
-                Lng: {movement.departureLocation.coordinates.longitude.toFixed(4)}
-              </div>
-            )}
-          </div>
-        </div>
+        <RoutePoint 
+          type="departure" 
+          location={movement.departureLocation} 
+          time={movement.departureTime} 
+        />
         
         <div className="route-line"></div>
         
-        <div className="route-point">
-          <div className="point-marker arrival"></div>
-          <div className="point-details">
-            <div className="point-type">Arrivée</div>
-            <div className="point-name">{movement.arrivalLocation.name}</div>
-            <div className="point-time">
-              <DateDisplay date={movement.arrivalTime} />
-            </div>
-            {movement.arrivalLocation.coordinates && movement.arrivalLocation.coordinates.latitude && (
-              <div className="point-coordinates">
-                Lat: {movement.arrivalLocation.coordinates.latitude.toFixed(4)}, 
-                Lng: {movement.arrivalLocation.coordinates.longitude.toFixed(4)}
-              </div>
-            )}
-          </div>
-        </div>
+        <RoutePoint 
+          type="arrival" 
+          location={movement.arrivalLocation} 
+          time={movement.arrivalTime} 
+        />
       </div>
     </div>
   );

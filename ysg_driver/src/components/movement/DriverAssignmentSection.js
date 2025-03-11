@@ -11,12 +11,56 @@ const DriverAssignmentSection = ({
 }) => {
   const [selectedDriver, setSelectedDriver] = useState('');
   
-  const handleAssignDriver = () => {
-    if (selectedDriver) {
-      onAssignDriver(selectedDriver);
-      setSelectedDriver('');
-    }
-  };
+  // Séparation des chauffeurs en service et hors service
+  const driversOnDuty = allDrivers.filter(driver => driver.isOnDuty);
+  const driversOffDuty = allDrivers.filter(driver => !driver.isOnDuty);
+  
+  // Interface d'assignation ou de modification de chauffeur
+  const AssignmentUI = ({ buttonText, existingDriver = false }) => (
+    <div className="assign-form">
+      <select 
+        value={selectedDriver} 
+        onChange={(e) => setSelectedDriver(e.target.value)}
+        className="form-select"
+      >
+        <option value="">Sélectionnez un chauffeur</option>
+        {driversOnDuty.length > 0 && (
+          <optgroup label="Chauffeurs en service">
+            {driversOnDuty.map(driver => (
+              <option key={driver._id} value={driver._id}>
+                {driver.fullName} - En service
+              </option>
+            ))}
+          </optgroup>
+        )}
+        {driversOffDuty.length > 0 && (
+          <optgroup label="Chauffeurs hors service">
+            {driversOffDuty.map(driver => (
+              <option key={driver._id} value={driver._id}>
+                {driver.fullName} - Hors service
+              </option>
+            ))}
+          </optgroup>
+        )}
+      </select>
+      
+      <button 
+        onClick={() => {
+          if (selectedDriver) {
+            onAssignDriver(selectedDriver);
+            setSelectedDriver('');
+          }
+        }}
+        className="btn btn-primary"
+        disabled={updateLoading || !selectedDriver}
+      >
+        {updateLoading ? 'Mise à jour...' : buttonText}
+      </button>
+    </div>
+  );
+
+  // Vérifie si le mouvement peut être modifié (statut)
+  const canModifyMovement = movement.status === 'pending' || movement.status === 'assigned';
 
   return (
     <div className="detail-section driver-assignment">
@@ -25,6 +69,7 @@ const DriverAssignmentSection = ({
       </h2>
       
       {movement.userId ? (
+        // Chauffeur déjà assigné
         <div className="assigned-driver">
           <div className="info-item">
             <span className="info-label">Chauffeur:</span>
@@ -32,7 +77,7 @@ const DriverAssignmentSection = ({
           </div>
           
           {/* Option pour modifier le chauffeur si le mouvement n'est pas démarré */}
-          {(movement.status === 'pending' || movement.status === 'assigned') && (
+          {canModifyMovement && (
             <div className="change-driver">
               <h3 className="subsection-title">Modifier le chauffeur</h3>
               
@@ -41,42 +86,13 @@ const DriverAssignmentSection = ({
                   <LoadingSpinner size="small" /> Chargement des chauffeurs...
                 </div>
               ) : (
-                <div className="assign-form">
-                  <select 
-                    value={selectedDriver} 
-                    onChange={(e) => setSelectedDriver(e.target.value)}
-                    className="form-select"
-                  >
-                    <option value="">Sélectionnez un chauffeur</option>
-                    <optgroup label="Chauffeurs en service">
-                      {allDrivers.filter(driver => driver.isOnDuty).map(driver => (
-                        <option key={driver._id} value={driver._id}>
-                          {driver.fullName} - En service
-                        </option>
-                      ))}
-                    </optgroup>
-                    <optgroup label="Chauffeurs hors service">
-                      {allDrivers.filter(driver => !driver.isOnDuty).map(driver => (
-                        <option key={driver._id} value={driver._id}>
-                          {driver.fullName} - Hors service
-                        </option>
-                      ))}
-                    </optgroup>
-                  </select>
-                  
-                  <button 
-                    onClick={handleAssignDriver}
-                    className="btn btn-primary"
-                    disabled={updateLoading || !selectedDriver}
-                  >
-                    {updateLoading ? 'Mise à jour...' : 'Changer de chauffeur'}
-                  </button>
-                </div>
+                <AssignmentUI buttonText="Changer de chauffeur" existingDriver={true} />
               )}
             </div>
           )}
         </div>
       ) : (
+        // Aucun chauffeur assigné
         <div className="no-driver-assigned">
           <p className="no-assignment-message">Aucun chauffeur assigné à ce mouvement.</p>
           
@@ -85,37 +101,7 @@ const DriverAssignmentSection = ({
               <LoadingSpinner size="small" /> Chargement des chauffeurs...
             </div>
           ) : (
-            <div className="assign-form">
-              <select 
-                value={selectedDriver} 
-                onChange={(e) => setSelectedDriver(e.target.value)}
-                className="form-select"
-              >
-                <option value="">Sélectionnez un chauffeur</option>
-                <optgroup label="Chauffeurs en service">
-                  {allDrivers.filter(driver => driver.isOnDuty).map(driver => (
-                    <option key={driver._id} value={driver._id}>
-                      {driver.fullName} - En service
-                    </option>
-                  ))}
-                </optgroup>
-                <optgroup label="Chauffeurs hors service">
-                  {allDrivers.filter(driver => !driver.isOnDuty).map(driver => (
-                    <option key={driver._id} value={driver._id}>
-                      {driver.fullName} - Hors service
-                    </option>
-                  ))}
-                </optgroup>
-              </select>
-              
-              <button 
-                onClick={handleAssignDriver}
-                className="btn btn-primary"
-                disabled={updateLoading || !selectedDriver}
-              >
-                {updateLoading ? 'Assignation...' : 'Assigner un chauffeur'}
-              </button>
-            </div>
+            <AssignmentUI buttonText="Assigner un chauffeur" />
           )}
         </div>
       )}

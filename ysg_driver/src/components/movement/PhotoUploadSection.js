@@ -15,7 +15,7 @@ const PhotoUploadSection = ({
   sectionTitle = "Photos du véhicule",
   instructionText = "Pour continuer ce mouvement, vous devez prendre les photos suivantes du véhicule. Chaque section doit être complétée."
 }) => {
-  // Array of photo sections with their details
+  // Configuration des sections de photo avec leurs détails
   const photoSections = [
     {
       type: 'front',
@@ -54,10 +54,9 @@ const PhotoUploadSection = ({
     }
   ];
 
-  // Check if all required photos have been taken
-  const allRequiredPhotosTaken = () => (
-    photosStatus && Object.values(photosStatus).every(status => status === true)
-  );
+  // Vérification si toutes les photos ont été prises
+  const allRequiredPhotosTaken = photosStatus && 
+    Object.values(photosStatus).every(status => status === true);
 
   return (
     <div className="detail-section photo-upload-section">
@@ -92,7 +91,7 @@ const PhotoUploadSection = ({
       
       {/* Section de statut des photos */}
       <div className="photos-confirmation-section">
-        {allRequiredPhotosTaken() ? (
+        {allRequiredPhotosTaken ? (
           <div className="photos-complete-message">
             <i className="fas fa-check-circle"></i>
             <span>Toutes les photos requises ont été prises</span>
