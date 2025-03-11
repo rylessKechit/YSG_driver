@@ -28,6 +28,7 @@ const Reports = lazy(() => import('./pages/Reports'));
 const ScheduleManager = lazy(() => import('./pages/ScheduleManager'));
 const ScheduleComparison = lazy(() => import('./pages/ScheduleComparison'));
 const WhatsAppSetup = lazy(() => import('./pages/WhatsAppSetup'));
+const PreparatorPerformance = lazy(() => import('./pages/PreparatorPerformance'));
 
 // Composant de route protégée
 const ProtectedRoute = ({ children, requiredRoles = [] }) => {
@@ -69,6 +70,7 @@ const routes = [
   // Routes Admin
   { path: '/schedule-comparison', element: <ScheduleComparison />, protected: true, roles: ['admin', 'direction'] },
   { path: '/admin', element: <AdminPanel />, protected: true, roles: ['admin'] },
+  { path: '/performance/preparators', element: <PreparatorPerformance />, protected: true, roles: ['admin', 'direction'] },
   { path: '/admin/whatsapp-setup', element: <WhatsAppSetup />, protected: true, roles: ['admin'] },
   { path: '/admin/movements/create', element: <AdminMovementCreate />, protected: true, roles: ['admin', 'team-leader'] },
   
