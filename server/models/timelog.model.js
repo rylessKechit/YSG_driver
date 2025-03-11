@@ -1,4 +1,13 @@
+// server/models/timelog.model.js
 const mongoose = require('mongoose');
+
+const locationSchema = new mongoose.Schema({
+  name: String,
+  coordinates: {
+    latitude: Number,
+    longitude: Number
+  }
+});
 
 const timelogSchema = new mongoose.Schema({
   userId: {
@@ -21,31 +30,13 @@ const timelogSchema = new mongoose.Schema({
     default: 'active'
   },
   location: {
-    startLocation: {
-      name: String,
-      coordinates: {
-        latitude: Number,
-        longitude: Number
-      }
-    },
-    endLocation: {
-      name: String,
-      coordinates: {
-        latitude: Number,
-        longitude: Number
-      }
-    }
+    startLocation: locationSchema,
+    endLocation: locationSchema
   },
-  notes: {
-    type: String
-  }
+  notes: String
 }, {
   timestamps: true
 });
 
-// Index pour rechercher efficacement les pointages actifs d'un utilisateur
 timelogSchema.index({ userId: 1, status: 1 });
-
-const TimeLog = mongoose.model('TimeLog', timelogSchema);
-
-module.exports = TimeLog;
+module.exports = mongoose.model('TimeLog', timelogSchema);

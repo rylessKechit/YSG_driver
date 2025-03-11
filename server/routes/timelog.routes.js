@@ -1,3 +1,4 @@
+// server/routes/timelog.routes.js
 const express = require('express');
 const router = express.Router();
 const TimeLog = require('../models/timelog.model');
@@ -6,12 +7,10 @@ const { verifyToken } = require('../middleware/auth.middleware');
 // Middleware pour vérifier si le chauffeur a déjà un pointage actif
 const checkActiveTimeLog = async (req, res, next) => {
   try {
-    const activeTimeLog = await TimeLog.findOne({
+    req.activeTimeLog = await TimeLog.findOne({
       userId: req.user._id,
       status: 'active'
     });
-    
-    req.activeTimeLog = activeTimeLog;
     next();
   } catch (error) {
     console.error('Erreur lors de la vérification des pointages actifs:', error);
@@ -22,7 +21,6 @@ const checkActiveTimeLog = async (req, res, next) => {
 // Démarrer un pointage
 router.post('/start', verifyToken, checkActiveTimeLog, async (req, res) => {
   try {
-    // Vérifier si l'utilisateur a déjà un pointage actif
     if (req.activeTimeLog) {
       return res.status(400).json({
         message: 'Vous avez déjà un service actif',
@@ -30,15 +28,10 @@ router.post('/start', verifyToken, checkActiveTimeLog, async (req, res) => {
       });
     }
     
-    const { location } = req.body;
-    
-    // Créer un nouveau pointage
     const timeLog = new TimeLog({
       userId: req.user._id,
       status: 'active',
-      location: {
-        startLocation: location
-      }
+      location: { startLocation: req.body.location }
     });
     
     await timeLog.save();
@@ -56,7 +49,6 @@ router.post('/start', verifyToken, checkActiveTimeLog, async (req, res) => {
 // Terminer un pointage
 router.post('/end', verifyToken, checkActiveTimeLog, async (req, res) => {
   try {
-    // Vérifier si l'utilisateur a un pointage actif
     if (!req.activeTimeLog) {
       return res.status(400).json({
         message: 'Aucun service actif à terminer'
@@ -65,14 +57,10 @@ router.post('/end', verifyToken, checkActiveTimeLog, async (req, res) => {
     
     const { location, notes } = req.body;
     
-    // Mettre à jour le pointage
     req.activeTimeLog.endTime = new Date();
     req.activeTimeLog.status = 'completed';
     req.activeTimeLog.location.endLocation = location;
-    
-    if (notes) {
-      req.activeTimeLog.notes = notes;
-    }
+    if (notes) req.activeTimeLog.notes = notes;
     
     await req.activeTimeLog.save();
     
@@ -114,22 +102,20 @@ router.get('/', verifyToken, async (req, res) => {
     const skip = (page - 1) * limit;
     
     const query = { userId: req.user._id };
+    if (status) query.status = status;
     
-    if (status) {
-      query.status = status;
-    }
-    
-    const timeLogs = await TimeLog.find(query)
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(parseInt(limit));
-    
-    const total = await TimeLog.countDocuments(query);
+    const [timeLogs, total] = await Promise.all([
+      TimeLog.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit)),
+      TimeLog.countDocuments(query)
+    ]);
     
     res.json({
       timeLogs,
       totalPages: Math.ceil(total / limit),
-      currentPage: page,
+      currentPage: parseInt(page),
       totalItems: total
     });
   } catch (error) {
