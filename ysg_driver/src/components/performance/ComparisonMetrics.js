@@ -48,6 +48,12 @@ const ComparisonMetrics = ({ performanceData, allPreparators, selectedPreparator
       label: 'Préparations par jour', 
       unit: '',
       inverse: false
+    },
+    {
+      id: 'completionRate',
+      label: 'Taux de complétion',
+      unit: '%',
+      inverse: false
     }
   ];
 
@@ -70,7 +76,11 @@ const ComparisonMetrics = ({ performanceData, allPreparators, selectedPreparator
       case 'parkingTime':
         return p.metrics.taskMetrics.parking.avgTime;
       case 'preparationsPerDay':
-        return p.metrics.totalPreparations / performanceData.period.days;
+        return parseFloat((p.metrics.totalPreparations / performanceData.period.days).toFixed(1));
+      case 'completionRate':
+        return p.metrics.completedPreparations > 0 && p.metrics.totalPreparations > 0 
+          ? parseFloat((p.metrics.completedPreparations / p.metrics.totalPreparations * 100).toFixed(1)) 
+          : 0;
       default:
         return 0;
     }
@@ -81,8 +91,8 @@ const ComparisonMetrics = ({ performanceData, allPreparators, selectedPreparator
     const metric = metrics.find(m => m.id === metricId);
     if (!metric) return value;
     
-    if (metricId === 'preparationsPerDay') {
-      return value.toFixed(1);
+    if (metricId === 'preparationsPerDay' || metricId === 'completionRate') {
+      return value.toFixed(1) + (metric.unit ? ` ${metric.unit}` : '');
     }
     
     return metric.unit ? `${value} ${metric.unit}` : value;

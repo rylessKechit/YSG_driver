@@ -2,8 +2,8 @@
 import { api, fetchWithCache } from './authService';
 import { ENDPOINTS } from '../config';
 
-// Définir les endpoints de l'API Analytics
-const ANALYTICS_ENDPOINTS = {
+// Endpoints pour les données de performance
+const PERFORMANCE_ENDPOINTS = {
   PREPARATOR_PERFORMANCE: '/api/analytics/preparator-performance',
   TASK_METRICS: '/api/analytics/task-metrics',
   DAILY_METRICS: '/api/analytics/daily-metrics',
@@ -12,50 +12,62 @@ const ANALYTICS_ENDPOINTS = {
 };
 
 const performanceService = {
-  // Récupérer les performances d'un préparateur spécifique
-  getPreparatorPerformance: async (userId, startDate, endDate, refresh = false) => {
+  // Récupérer les données de performance pour les préparateurs sélectionnés
+  getPreparatorsPerformance: async (preparatorIds, startDate, endDate) => {
     try {
-      let url = `${ANALYTICS_ENDPOINTS.PREPARATOR_PERFORMANCE}/${userId}?`;
+      // Construire l'URL avec les paramètres
+      let url = PERFORMANCE_ENDPOINTS.COMPARATIVE_METRICS;
       
-      if (startDate) {
-        url += `startDate=${startDate}&`;
+      // Paramètres de la requête
+      const params = new URLSearchParams();
+      
+      // Ajouter les ID des préparateurs comme userIds
+      if (preparatorIds && preparatorIds.length > 0) {
+        preparatorIds.forEach(id => params.append('userIds', id));
       }
       
-      if (endDate) {
-        url += `endDate=${endDate}&`;
+      // Ajouter les dates
+      if (startDate) params.append('startDate', startDate);
+      if (endDate) params.append('endDate', endDate);
+      
+      // Ajouter les paramètres à l'URL
+      if (params.toString()) {
+        url += `?${params.toString()}`;
       }
       
-      if (refresh) {
-        url += `refresh=true`;
-      }
+      // Faire l'appel API avec authentification
+      const response = await api.get(url);
       
-      return await fetchWithCache(url);
+      // Formater les données reçues pour les adapter au format attendu par les composants
+      return formatPerformanceData(response.data, preparatorIds, startDate, endDate);
     } catch (error) {
-      console.error('Erreur lors de la récupération des performances du préparateur:', error);
+      console.error('Erreur lors de la récupération des données de performance:', error);
       throw error;
     }
   },
   
-  // Récupérer les métriques par type de tâche
-  getTaskMetrics: async (taskType, userId, startDate, endDate) => {
+  // Récupérer les métriques générales
+  getGlobalMetrics: async (startDate, endDate) => {
     try {
-      let url = `${ANALYTICS_ENDPOINTS.TASK_METRICS}/${taskType}?`;
+      let url = PERFORMANCE_ENDPOINTS.GLOBAL_METRICS;
       
-      if (userId) {
-        url += `userId=${userId}&`;
+      // Paramètres de la requête
+      const params = new URLSearchParams();
+      
+      // Ajouter les dates
+      if (startDate) params.append('startDate', startDate);
+      if (endDate) params.append('endDate', endDate);
+      
+      // Ajouter les paramètres à l'URL
+      if (params.toString()) {
+        url += `?${params.toString()}`;
       }
       
-      if (startDate) {
-        url += `startDate=${startDate}&`;
-      }
-      
-      if (endDate) {
-        url += `endDate=${endDate}`;
-      }
-      
-      return await fetchWithCache(url);
+      // Faire l'appel API
+      const response = await api.get(url);
+      return response.data;
     } catch (error) {
-      console.error('Erreur lors de la récupération des métriques de tâche:', error);
+      console.error('Erreur lors de la récupération des métriques globales:', error);
       throw error;
     }
   },
@@ -63,202 +75,133 @@ const performanceService = {
   // Récupérer les métriques quotidiennes
   getDailyMetrics: async (userId, startDate, endDate) => {
     try {
-      let url = `${ANALYTICS_ENDPOINTS.DAILY_METRICS}?`;
+      let url = PERFORMANCE_ENDPOINTS.DAILY_METRICS;
       
-      if (userId) {
-        url += `userId=${userId}&`;
+      // Paramètres de la requête
+      const params = new URLSearchParams();
+      
+      // Ajouter l'ID de l'utilisateur
+      if (userId) params.append('userId', userId);
+      
+      // Ajouter les dates
+      if (startDate) params.append('startDate', startDate);
+      if (endDate) params.append('endDate', endDate);
+      
+      // Ajouter les paramètres à l'URL
+      if (params.toString()) {
+        url += `?${params.toString()}`;
       }
       
-      if (startDate) {
-        url += `startDate=${startDate}&`;
-      }
-      
-      if (endDate) {
-        url += `endDate=${endDate}`;
-      }
-      
-      return await fetchWithCache(url);
+      // Faire l'appel API
+      const response = await api.get(url);
+      return response.data;
     } catch (error) {
       console.error('Erreur lors de la récupération des métriques quotidiennes:', error);
       throw error;
     }
   },
   
-  // Récupérer les métriques comparatives entre préparateurs
-  getComparativeMetrics: async (userIds, refresh = false) => {
+  // Récupérer les métriques par type de tâche
+  getTaskMetrics: async (taskType, userId, startDate, endDate) => {
     try {
-      let url = `${ANALYTICS_ENDPOINTS.COMPARATIVE_METRICS}?`;
+      let url = `${PERFORMANCE_ENDPOINTS.TASK_METRICS}/${taskType}`;
       
-      if (userIds && userIds.length > 0) {
-        url += `userIds=${userIds.join(',')}&`;
+      // Paramètres de la requête
+      const params = new URLSearchParams();
+      
+      // Ajouter l'ID de l'utilisateur
+      if (userId) params.append('userId', userId);
+      
+      // Ajouter les dates
+      if (startDate) params.append('startDate', startDate);
+      if (endDate) params.append('endDate', endDate);
+      
+      // Ajouter les paramètres à l'URL
+      if (params.toString()) {
+        url += `?${params.toString()}`;
       }
       
-      if (refresh) {
-        url += `refresh=true`;
-      }
-      
-      return await fetchWithCache(url);
+      // Faire l'appel API
+      const response = await api.get(url);
+      return response.data;
     } catch (error) {
-      console.error('Erreur lors de la récupération des métriques comparatives:', error);
-      throw error;
-    }
-  },
-  
-  // Récupérer les métriques globales
-  getGlobalMetrics: async () => {
-    try {
-      return await fetchWithCache(ANALYTICS_ENDPOINTS.GLOBAL_METRICS);
-    } catch (error) {
-      console.error('Erreur lors de la récupération des métriques globales:', error);
-      throw error;
-    }
-  },
-  
-  // Méthode pour obtenir les performances des préparateurs pour la page de visualisation
-  getPreparatorsPerformance: async (preparatorIds, startDate, endDate) => {
-    try {
-      // Si une liste d'IDs est fournie, utiliser les métriques comparatives
-      if (preparatorIds && preparatorIds.length > 0) {
-        const compData = await performanceService.getComparativeMetrics(preparatorIds);
-        
-        // Transformer les données au format attendu par les composants
-        return transformApiDataToUIFormat(compData, startDate, endDate);
-      } else {
-        // Sinon, utiliser les métriques globales
-        const globalData = await performanceService.getGlobalMetrics();
-        return transformGlobalToUIFormat(globalData, startDate, endDate);
-      }
-    } catch (error) {
-      console.error('Erreur lors de la récupération des performances des préparateurs:', error);
+      console.error(`Erreur lors de la récupération des métriques pour le type de tâche ${taskType}:`, error);
       throw error;
     }
   }
 };
 
-// Fonction pour transformer les données de l'API au format attendu par l'UI
-const transformApiDataToUIFormat = (apiData, startDate, endDate) => {
+// Fonction pour formater les données de l'API vers le format attendu par les composants
+const formatPerformanceData = (apiData, preparatorIds, startDate, endDate) => {
+  // Extraction des données pertinentes
+  const { comparativeData, globalMetrics } = apiData;
+  
+  // Calculer la période en jours
   const start = new Date(startDate);
   const end = new Date(endDate);
-  const daysDiff = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+  const daysDiff = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) || 1;
   
-  // Préparer le tableau des préparateurs avec leurs métriques
-  const preparatorsData = apiData.comparativeData.map(prepData => {
-    // Extraire les métriques de performance pour ce préparateur
-    const metrics = prepData.metrics;
+  // Formater les données des préparateurs
+  const preparatorsData = comparativeData.map(prep => {
+    // Données de métriques pour ce préparateur
+    const metrics = prep.metrics;
     
-    // Convertir les données de tâches au format attendu
+    // Construire les métriques de tâches
     const taskMetrics = {
       exteriorWashing: {
-        avgTime: metrics.taskMetrics.exteriorWashing.averageDuration,
-        count: metrics.taskMetrics.exteriorWashing.count
+        count: metrics.taskMetrics.exteriorWashing?.count || 0,
+        avgTime: metrics.taskMetrics.exteriorWashing?.averageDuration || 0
       },
       interiorCleaning: {
-        avgTime: metrics.taskMetrics.interiorCleaning.averageDuration,
-        count: metrics.taskMetrics.interiorCleaning.count
+        count: metrics.taskMetrics.interiorCleaning?.count || 0,
+        avgTime: metrics.taskMetrics.interiorCleaning?.averageDuration || 0
       },
       refueling: {
-        avgTime: metrics.taskMetrics.refueling.averageDuration,
-        count: metrics.taskMetrics.refueling.count
+        count: metrics.taskMetrics.refueling?.count || 0,
+        avgTime: metrics.taskMetrics.refueling?.averageDuration || 0
       },
       parking: {
-        avgTime: metrics.taskMetrics.parking.averageDuration,
-        count: metrics.taskMetrics.parking.count
+        count: metrics.taskMetrics.parking?.count || 0,
+        avgTime: metrics.taskMetrics.parking?.averageDuration || 0
       }
     };
-
-    // Générer les données quotidiennes si disponibles ou créer un ensemble simulé
-    let dailyPreparations = [];
-    if (metrics.periodMetrics && metrics.periodMetrics.daily) {
-      dailyPreparations = metrics.periodMetrics.daily.map(day => ({
-        date: day.date.split('T')[0],
-        count: day.totalPreparations
-      }));
-    } else {
-      // Créer des données quotidiennes simulées si non disponibles
-      dailyPreparations = Array.from({ length: daysDiff }, (_, i) => {
-        const currentDate = new Date(start);
-        currentDate.setDate(start.getDate() + i);
-        return {
-          date: currentDate.toISOString().split('T')[0],
-          count: Math.floor(Math.random() * 4) + 1 // Simulé: 1-4 préparations par jour
-        };
-      });
-    }
     
+    // Construire les données quotidiennes (déduites des tendances si non disponibles)
+    const periodData = metrics.periodMetrics?.daily || [];
+    
+    // Format final pour ce préparateur
     return {
-      preparatorId: prepData.userId,
+      preparatorId: prep.userId,
       metrics: {
-        totalPreparations: metrics.totalPreparations,
-        completedPreparations: metrics.completedPreparations,
-        avgCompletionTime: metrics.averagePreparationsPerDay * 60, // Convertir en minutes si nécessaire
-        pendingPreparations: metrics.totalPreparations - metrics.completedPreparations,
+        totalPreparations: metrics.totalPreparations || 0,
+        completedPreparations: metrics.completedPreparations || 0,
+        avgCompletionTime: Math.round(metrics.averageCompletionTime || 0),
         taskMetrics: taskMetrics,
-        dailyPreparations: dailyPreparations,
-        performanceScore: metrics.performanceScore
+        // Données quotidiennes (formatées pour le graphique)
+        dailyPreparations: periodData.map(day => ({
+          date: day.date.split('T')[0],
+          count: day.totalPreparations || 0
+        }))
       }
     };
   });
   
-  // Calculer les statistiques globales
-  const overallMetrics = {
-    avgPreparationsPerDay: apiData.globalMetrics.averagePerformanceScore / 100,
-    avgCompletionTime: 0, // À calculer si disponible
-    totalPreparations: apiData.globalMetrics.totalPreparations,
-    bestPerformer: {
-      id: apiData.globalMetrics.topPerformer.userId,
-      time: 0, // À remplir si disponible
-      score: apiData.globalMetrics.topPerformer.performanceScore
-    }
-  };
-  
-  // Calculer le temps moyen de complétion s'il est disponible dans les données
-  if (preparatorsData.length > 0) {
-    const avgTimes = preparatorsData.map(p => p.metrics.avgCompletionTime).filter(t => t > 0);
-    if (avgTimes.length > 0) {
-      overallMetrics.avgCompletionTime = avgTimes.reduce((sum, time) => sum + time, 0) / avgTimes.length;
-    }
-  }
-  
+  // Format global attendu
   return {
     period: {
       startDate,
       endDate,
       days: daysDiff
     },
-    overallMetrics,
-    preparatorsData
-  };
-};
-
-// Fonction pour transformer les données globales au format attendu par l'UI
-const transformGlobalToUIFormat = (globalData, startDate, endDate) => {
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-  const daysDiff = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
-  
-  // Créer un objet avec les métriques globales
-  const overallMetrics = {
-    avgPreparationsPerDay: globalData.totalPreparations / (globalData.preparatorsCount * daysDiff),
-    avgCompletionTime: 120, // Valeur par défaut si non disponible
-    totalPreparations: globalData.totalPreparations,
-    bestPerformer: {
-      id: globalData.topPerformer.userId,
-      name: globalData.topPerformer.fullName,
-      score: globalData.topPerformer.performanceScore
-    }
-  };
-  
-  // Créer un tableau vide pour les données des préparateurs
-  // Puisque nous n'avons pas de détails par préparateur dans les métriques globales
-  const preparatorsData = [];
-  
-  return {
-    period: {
-      startDate,
-      endDate,
-      days: daysDiff
+    overallMetrics: {
+      avgPreparationsPerDay: globalMetrics.averagePreparationsPerDay || 0,
+      avgCompletionTime: globalMetrics.averageCompletionTime || 0,
+      totalPreparations: globalMetrics.totalPreparations || 0,
+      bestPerformer: {
+        id: globalMetrics.topPerformer?.userId || '',
+        time: globalMetrics.topPerformer?.performanceScore || 0
+      }
     },
-    overallMetrics,
     preparatorsData
   };
 };
