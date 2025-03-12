@@ -1,29 +1,20 @@
-// src/services/performanceService.js
-import { api, fetchWithCache } from './authService';
+// src/services/performanceService.js - Mise à jour
+import { api } from './authService';
 import { ENDPOINTS } from '../config';
-
-// Endpoints pour les données de performance
-const PERFORMANCE_ENDPOINTS = {
-  PREPARATOR_PERFORMANCE: '/api/analytics/preparator-performance',
-  TASK_METRICS: '/api/analytics/task-metrics',
-  DAILY_METRICS: '/api/analytics/daily-metrics',
-  COMPARATIVE_METRICS: '/api/analytics/comparative-metrics',
-  GLOBAL_METRICS: '/api/analytics/global-metrics'
-};
 
 const performanceService = {
   // Récupérer les données de performance pour les préparateurs sélectionnés
   getPreparatorsPerformance: async (preparatorIds, startDate, endDate) => {
     try {
       // Construire l'URL avec les paramètres
-      let url = PERFORMANCE_ENDPOINTS.COMPARATIVE_METRICS;
+      let url = ENDPOINTS.ANALYTICS_ENDPOINTS.COMPARATIVE_METRICS;
       
       // Paramètres de la requête
       const params = new URLSearchParams();
       
       // Ajouter les ID des préparateurs comme userIds
       if (preparatorIds && preparatorIds.length > 0) {
-        preparatorIds.forEach(id => params.append('userIds', id));
+        params.append('userIds', preparatorIds.join(','));
       }
       
       // Ajouter les dates
@@ -38,7 +29,6 @@ const performanceService = {
       // Faire l'appel API avec authentification
       const response = await api.get(url);
       
-      // Formater les données reçues pour les adapter au format attendu par les composants
       return formatPerformanceData(response.data, preparatorIds, startDate, endDate);
     } catch (error) {
       console.error('Erreur lors de la récupération des données de performance:', error);
@@ -49,7 +39,7 @@ const performanceService = {
   // Récupérer les métriques générales
   getGlobalMetrics: async (startDate, endDate) => {
     try {
-      let url = PERFORMANCE_ENDPOINTS.GLOBAL_METRICS;
+      let url = ENDPOINTS.ANALYTICS_ENDPOINTS.GLOBAL_METRICS;
       
       // Paramètres de la requête
       const params = new URLSearchParams();
@@ -75,7 +65,7 @@ const performanceService = {
   // Récupérer les métriques quotidiennes
   getDailyMetrics: async (userId, startDate, endDate) => {
     try {
-      let url = PERFORMANCE_ENDPOINTS.DAILY_METRICS;
+      let url = ENDPOINTS.ANALYTICS_ENDPOINTS.DAILY_METRICS;
       
       // Paramètres de la requête
       const params = new URLSearchParams();
@@ -97,35 +87,6 @@ const performanceService = {
       return response.data;
     } catch (error) {
       console.error('Erreur lors de la récupération des métriques quotidiennes:', error);
-      throw error;
-    }
-  },
-  
-  // Récupérer les métriques par type de tâche
-  getTaskMetrics: async (taskType, userId, startDate, endDate) => {
-    try {
-      let url = `${PERFORMANCE_ENDPOINTS.TASK_METRICS}/${taskType}`;
-      
-      // Paramètres de la requête
-      const params = new URLSearchParams();
-      
-      // Ajouter l'ID de l'utilisateur
-      if (userId) params.append('userId', userId);
-      
-      // Ajouter les dates
-      if (startDate) params.append('startDate', startDate);
-      if (endDate) params.append('endDate', endDate);
-      
-      // Ajouter les paramètres à l'URL
-      if (params.toString()) {
-        url += `?${params.toString()}`;
-      }
-      
-      // Faire l'appel API
-      const response = await api.get(url);
-      return response.data;
-    } catch (error) {
-      console.error(`Erreur lors de la récupération des métriques pour le type de tâche ${taskType}:`, error);
       throw error;
     }
   }
@@ -166,7 +127,7 @@ const formatPerformanceData = (apiData, preparatorIds, startDate, endDate) => {
       }
     };
     
-    // Construire les données quotidiennes (déduites des tendances si non disponibles)
+    // Construire les données quotidiennes à partir des périodeMetrics si disponibles
     const periodData = metrics.periodMetrics?.daily || [];
     
     // Format final pour ce préparateur
@@ -186,7 +147,7 @@ const formatPerformanceData = (apiData, preparatorIds, startDate, endDate) => {
     };
   });
   
-  // Format global attendu
+  // Format global attendu par les composants
   return {
     period: {
       startDate,

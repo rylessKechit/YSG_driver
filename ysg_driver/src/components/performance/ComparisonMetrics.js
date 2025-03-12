@@ -1,4 +1,4 @@
-// src/components/performance/ComparisonMetrics.js
+// src/components/performance/ComparisonMetrics.js - Adaptation pour la nouvelle API
 import React, { useState } from 'react';
 
 const ComparisonMetrics = ({ performanceData, allPreparators, selectedPreparators }) => {
@@ -86,6 +86,7 @@ const ComparisonMetrics = ({ performanceData, allPreparators, selectedPreparator
     }
   };
 
+  // Le reste du composant reste inchangé...
   // Formater la valeur d'une métrique selon son type
   const formatMetricValue = (value, metricId) => {
     const metric = metrics.find(m => m.id === metricId);
@@ -139,6 +140,7 @@ const ComparisonMetrics = ({ performanceData, allPreparators, selectedPreparator
 
   return (
     <div className="comparison-metrics-section">
+      {/* Le reste du rendu reste inchangé */}
       <h2 className="section-title">
         <i className="fas fa-chart-bar"></i> Comparaison des préparateurs
       </h2>

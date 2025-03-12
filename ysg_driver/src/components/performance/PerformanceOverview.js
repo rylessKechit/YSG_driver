@@ -1,4 +1,4 @@
-// src/components/performance/PerformanceOverview.js
+// src/components/performance/PerformanceOverview.js - Adaptation
 import React from 'react';
 
 const PerformanceOverview = ({ performanceData }) => {

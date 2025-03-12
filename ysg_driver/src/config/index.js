@@ -43,6 +43,8 @@ export const ENDPOINTS = {
     TASK_METRICS: '/api/analytics/task-metrics',
     DAILY_METRICS: '/api/analytics/daily-metrics',
     COMPARATIVE_METRICS: '/api/analytics/comparative-metrics',
-    GLOBAL_METRICS: '/api/analytics/global-metrics'
+    GLOBAL_METRICS: '/api/analytics/global-metrics',
+    VEHICLE_MODEL_STATS: '/api/analytics/vehicle-model-stats',
+    PEAK_HOURS: '/api/analytics/peak-hours'
   }
 };

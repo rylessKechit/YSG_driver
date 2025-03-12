@@ -1,4 +1,4 @@
-// src/pages/PreparatorPerformance.js
+// src/pages/PreparatorPerformance.js - Mise à jour
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
