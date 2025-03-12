@@ -3,7 +3,6 @@ const performanceService = require('../services/performance.service');
 const PreparatorPerformance = require('../models/performance.model');
 const User = require('../models/user.model');
 const Preparation = require('../models/preparation.model');
-const TimeLog = require('../models/timelog.model');
 
 /**
  * Controller pour gérer les endpoints d'analytique des performances

@@ -11,8 +11,8 @@ import PreparationsPerDay from '../components/performance/PreparationsPerDay';
 import ComparisonMetrics from '../components/performance/ComparisonMetrics';
 import AlertMessage from '../components/ui/AlertMessage';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
-import performanceService from '../services/performanceService';
 import userService from '../services/userService';
+import performanceService from '../services/performanceService';
 
 import '../styles/PreparatorPerformance.css';
 

@@ -39,12 +39,12 @@ export const ENDPOINTS = {
     PREPARATORS: '/schedules/preparators'
   },
   ANALYTICS_ENDPOINTS: {
-    PREPARATOR_PERFORMANCE: '/api/analytics/preparator-performance',
-    TASK_METRICS: '/api/analytics/task-metrics',
-    DAILY_METRICS: '/api/analytics/daily-metrics',
-    COMPARATIVE_METRICS: '/api/analytics/comparative-metrics',
-    GLOBAL_METRICS: '/api/analytics/global-metrics',
-    VEHICLE_MODEL_STATS: '/api/analytics/vehicle-model-stats',
-    PEAK_HOURS: '/api/analytics/peak-hours'
+    PREPARATOR_PERFORMANCE: '/analytics/preparator-performance',
+    TASK_METRICS: '/analytics/task-metrics',
+    DAILY_METRICS: '/analytics/daily-metrics',
+    COMPARATIVE_METRICS: '/analytics/comparative-metrics',
+    GLOBAL_METRICS: '/analytics/global-metrics',
+    VEHICLE_MODEL_STATS: '/analytics/vehicle-model-stats',
+    PEAK_HOURS: '/analytics/peak-hours'
   }
 };
