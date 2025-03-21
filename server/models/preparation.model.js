@@ -83,6 +83,9 @@ const preparationSchema = new mongoose.Schema({
     trim: true,
     uppercase: true
   },
+  agency : {
+    type: String,
+  },
   vehicleModel: {
     type: String,
     trim: true

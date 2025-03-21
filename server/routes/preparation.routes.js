@@ -20,10 +20,17 @@ const checkPreparatorActiveTimeLog = async (preparatorId) => {
 router.post('/', verifyToken, canCreatePreparation, async (req, res) => {
   try {
     const {
+      agency,
       licensePlate,
       vehicleModel,
       notes
     } = req.body;
+
+    if (!agency) {
+      return res.status(400).json({
+        message: 'L\'agence est requise'
+      });
+    }
     
     // Validations basiques
     if (!licensePlate) {
@@ -65,6 +72,7 @@ router.post('/', verifyToken, canCreatePreparation, async (req, res) => {
     const preparation = new Preparation({
       userId, // Préparateur assigné
       timeLogId,
+      agency,
       licensePlate,
       vehicleModel,
       status,

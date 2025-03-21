@@ -182,7 +182,6 @@ router.get('/preparations', verifyToken, canAccessReports, async (req, res) => {
     const preparations = await Preparation.find(query)
       .sort({ createdAt: -1 })
       .populate('userId', 'username fullName')
-      .populate('assignedBy', 'username fullName');
     
     // Créer un nouveau classeur Excel
     const workbook = new ExcelJS.Workbook();
@@ -194,11 +193,10 @@ router.get('/preparations', verifyToken, canAccessReports, async (req, res) => {
     
     // Définir les colonnes
     worksheet.columns = [
-      { header: 'ID', key: 'id', width: 24 },
+      { header: 'Agence', key: 'agency', width: 15 },
       { header: 'Plaque', key: 'licensePlate', width: 15 },
       { header: 'Modèle', key: 'vehicleModel', width: 20 },
       { header: 'Préparateur', key: 'preparator', width: 20 },
-      { header: 'Assigné par', key: 'assignedBy', width: 20 },
       { header: 'Nettoyage ext.', key: 'exteriorWashing', width: 15 },
       { header: 'Nettoyage int.', key: 'interiorCleaning', width: 15 },
       { header: 'Carburant', key: 'refueling', width: 15 },
@@ -217,11 +215,10 @@ router.get('/preparations', verifyToken, canAccessReports, async (req, res) => {
     // Ajouter les données
     preparations.forEach(prep => {
       worksheet.addRow({
-        id: prep._id.toString(),
+        agency: prep.agency || '',
         licensePlate: prep.licensePlate,
         vehicleModel: prep.vehicleModel || '',
         preparator: prep.userId ? prep.userId.fullName : '',
-        assignedBy: prep.assignedBy ? prep.assignedBy.fullName : '',
         exteriorWashing: prep.tasks.exteriorWashing.completed ? 'Oui' : 'Non',
         interiorCleaning: prep.tasks.interiorCleaning.completed ? 'Oui' : 'Non',
         refueling: prep.tasks.refueling.completed ? 'Oui' : 'Non',

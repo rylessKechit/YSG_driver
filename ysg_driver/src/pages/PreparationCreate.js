@@ -8,6 +8,7 @@ import '../styles/PreparationCreate.css';
 
 const PreparationCreate = () => {
   const [formData, setFormData] = useState({
+    agency: 'Antony / Massy TGV',
     licensePlate: '',
     vehicleModel: '',
     notes: ''
@@ -72,6 +73,11 @@ const PreparationCreate = () => {
   // Soumettre le formulaire
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!formData.agency) {
+      setError('L\'agence est requise');
+      return;
+    }
     
     if (!formData.licensePlate) {
       setError('La plaque d\'immatriculation est requise');
@@ -208,6 +214,24 @@ const PreparationCreate = () => {
                     <h2 className="section-title">
                       <i className="fas fa-car"></i> Informations du véhicule
                     </h2>
+
+                    <label htmlFor="role" className="form-label">
+                      Agence
+                    </label>
+                    <select
+                      id="agency"
+                      name="agency"
+                      value={formData.agency}
+                      onChange={handleChange}
+                      className="form-input"
+                      required
+                    >
+                      <option value="Antony / MAssy TGV">Antony / Massy TGV</option>
+                      <option value="Melun">Melun</option>
+                      <option value="Athis-mons">Athis-mons</option>
+                      <option value="Marne-la-Valée">Marne-la-Vallée</option>
+                      <option value="Paris 15">Paris 15</option>
+                    </select>
                     
                     <div className="form-group">
                       <label htmlFor="licensePlate" className="form-label">
