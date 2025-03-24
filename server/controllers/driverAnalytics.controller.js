@@ -54,6 +54,32 @@ const driverAnalyticsController = {
           days: calculateDays(dateRange.startDate, dateRange.endDate)
         };
       }
+  
+      // S'assurer que les métriques existent pour éviter les erreurs
+      if (!performance.metrics) {
+        performance.metrics = {
+          totalMovements: 0,
+          completedMovements: 0,
+          averagePreparationTime: 0,
+          averageMovementTime: 0,
+          averageCompletionTime: 0,
+          movementsPerDay: 0
+        };
+      }
+  
+      // S'assurer que dailyMetrics existe et est un tableau
+      if (!performance.dailyMetrics || !Array.isArray(performance.dailyMetrics)) {
+        performance.dailyMetrics = [];
+      }
+  
+      // S'assurer que trends existe
+      if (!performance.trends) {
+        performance.trends = {
+          weekly: { movementsCount: 0, averageCompletionTime: 0, growthRate: 0 },
+          monthly: { movementsCount: 0, averageCompletionTime: 0, growthRate: 0 },
+          quarterly: { movementsCount: 0, averageCompletionTime: 0, growthRate: 0 }
+        };
+      }
       
       res.json(performance);
     } catch (error) {
