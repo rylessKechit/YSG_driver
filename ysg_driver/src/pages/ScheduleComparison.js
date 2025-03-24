@@ -1,4 +1,3 @@
-// src/pages/ScheduleComparison.js
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -37,16 +36,14 @@ const ScheduleComparison = () => {
     { value: 'sunday', label: 'Dimanche' }
   ];
 
-  // Vérifier les autorisations
+  // Vérifier les droits d'accès
   useEffect(() => {
-    if (currentUser && 
-        currentUser.role !== 'admin' && 
-        currentUser.role !== 'direction') {
+    if (currentUser && currentUser.role !== 'admin' && currentUser.role !== 'direction') {
       navigate('/dashboard');
     }
   }, [currentUser, navigate]);
 
-  // Fonction pour obtenir le premier jour de la semaine (lundi)
+  // Fonctions utilitaires pour les dates
   function getStartOfWeek() {
     const date = new Date();
     const day = date.getDay();
@@ -54,7 +51,6 @@ const ScheduleComparison = () => {
     return new Date(date.setDate(diff));
   }
 
-  // Fonction pour obtenir le dernier jour de la semaine (dimanche)
   function getEndOfWeek() {
     const date = new Date();
     const day = date.getDay();
@@ -67,31 +63,20 @@ const ScheduleComparison = () => {
     const fetchUsers = async () => {
       try {
         setLoading(true);
-        console.log('Tentative de chargement des utilisateurs...');
         const allUsers = await userService.getAllUsers();
-        console.log('Utilisateurs chargés:', allUsers);
-        
-        // Filtrer les utilisateurs qui sont des préparateurs
         const preparators = allUsers.filter(user => user.role === 'preparator');
-        console.log('Préparateurs filtrés:', preparators);
-        
         setUsers(preparators);
         
         if (preparators && preparators.length > 0) {
           setSelectedUser(preparators[0]._id);
-          console.log('Premier préparateur sélectionné:', preparators[0]);
         } else {
-          console.log('Aucun préparateur trouvé');
-          // Si aucun préparateur n'est trouvé, on affiche un message différent 
-          // qui indique plus clairement le problème
-          setError('Aucun utilisateur avec le rôle "préparateur" n\'a été trouvé. Veuillez en créer un dans l\'administration.');
+          setError('Aucun utilisateur avec le rôle "préparateur" n\'a été trouvé.');
         }
         
         setLoading(false);
       } catch (err) {
-        console.error('Erreur lors du chargement des préparateurs:', err);
-        // Message d'erreur plus détaillé pour aider au débogage
-        setError(`Erreur lors du chargement des préparateurs: ${err.message || 'Erreur inconnue'}`);
+        console.error('Erreur:', err);
+        setError(`Erreur: ${err.message || 'Erreur inconnue'}`);
         setLoading(false);
       }
     };
@@ -108,60 +93,36 @@ const ScheduleComparison = () => {
         setLoading(true);
         setError(null);
 
-        console.log('Chargement des données pour l\'utilisateur:', selectedUser);
-
         // Charger le planning
-        console.log('Tentative de chargement du planning...');
         const schedule = await scheduleService.getUserSchedule(selectedUser);
-        console.log('Planning chargé:', schedule);
-        setScheduleData(schedule || []); // Assurer que c'est toujours un tableau même si vide
+        setScheduleData(schedule || []);
 
-        // Charger les pointages - MODIFICATIONS POUR CORRIGER LE PROBLÈME
-        console.log('Tentative de chargement des pointages...');
-        const timelogs = await timelogService.getTimeLogs(1, 500); // Augmenter le nombre pour être sûr
-        console.log('Pointages bruts chargés:', timelogs);
+        // Charger les pointages
+        const timelogs = await timelogService.getTimeLogs(1, 500);
         
-        // Filtrer les pointages pour l'utilisateur sélectionné et dans la plage de dates
+        // Filtrer pour l'utilisateur et la plage de dates
         const startDate = new Date(dateRange.startDate);
         startDate.setHours(0, 0, 0, 0);
-        const startStr = startDate.toISOString();
         
         const endDate = new Date(dateRange.endDate);
         endDate.setHours(23, 59, 59, 999);
-        const endStr = endDate.toISOString();
         
-        console.log('Filtrage des pointages du', startStr, 'au', endStr, 'pour l\'utilisateur', selectedUser);
-        
-        // S'assurer que timelogs contient la propriété timeLogs avant de filtrer
         const timeLogsArray = timelogs && timelogs.timeLogs ? timelogs.timeLogs : [];
-        console.log('Nombre total de pointages récupérés:', timeLogsArray.length);
-        
-        // Ajouter des logs détaillés pour chaque pointage
-        timeLogsArray.forEach(log => {
-          console.log(`Pointage ID:${log._id}, Utilisateur:${log.userId}, Date:${new Date(log.startTime).toLocaleString()}, Status:${log.status}`);
-        });
         
         const filteredTimelogs = timeLogsArray.filter(log => {
           const logDate = new Date(log.startTime);
-          const isCorrectUser = log.userId === selectedUser;
-          const isInDateRange = logDate >= startDate && logDate <= endDate;
-          
-          console.log(`Log pour ${new Date(log.startTime).toLocaleString()}: bon utilisateur=${isCorrectUser}, dans plage=${isInDateRange}`);
-          
-          return isCorrectUser && isInDateRange;
+          return log.userId === selectedUser && logDate >= startDate && logDate <= endDate;
         });
         
-        console.log('Pointages filtrés après vérification complète:', filteredTimelogs);
         setTimelogData(filteredTimelogs);
 
-        // Créer les données de comparaison
+        // Générer les données de comparaison
         generateComparisonData(schedule || [], filteredTimelogs);
         
         setLoading(false);
       } catch (err) {
-        console.error('Erreur lors du chargement des données:', err);
-        // Message d'erreur plus détaillé
-        setError(`Erreur lors du chargement des données: ${err.message || 'Erreur inconnue'}`);
+        console.error('Erreur:', err);
+        setError(`Erreur: ${err.message || 'Erreur inconnue'}`);
         setLoading(false);
       }
     };
@@ -169,7 +130,7 @@ const ScheduleComparison = () => {
     fetchScheduleAndTimelogs();
   }, [selectedUser, dateRange]);
 
-  // Génération des données de comparaison
+  // Générer les données de comparaison
   const generateComparisonData = (schedule, timelogs) => {
     const weekDates = getWeekDates();
     const comparison = [];
@@ -178,86 +139,61 @@ const ScheduleComparison = () => {
       const dayDate = weekDates[day.value];
       const scheduleEntry = schedule.find(entry => entry.day === day.value);
       
-      // Trouver les pointages pour ce jour - MODIFICATION ICI POUR CORRIGER LE PROBLÈME
+      // Filtrer les pointages du jour
       const dayTimelogs = timelogs.filter(log => {
-        // Convertir les deux dates en chaînes de format YYYY-MM-DD pour comparer uniquement les jours
         const logDate = new Date(log.startTime);
         const logDateStr = logDate.toISOString().split('T')[0];
         const dayDateStr = dayDate.toISOString().split('T')[0];
-        
-        // Log pour débogage
-        console.log(`Comparaison: log=${logDateStr}, jour=${dayDateStr}, même jour=${logDateStr === dayDateStr}`);
-        
         return logDateStr === dayDateStr;
       });
 
-      console.log(`Pointages pour ${day.label} (${dayDate.toLocaleDateString()}):`, dayTimelogs);
-
-      // Calculer les écarts
+      // Calculer les métriques
       let startDiff = null;
       let endDiff = null;
       let totalWorkedMinutes = 0;
 
       if (scheduleEntry && scheduleEntry.entryType === 'work' && dayTimelogs.length > 0) {
-        // Convertir les heures prévues en minutes depuis minuit
+        // Calcul du temps prévu vs réel
         const [scheduledStartHours, scheduledStartMinutes] = scheduleEntry.startTime.split(':').map(Number);
         const [scheduledEndHours, scheduledEndMinutes] = scheduleEntry.endTime.split(':').map(Number);
         
         const scheduledStartMinutesFromMidnight = scheduledStartHours * 60 + scheduledStartMinutes;
         const scheduledEndMinutesFromMidnight = scheduledEndHours * 60 + scheduledEndMinutes;
         
-        // Prendre le premier pointage comme heure d'arrivée
+        // Premier pointage = arrivée
         const firstLog = dayTimelogs.sort((a, b) => new Date(a.startTime) - new Date(b.startTime))[0];
         const actualStartTime = new Date(firstLog.startTime);
         const actualStartMinutesFromMidnight = actualStartTime.getHours() * 60 + actualStartTime.getMinutes();
         
-        // Calculer l'écart d'heure de début (en minutes)
         startDiff = actualStartMinutesFromMidnight - scheduledStartMinutesFromMidnight;
         
-        console.log(`Écart de début pour ${day.label}: ${startDiff} minutes`);
-        
-        // Prendre le dernier pointage terminé comme heure de départ
+        // Dernier pointage complété = départ
         const completedLogs = dayTimelogs.filter(log => log.status === 'completed');
         if (completedLogs.length > 0) {
           const lastLog = completedLogs.sort((a, b) => new Date(b.endTime) - new Date(a.endTime))[0];
           const actualEndTime = new Date(lastLog.endTime);
           const actualEndMinutesFromMidnight = actualEndTime.getHours() * 60 + actualEndTime.getMinutes();
           
-          // Calculer l'écart d'heure de fin (en minutes)
           endDiff = actualEndMinutesFromMidnight - scheduledEndMinutesFromMidnight;
-          
-          console.log(`Écart de fin pour ${day.label}: ${endDiff} minutes`);
-          
-          // Calculer le temps total travaillé
-          dayTimelogs.forEach(log => {
-            if (log.status === 'completed' && log.endTime) {
-              const start = new Date(log.startTime);
-              const end = new Date(log.endTime);
-              const durationMinutes = (end - start) / (1000 * 60);
-              totalWorkedMinutes += durationMinutes;
-              console.log(`Pointage ${log._id}: Durée = ${durationMinutes} minutes`);
-            }
-          });
-          
-          console.log(`Temps total travaillé pour ${day.label}: ${totalWorkedMinutes} minutes`);
-        } else {
-          console.log(`Pas de pointages complétés pour ${day.label}`);
         }
-      } else if (dayTimelogs.length > 0) {
-        // Si pas d'horaire prévu mais des pointages existent quand même
-        console.log(`Pointages trouvés pour ${day.label} mais pas d'horaire prévu ou horaire de repos`);
         
-        // Calculer le temps total travaillé même s'il n'y a pas d'horaire prévu
+        // Calculer le temps total travaillé
         dayTimelogs.forEach(log => {
           if (log.status === 'completed' && log.endTime) {
             const start = new Date(log.startTime);
             const end = new Date(log.endTime);
-            const durationMinutes = (end - start) / (1000 * 60);
-            totalWorkedMinutes += durationMinutes;
+            totalWorkedMinutes += (end - start) / (1000 * 60);
           }
         });
-      } else {
-        console.log(`Pas de pointages pour ${day.label}`);
+      } else if (dayTimelogs.length > 0) {
+        // Calculer le temps travaillé même sans planning
+        dayTimelogs.forEach(log => {
+          if (log.status === 'completed' && log.endTime) {
+            const start = new Date(log.startTime);
+            const end = new Date(log.endTime);
+            totalWorkedMinutes += (end - start) / (1000 * 60);
+          }
+        });
       }
 
       comparison.push({
@@ -290,28 +226,17 @@ const ScheduleComparison = () => {
     return dates;
   };
 
-  // Formater la différence en minutes en une chaîne lisible
+  // Formater la différence en minutes
   const formatDiffMinutes = (minutes) => {
     if (minutes === null) return 'N/A';
     
     const hours = Math.floor(Math.abs(minutes) / 60);
     const mins = Math.abs(minutes) % 60;
     
-    let result = '';
-    if (hours > 0) {
-      result += `${hours}h`;
-    }
-    if (mins > 0 || hours === 0) {
-      result += `${mins}min`;
-    }
+    let result = hours > 0 ? `${hours}h` : '';
+    result += (mins > 0 || hours === 0) ? `${mins}min` : '';
     
-    if (minutes < 0) {
-      return `${result} avant`;
-    } else if (minutes > 0) {
-      return `${result} après`;
-    } else {
-      return 'À l\'heure';
-    }
+    return minutes < 0 ? `${result} avant` : minutes > 0 ? `${result} après` : 'À l\'heure';
   };
 
   // Formater les minutes en HH:MM
@@ -324,29 +249,12 @@ const ScheduleComparison = () => {
     return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
   };
 
-  // Formater la date pour l'affichage
+  // Formater une date pour l'affichage
   const formatDate = (date) => {
-    return new Date(date).toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: '2-digit'
-    });
+    return new Date(date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
   };
 
-  // Gérer le changement d'utilisateur
-  const handleUserChange = (e) => {
-    setSelectedUser(e.target.value);
-  };
-
-  // Gérer le changement de date
-  const handleDateChange = (e) => {
-    const { name, value } = e.target;
-    setDateRange(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  // Semaine précédente
+  // Navigation entre semaines
   const handlePreviousWeek = () => {
     const startDate = new Date(dateRange.startDate);
     startDate.setDate(startDate.getDate() - 7);
@@ -360,7 +268,6 @@ const ScheduleComparison = () => {
     });
   };
 
-  // Semaine suivante
   const handleNextWeek = () => {
     const startDate = new Date(dateRange.startDate);
     startDate.setDate(startDate.getDate() + 7);
@@ -374,23 +281,21 @@ const ScheduleComparison = () => {
     });
   };
 
-  // Fonction pour obtenir la classe CSS en fonction de l'écart
+  // Classes CSS selon l'écart
   const getDifferenceClass = (diff) => {
     if (diff === null) return '';
-    
     if (diff < -15) return 'early';      // Plus de 15 minutes en avance
     if (diff < 5) return 'on-time';      // À l'heure (±5 minutes)
     if (diff < 15) return 'slightly-late'; // Légèrement en retard (5-15 minutes)
     return 'late';                        // En retard (plus de 15 minutes)
   };
 
-  // Calculer le total des temps travaillés
+  // Calculer les totaux
   const calculateTotalWorkedTime = () => {
     const totalMinutes = comparisonData.reduce((sum, day) => sum + (day.totalWorkedMinutes || 0), 0);
     return formatMinutesToTime(totalMinutes);
   };
 
-  // Calculer le temps total prévu
   const calculateTotalScheduledTime = () => {
     let totalMinutes = 0;
     
@@ -409,13 +314,12 @@ const ScheduleComparison = () => {
     return formatMinutesToTime(totalMinutes);
   };
 
-  // Calculer la différence entre le temps prévu et le temps travaillé
   const calculateTotalDifference = () => {
     let totalScheduledMinutes = 0;
     let totalWorkedMinutes = 0;
     
     comparisonData.forEach(day => {
-      // Calculer le temps prévu
+      // Temps prévu
       if (day.scheduled && day.scheduled.entryType === 'work') {
         const [startHours, startMinutes] = day.scheduled.startTime.split(':').map(Number);
         const [endHours, endMinutes] = day.scheduled.endTime.split(':').map(Number);
@@ -426,14 +330,11 @@ const ScheduleComparison = () => {
         totalScheduledMinutes += endMinutesFromMidnight - startMinutesFromMidnight;
       }
       
-      // Ajouter le temps travaillé
+      // Temps travaillé
       totalWorkedMinutes += day.totalWorkedMinutes || 0;
     });
     
-    // Calculer la différence
-    const diffMinutes = totalWorkedMinutes - totalScheduledMinutes;
-    
-    return formatDiffMinutes(diffMinutes);
+    return formatDiffMinutes(totalWorkedMinutes - totalScheduledMinutes);
   };
 
   return (
@@ -449,35 +350,22 @@ const ScheduleComparison = () => {
           <div className="user-filter">
             <label htmlFor="user-select">Préparateur:</label>
             {users && users.length > 0 ? (
-              <select 
-                id="user-select" 
-                value={selectedUser} 
-                onChange={handleUserChange}
-                className="filter-select"
-              >
+              <select id="user-select" value={selectedUser} onChange={(e) => setSelectedUser(e.target.value)}
+                className="filter-select">
                 {users.map(user => (
-                  <option key={user._id} value={user._id}>
-                    {user.fullName}
-                  </option>
+                  <option key={user._id} value={user._id}>{user.fullName}</option>
                 ))}
               </select>
             ) : (
-              <select 
-                id="user-select" 
-                disabled
-                className="filter-select"
-              >
+              <select id="user-select" disabled className="filter-select">
                 <option>Aucun préparateur disponible</option>
               </select>
             )}
           </div>
           
-          {users && users.length === 0 && currentUser.role === 'admin' && (
+          {users.length === 0 && currentUser?.role === 'admin' && (
             <div className="add-preparator-shortcut">
-              <button 
-                onClick={() => navigate('/admin')}
-                className="btn btn-primary"
-              >
+              <button onClick={() => navigate('/admin')} className="btn btn-primary">
                 <i className="fas fa-plus-circle"></i> Ajouter un préparateur
               </button>
               <span className="helper-text">Aucun préparateur trouvé. Vous devez en créer un dans l'administration.</span>
@@ -485,10 +373,7 @@ const ScheduleComparison = () => {
           )}
           
           <div className="date-navigation">
-            <button 
-              onClick={handlePreviousWeek}
-              className="nav-button"
-            >
+            <button onClick={handlePreviousWeek} className="nav-button">
               <i className="fas fa-chevron-left"></i> Semaine précédente
             </button>
             
@@ -496,10 +381,7 @@ const ScheduleComparison = () => {
               Du {formatDate(dateRange.startDate)} au {formatDate(dateRange.endDate)}
             </div>
             
-            <button 
-              onClick={handleNextWeek}
-              className="nav-button"
-            >
+            <button onClick={handleNextWeek} className="nav-button">
               Semaine suivante <i className="fas fa-chevron-right"></i>
             </button>
           </div>
@@ -538,9 +420,7 @@ const ScheduleComparison = () => {
                               {day.scheduled.startTime} - {day.scheduled.endTime}
                             </span>
                           ) : (
-                            <span className="rest-day-label">
-                              <i className="fas fa-bed"></i> Repos
-                            </span>
+                            <span className="rest-day-label"><i className="fas fa-bed"></i> Repos</span>
                           )
                         ) : (
                           <span className="not-scheduled">Non planifié</span>
@@ -550,8 +430,7 @@ const ScheduleComparison = () => {
                         {day.timelogs.length > 0 ? (
                           <span>
                             {new Date(day.timelogs[0].startTime).toLocaleTimeString('fr-FR', {
-                              hour: '2-digit',
-                              minute: '2-digit'
+                              hour: '2-digit', minute: '2-digit'
                             })}
                           </span>
                         ) : (
@@ -562,15 +441,11 @@ const ScheduleComparison = () => {
                         {formatDiffMinutes(day.startDiff)}
                       </td>
                       <td>
-                        {day.timelogs.length > 0 && 
-                         day.timelogs.filter(log => log.status === 'completed').length > 0 ? (
+                        {day.timelogs.length > 0 && day.timelogs.filter(log => log.status === 'completed').length > 0 ? (
                           <span>
                             {new Date(day.timelogs.filter(log => log.status === 'completed')
-                                                  .sort((a, b) => new Date(b.endTime) - new Date(a.endTime))[0].endTime)
-                                                  .toLocaleTimeString('fr-FR', {
-                                                    hour: '2-digit',
-                                                    minute: '2-digit'
-                                                  })}
+                              .sort((a, b) => new Date(b.endTime) - new Date(a.endTime))[0].endTime)
+                              .toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                           </span>
                         ) : (
                           <span className="no-timelog">-</span>
@@ -581,9 +456,7 @@ const ScheduleComparison = () => {
                       </td>
                       <td>
                         {day.totalWorkedMinutes > 0 ? (
-                          <span className="worked-time">
-                            {formatMinutesToTime(day.totalWorkedMinutes)}
-                          </span>
+                          <span className="worked-time">{formatMinutesToTime(day.totalWorkedMinutes)}</span>
                         ) : (
                           <span className="no-timelog">-</span>
                         )}
@@ -630,17 +503,6 @@ const ScheduleComparison = () => {
                 <span className="legend-color rest-day"></span>
                 <span>Jour de repos</span>
               </div>
-            </div>
-            
-            <div className="notes-section">
-              <h2>Notes explicatives</h2>
-              <ul>
-                <li>Les données de pointage sont comparées aux horaires planifiés pour chaque jour.</li>
-                <li>Le temps travaillé est calculé à partir des pointages effectués dans la journée.</li>
-                <li>Un pointage est considéré comme "à l'heure" s'il est effectué dans une plage de 5 minutes avant ou après l'heure prévue.</li>
-                <li>Si plusieurs pointages sont effectués dans une journée, le premier est utilisé pour l'heure d'arrivée et le dernier pour l'heure de départ.</li>
-                <li>Les jours de repos sont indiqués sur fond gris.</li>
-              </ul>
             </div>
           </>
         )}
