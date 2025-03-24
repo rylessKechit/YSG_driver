@@ -59,7 +59,6 @@ const MovementCard = ({ movement, actionButton }) => {
         <div className="route-item">
           <div className="route-icon">
             <div className="route-icon-circle departure-icon"></div>
-            <div className="route-line"></div>
           </div>
           <div className="route-details">
             <div className="route-label">Départ</div>
