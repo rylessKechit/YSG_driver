@@ -43,7 +43,7 @@ const Dashboard = () => {
           setMovementsData({
             assigned: movements.filter(m => m.status === 'assigned'),
             inProgress: movements.filter(m => m.status === 'in-progress'),
-            recent: movements.filter(m => m.status === 'completed').slice(0, 5)
+            recent: movements.filter(m => m.status === 'completed').slice(0, 3)
           });
         }
         
@@ -52,8 +52,8 @@ const Dashboard = () => {
           const { preparations = [] } = await preparationService.getPreparations(1, 50);
           
           setPreparationsData({
-            inProgress: preparations.filter(p => p.status === 'in-progress').slice(0, 5),
-            recent: preparations.filter(p => p.status === 'completed').slice(0, 5)
+            inProgress: preparations.filter(p => p.status === 'in-progress').slice(0, 3),
+            recent: preparations.filter(p => p.status === 'completed').slice(0, 3)
           });
         }
       } catch (err) {
@@ -93,11 +93,11 @@ const Dashboard = () => {
     roleComponents.push({ component: 'quickActions', label: 'QuickActions' });
     
     // Préparations en cours pour préparateurs, chauffeurs et chefs d'équipe
-    (['preparator', 'driver', 'team-leader'].includes(currentUser.role) && preparationsData.inProgress.length > 0) && 
+    (['preparator', 'admin'].includes(currentUser.role) && preparationsData.inProgress.length > 0) && 
       roleComponents.push({ component: 'inProgressPreparations', label: 'InProgressPreparations' });
     
     // Préparations récentes pour préparateurs, chauffeurs et chefs d'équipe
-    (['preparator', 'driver', 'team-leader'].includes(currentUser.role) && preparationsData.recent.length > 0) && 
+    (['preparator', 'admin'].includes(currentUser.role) && preparationsData.recent.length > 0) && 
       roleComponents.push({ component: 'recentPreparations', label: 'RecentPreparations' });
     
     // Mouvements récents pour chauffeurs, chefs d'équipe et admin
