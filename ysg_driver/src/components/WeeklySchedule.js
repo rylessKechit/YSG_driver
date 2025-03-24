@@ -68,17 +68,18 @@ const WeeklySchedule = () => {
   };
 
   // Vérifier si une date correspond à un jour de la semaine
-  const isDateInDay = (date, dayValue) => {
-    const weekDateObjects = getWeekDateObjects();
-    const dayDate = weekDateObjects[dayValue];
+  const isDateInDay = (dateStr, dayValue) => {
+    if (!dateStr) return false;
     
-    const checkDate = new Date(date);
+    const dates = getWeekDates();
+    const dayDate = dates[dayValue];
     
-    return (
-      checkDate.getDate() === dayDate.getDate() &&
-      checkDate.getMonth() === dayDate.getMonth() &&
-      checkDate.getFullYear() === dayDate.getFullYear()
-    );
+    const checkDate = new Date(dateStr);
+    
+    // Comparer seulement la date (jour, mois, année), pas l'heure
+    return checkDate.getDate() === dayDate.getDate() && 
+           checkDate.getMonth() === dayDate.getMonth() && 
+           checkDate.getFullYear() === dayDate.getFullYear();
   };
 
   // Obtenir les pointages pour un jour spécifique

@@ -92,30 +92,41 @@ const ScheduleComparison = () => {
       try {
         setLoading(true);
         setError(null);
-
+    
         // Charger le planning
         const schedule = await scheduleService.getUserSchedule(selectedUser);
         setScheduleData(schedule || []);
-
+    
         // Charger les pointages
-        const timelogs = await timelogService.getTimeLogs(1, 500);
+        // Modifier pour spécifier le userId dans la requête des pointages
+        const params = {
+          userId: selectedUser,
+          startDate: dateRange.startDate,
+          endDate: dateRange.endDate
+        };
         
-        // Filtrer pour l'utilisateur et la plage de dates
+        const timelogs = await timelogService.getTimeLogs(1, 500, null, params);
+        
+        // S'assurer que les pointages sont bien pour le bon utilisateur
+        const timeLogsArray = timelogs && timelogs.timeLogs ? timelogs.timeLogs : [];
+        
+        // Filtrer pour l'utilisateur et la plage de dates de façon explicite
         const startDate = new Date(dateRange.startDate);
         startDate.setHours(0, 0, 0, 0);
         
         const endDate = new Date(dateRange.endDate);
         endDate.setHours(23, 59, 59, 999);
         
-        const timeLogsArray = timelogs && timelogs.timeLogs ? timelogs.timeLogs : [];
-        
         const filteredTimelogs = timeLogsArray.filter(log => {
-          const logDate = new Date(log.startTime);
-          return log.userId === selectedUser && logDate >= startDate && logDate <= endDate;
+          const logStartDate = new Date(log.startTime);
+          return log.userId === selectedUser && 
+                 logStartDate >= startDate && 
+                 logStartDate <= endDate;
         });
         
+        console.log("Timelogs filtrés:", filteredTimelogs);
         setTimelogData(filteredTimelogs);
-
+    
         // Générer les données de comparaison
         generateComparisonData(schedule || [], filteredTimelogs);
         
@@ -134,7 +145,7 @@ const ScheduleComparison = () => {
   const generateComparisonData = (schedule, timelogs) => {
     const weekDates = getWeekDates();
     const comparison = [];
-
+  
     days.forEach(day => {
       const dayDate = weekDates[day.value];
       const scheduleEntry = schedule.find(entry => entry.day === day.value);
@@ -146,12 +157,12 @@ const ScheduleComparison = () => {
         const dayDateStr = dayDate.toISOString().split('T')[0];
         return logDateStr === dayDateStr;
       });
-
+  
       // Calculer les métriques
       let startDiff = null;
       let endDiff = null;
       let totalWorkedMinutes = 0;
-
+  
       if (scheduleEntry && scheduleEntry.entryType === 'work' && dayTimelogs.length > 0) {
         // Calcul du temps prévu vs réel
         const [scheduledStartHours, scheduledStartMinutes] = scheduleEntry.startTime.split(':').map(Number);
@@ -182,7 +193,8 @@ const ScheduleComparison = () => {
           if (log.status === 'completed' && log.endTime) {
             const start = new Date(log.startTime);
             const end = new Date(log.endTime);
-            totalWorkedMinutes += (end - start) / (1000 * 60);
+            // Arrondir à 2 décimales pour éviter les nombres à virgule flottante longs
+            totalWorkedMinutes += Math.round(((end - start) / (1000 * 60)) * 100) / 100;
           }
         });
       } else if (dayTimelogs.length > 0) {
@@ -191,24 +203,25 @@ const ScheduleComparison = () => {
           if (log.status === 'completed' && log.endTime) {
             const start = new Date(log.startTime);
             const end = new Date(log.endTime);
-            totalWorkedMinutes += (end - start) / (1000 * 60);
+            // Arrondir à 2 décimales
+            totalWorkedMinutes += Math.round(((end - start) / (1000 * 60)) * 100) / 100;
           }
         });
       }
-
+  
       comparison.push({
         day: day.value,
         dayLabel: day.label,
         date: dayDate,
         scheduled: scheduleEntry,
         timelogs: dayTimelogs,
-        startDiff,
-        endDiff,
-        totalWorkedMinutes,
+        startDiff: startDiff !== null ? Math.round(startDiff * 10) / 10 : null, // Arrondir à 1 décimale
+        endDiff: endDiff !== null ? Math.round(endDiff * 10) / 10 : null, // Arrondir à 1 décimale
+        totalWorkedMinutes: totalWorkedMinutes > 0 ? Math.round(totalWorkedMinutes * 100) / 100 : 0, // Arrondir à 2 décimales
         shouldWork: scheduleEntry && scheduleEntry.entryType === 'work'
       });
     });
-
+  
     setComparisonData(comparison);
   };
 
@@ -217,6 +230,7 @@ const ScheduleComparison = () => {
     const dates = {};
     const startDate = new Date(dateRange.startDate);
     
+    // S'assurer que les jours sont correctement ordonnés
     days.forEach((day, index) => {
       const date = new Date(startDate);
       date.setDate(startDate.getDate() + index);
@@ -230,11 +244,19 @@ const ScheduleComparison = () => {
   const formatDiffMinutes = (minutes) => {
     if (minutes === null) return 'N/A';
     
-    const hours = Math.floor(Math.abs(minutes) / 60);
-    const mins = Math.abs(minutes) % 60;
+    // Arrondir à 2 décimales maximum
+    const roundedMinutes = Math.round(minutes * 100) / 100;
     
-    let result = hours > 0 ? `${hours}h` : '';
-    result += (mins > 0 || hours === 0) ? `${mins}min` : '';
+    const hours = Math.floor(Math.abs(roundedMinutes) / 60);
+    const mins = Math.abs(Math.round(roundedMinutes % 60));
+    
+    let result = '';
+    if (hours > 0) {
+      result += `${hours}h`;
+    }
+    if (mins > 0 || hours === 0) {
+      result += `${mins}min`;
+    }
     
     return minutes < 0 ? `${result} avant` : minutes > 0 ? `${result} après` : 'À l\'heure';
   };
@@ -243,9 +265,17 @@ const ScheduleComparison = () => {
   const formatMinutesToTime = (minutes) => {
     if (minutes === null || isNaN(minutes)) return 'N/A';
     
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
+    // Arrondir les minutes à un nombre entier ou à 2 décimales max
+    const roundedMinutes = Math.round(minutes * 100) / 100;
     
+    const hours = Math.floor(roundedMinutes / 60);
+    const mins = Math.floor(roundedMinutes % 60);
+    const secs = Math.round((roundedMinutes % 1) * 60); // Convertir décimales en secondes
+    
+    // Format HH:MM ou HH:MM:SS si des secondes existent
+    if (secs > 0) {
+      return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
     return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
   };
 
@@ -293,7 +323,9 @@ const ScheduleComparison = () => {
   // Calculer les totaux
   const calculateTotalWorkedTime = () => {
     const totalMinutes = comparisonData.reduce((sum, day) => sum + (day.totalWorkedMinutes || 0), 0);
-    return formatMinutesToTime(totalMinutes);
+    // Arrondir à 2 décimales
+    const roundedMinutes = Math.round(totalMinutes * 100) / 100;
+    return formatMinutesToTime(roundedMinutes);
   };
 
   const calculateTotalScheduledTime = () => {
@@ -334,7 +366,9 @@ const ScheduleComparison = () => {
       totalWorkedMinutes += day.totalWorkedMinutes || 0;
     });
     
-    return formatDiffMinutes(totalWorkedMinutes - totalScheduledMinutes);
+    // Arrondir la différence à 2 décimales
+    const diffMinutes = Math.round((totalWorkedMinutes - totalScheduledMinutes) * 100) / 100;
+    return formatDiffMinutes(diffMinutes);
   };
 
   return (

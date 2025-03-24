@@ -53,18 +53,18 @@ const timelogService = {
   },
   
   // Récupérer l'historique des pointages sans cache
-  getTimeLogs: async (page = 1, limit = 10, status = null) => {
+  getTimeLogs: async (page = 1, limit = 10, status = null, params = {}) => {
     try {
       let url = `${ENDPOINTS.TIMELOGS.BASE}?page=${page}&limit=${limit}`;
+      
       if (status) url += `&status=${status}`;
       
-      // Toujours obtenir des données fraîches
-      const response = await api.get(url);
+      // Ajouter des paramètres supplémentaires
+      if (params.userId) url += `&userId=${params.userId}`;
+      if (params.startDate) url += `&startDate=${params.startDate}`;
+      if (params.endDate) url += `&endDate=${params.endDate}`;
       
-      // Si les données ne contiennent pas la propriété timeLogs, ajustez le format
-      if (response.data && !response.data.timeLogs && Array.isArray(response.data)) {
-        return { timeLogs: response.data, totalPages: 1 };
-      }
+      const response = await api.get(url);
       
       return response.data;
     } catch (error) {

@@ -72,28 +72,44 @@ router.get('/active',verifyToken,async(req,res)=>{
 });
 
 // Obtenir historique des pointages
-router.get('/',verifyToken,async(req,res)=>{
-  try{
-    const{page=1,limit=10,status}=req.query,
-          skip=(page-1)*limit,
-          query={userId:req.user._id};
+router.get('/', verifyToken, async (req, res) => {
+  try {
+    const { page = 1, limit = 10, status, userId, startDate, endDate } = req.query;
+    const skip = (page - 1) * limit;
+    const query = {};
     
-    if(status)query.status=status;
+    // Utiliser l'userId de la requête si fourni, sinon celui de l'utilisateur connecté
+    query.userId = userId ? userId : req.user._id;
     
-    const[timeLogs,total]=await Promise.all([
-      TimeLog.find(query).sort({createdAt:-1}).skip(skip).limit(parseInt(limit)),
+    if (status) query.status = status;
+    
+    // Ajouter le filtrage par date
+    if (startDate || endDate) {
+      query.startTime = {};
+      if (startDate) {
+        query.startTime.$gte = new Date(startDate);
+      }
+      if (endDate) {
+        const endDateTime = new Date(endDate);
+        endDateTime.setHours(23, 59, 59, 999);
+        query.startTime.$lte = endDateTime;
+      }
+    }
+    
+    const [timeLogs, total] = await Promise.all([
+      TimeLog.find(query).sort({ createdAt: -1 }).skip(skip).limit(parseInt(limit)),
       TimeLog.countDocuments(query)
     ]);
     
     res.json({
       timeLogs,
-      totalPages:Math.ceil(total/limit),
-      currentPage:parseInt(page),
-      totalItems:total
+      totalPages: Math.ceil(total / limit),
+      currentPage: parseInt(page),
+      totalItems: total
     });
-  }catch(e){
-    console.error('Erreur lors de la récupération des pointages:',e);
-    res.status(500).json({message:'Erreur serveur'});
+  } catch (error) {
+    console.error('Erreur lors de la récupération des pointages:', error);
+    res.status(500).json({ message: 'Erreur serveur' });
   }
 });
 
