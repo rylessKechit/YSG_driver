@@ -33,7 +33,7 @@ router.post('/',verifyToken,canCreateMovement,async(req,res)=>{
       assignedBy:req.user._id,
       licensePlate,vehicleModel,
       departureLocation,arrivalLocation,
-      status:userId&&timeLogId?'assigned':'pending',
+      status:userId?'assigned':'pending',
       notes,deadline:deadline||null
     });
     
@@ -133,7 +133,7 @@ router.post('/:id/assign',verifyToken,canAssignMovement,async(req,res)=>{
     
     movement.userId=userId;
     movement.timeLogId=activeTimeLog?activeTimeLog._id:null;
-    movement.status=activeTimeLog?'assigned':'pending';
+    movement.status='assigned';
     
     await movement.save();
     
