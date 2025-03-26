@@ -25,6 +25,25 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
 const verifyLocationAndIP = async (req, res, next) => {
   try {
     // Code de vérification IP...
+
+    const clientIP = req.ip
+    
+    // Récupérer toutes les plages IP actives
+    const allowedNetworks = await AllowedNetwork.find({ isActive: true });
+    const isIPAllowed = allowedNetworks.some(network => 
+      ipRangeCheck(clientIP, network.ipRange)
+    );
+
+    console.log('Client IP:', clientIP);
+    console.log('Allowed Networks:', allowedNetworks);
+    console.log('Is IP Allowed:', isIPAllowed);
+    
+    if (!isIPAllowed) {
+      return res.status(403).json({
+        message: 'Accès refusé: réseau non autorisé',
+        error: 'NETWORK_NOT_ALLOWED'
+      });
+    }
     
     // 2. Vérification de la géolocalisation
     const { latitude, longitude } = req.body;
