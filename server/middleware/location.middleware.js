@@ -27,6 +27,8 @@ const verifyLocationAndIP = async (req, res, next) => {
     // Code de vérification IP...
 
     const clientIP = req.ip
+
+    console.log('Client IP:', clientIP);
     
     // Récupérer toutes les plages IP actives
     const allowedNetworks = await AllowedNetwork.find({ isActive: true });
