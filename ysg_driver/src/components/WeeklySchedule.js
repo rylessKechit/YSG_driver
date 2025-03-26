@@ -36,6 +36,7 @@ const WeeklySchedule = () => {
   // Calculer les dates de la semaine
   const getWeekDates = () => {
     const dates = {};
+    // Créer une nouvelle instance de date pour éviter la mutation
     const weekStart = new Date(today);
     // Reculer jusqu'au lundi
     weekStart.setDate(today.getDate() - (today.getDay() === 0 ? 6 : today.getDay() - 1));
@@ -54,6 +55,7 @@ const WeeklySchedule = () => {
   // Fonction pour obtenir les dates précises pour chaque jour de la semaine
   const getWeekDateObjects = () => {
     const dateObjects = {};
+    // Créer une nouvelle instance de date pour éviter la mutation
     const weekStart = new Date(today);
     // Reculer jusqu'au lundi
     weekStart.setDate(today.getDate() - (today.getDay() === 0 ? 6 : today.getDay() - 1));
@@ -71,15 +73,29 @@ const WeeklySchedule = () => {
   const isDateInDay = (dateStr, dayValue) => {
     if (!dateStr) return false;
     
-    const dates = getWeekDates();
-    const dayDate = dates[dayValue];
+    const weekDateObjects = getWeekDateObjects();
+    const dayDate = weekDateObjects[dayValue];
     
-    const checkDate = new Date(dateStr);
+    if (!dayDate || !(dayDate instanceof Date) || isNaN(dayDate)) {
+      console.error('Date invalide pour le jour:', dayValue);
+      return false;
+    }
     
-    // Comparer seulement la date (jour, mois, année), pas l'heure
-    return checkDate.getDate() === dayDate.getDate() && 
-           checkDate.getMonth() === dayDate.getMonth() && 
-           checkDate.getFullYear() === dayDate.getFullYear();
+    try {
+      const checkDate = new Date(dateStr);
+      
+      if (!(checkDate instanceof Date) || isNaN(checkDate)) {
+        return false;
+      }
+      
+      // Comparer seulement la date (jour, mois, année), pas l'heure
+      return checkDate.getDate() === dayDate.getDate() && 
+             checkDate.getMonth() === dayDate.getMonth() && 
+             checkDate.getFullYear() === dayDate.getFullYear();
+    } catch (error) {
+      console.error('Erreur lors de la comparaison des dates:', error);
+      return false;
+    }
   };
 
   // Obtenir les pointages pour un jour spécifique
@@ -99,8 +115,16 @@ const WeeklySchedule = () => {
   // Formater l'heure
   const formatTime = (dateString) => {
     if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    try {
+      const date = new Date(dateString);
+      if (!(date instanceof Date) || isNaN(date)) {
+        return '';
+      }
+      return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    } catch (error) {
+      console.error('Erreur lors du formatage de l\'heure:', error);
+      return '';
+    }
   };
 
   useEffect(() => {
@@ -318,51 +342,51 @@ const WeeklySchedule = () => {
                         <div className="detail-value timelogs-list">
                           {dayTimelogs.map((timelog, idx) => (
                             <div key={timelog._id || idx} className={`timelog-entry ${timelog.status}`}>
-                              <i className={`fas ${timelog.status === 'active' ? 'fa-play-circle' : 'fa-check-circle'}`}></i>
-                              <span>
-                                {formatTime(timelog.startTime)}
-                                {timelog.endTime ? ` - ${formatTime(timelog.endTime)}` : ' (en cours)'}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
+                            <i className={`fas ${timelog.status === 'active' ? 'fa-play-circle' : 'fa-check-circle'}`}></i>
+                            <span>
+                              {formatTime(timelog.startTime)}
+                              {timelog.endTime ? ` - ${formatTime(timelog.endTime)}` : ' (en cours)'}
+                            </span>
+                          </div>
+                        ))}
                       </div>
-                    )}
-                  </div>
-                )}
-                
-                {isExpanded && !entry && (
-                  <div className="mobile-day-details empty">
-                    <p>Pas d'horaire défini pour ce jour</p>
-                    
-                    {/* Affichage des pointages même sans planning */}
-                    {dayTimelogs.length > 0 && (
-                      <div className="detail-item timelog-detail">
-                        <div className="detail-label">
-                          <i className="fas fa-user-clock"></i> Pointages:
-                        </div>
-                        <div className="detail-value timelogs-list">
-                          {dayTimelogs.map((timelog, idx) => (
-                            <div key={timelog._id || idx} className={`timelog-entry ${timelog.status}`}>
-                              <i className={`fas ${timelog.status === 'active' ? 'fa-play-circle' : 'fa-check-circle'}`}></i>
-                              <span>
-                                {formatTime(timelog.startTime)}
-                                {timelog.endTime ? ` - ${formatTime(timelog.endTime)}` : ' (en cours)'}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {isExpanded && !entry && (
+                <div className="mobile-day-details empty">
+                  <p>Pas d'horaire défini pour ce jour</p>
+                  
+                  {/* Affichage des pointages même sans planning */}
+                  {dayTimelogs.length > 0 && (
+                    <div className="detail-item timelog-detail">
+                      <div className="detail-label">
+                        <i className="fas fa-user-clock"></i> Pointages:
                       </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
+                      <div className="detail-value timelogs-list">
+                        {dayTimelogs.map((timelog, idx) => (
+                          <div key={timelog._id || idx} className={`timelog-entry ${timelog.status}`}>
+                            <i className={`fas ${timelog.status === 'active' ? 'fa-play-circle' : 'fa-check-circle'}`}></i>
+                            <span>
+                              {formatTime(timelog.startTime)}
+                              {timelog.endTime ? ` - ${formatTime(timelog.endTime)}` : ' (en cours)'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    )}
+  </div>
+);
 };
 
 export default WeeklySchedule;

@@ -1,251 +1,346 @@
 // src/pages/TimeLog.js
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import timelogService from '../services/timelogService';
 import { useAuth } from '../context/AuthContext';
+import timelogService from '../services/timelogService';
 import Navigation from '../components/Navigation';
+import LoadingSpinner from '../components/ui/LoadingSpinner';
+import AlertMessage from '../components/ui/AlertMessage';
 import '../styles/TimeLog.css';
 
 const TimeLog = () => {
   const [activeTimeLog, setActiveTimeLog] = useState(null);
+  const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-  const [location, setLocation] = useState(null);
-  const [notes, setNotes] = useState('');
+  const [position, setPosition] = useState(null);
+  const [locationError, setLocationError] = useState(null);
+  const [locationStatus, setLocationStatus] = useState(null);
+  const [refreshInterval, setRefreshInterval] = useState(null);
   const { currentUser } = useAuth();
   const navigate = useNavigate();
 
-  // Rediriger si l'utilisateur est admin ou direction
+  // Vérifier le pointage actif au chargement
   useEffect(() => {
-    if (currentUser && ['admin', 'direction'].includes(currentUser.role)) {
-      navigate('/dashboard');
-    }
-  }, [currentUser, navigate]);
-
-  // Obtenir la géolocalisation actuelle
-  const getCurrentLocation = () => {
-    return new Promise((resolve, reject) => {
-      if (!navigator.geolocation) {
-        reject(new Error('La géolocalisation n\'est pas supportée par votre navigateur'));
-        return;
-      }
-
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const locationData = {
-            coordinates: {
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude
-            },
-            name: 'Position actuelle'
-          };
-          setLocation(locationData);
-          resolve(locationData);
-        },
-        (error) => {
-          console.error('Erreur de géolocalisation:', error);
-          reject(error);
-        }
-      );
-    });
-  };
-
-  // Charger le pointage actif au chargement de la page
-  useEffect(() => {
-    // Ne pas charger le pointage si l'utilisateur est admin ou direction
-    if (currentUser && ['admin', 'direction'].includes(currentUser.role)) {
-      setLoading(false);
-      return;
-    }
-    
-    const fetchActiveTimeLog = async () => {
+    const checkActiveTimeLog = async () => {
       try {
         setLoading(true);
-        setError(null);
-        const data = await timelogService.getActiveTimeLog();
-        setActiveTimeLog(data);
-        
-        // Obtenir la position actuelle en arrière-plan
-        getCurrentLocation().catch(err => console.error('Erreur de géolocalisation:', err));
+        const timeLog = await timelogService.getActiveTimeLog();
+        setActiveTimeLog(timeLog);
+        setLoading(false);
       } catch (err) {
-        console.error('Erreur lors du chargement du pointage actif:', err);
-        if (!(err.response && err.response.status === 404)) {
-          setError('Erreur lors du chargement du pointage actif. Veuillez réessayer.');
+        if (err.response?.status === 404) {
+          setActiveTimeLog(null);
+        } else {
+          setError('Erreur lors de la vérification du pointage');
+          console.error(err);
         }
-      } finally {
         setLoading(false);
       }
     };
+    
+    checkActiveTimeLog();
+  }, []);
 
-    fetchActiveTimeLog();
-  }, [currentUser]);
+  // Obtenir la géolocalisation actuelle
+  const getCurrentPosition = () => {
+    setLocationError(null);
+    setLocationStatus('Obtention de votre position...');
+    
+    if (!navigator.geolocation) {
+      setLocationError('La géolocalisation n\'est pas prise en charge par votre navigateur');
+      setLocationStatus(null);
+      return;
+    }
+    
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setPosition({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracy: position.coords.accuracy
+        });
+        setLocationStatus(`Position obtenue (précision: ${Math.round(position.coords.accuracy)}m)`);
+      },
+      (error) => {
+        let errorMessage;
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage = 'Accès à la géolocalisation refusé. Veuillez autoriser l\'accès à votre position dans les paramètres de votre navigateur.';
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage = 'Position indisponible. Veuillez vérifier que le GPS de votre appareil est activé.';
+            break;
+          case error.TIMEOUT:
+            errorMessage = 'La demande de géolocalisation a expiré. Veuillez réessayer.';
+            break;
+          default:
+            errorMessage = `Erreur de géolocalisation: ${error.message}`;
+        }
+        setLocationError(errorMessage);
+        setLocationStatus(null);
+      },
+      { 
+        enableHighAccuracy: true, 
+        timeout: 10000, 
+        maximumAge: 0 
+      }
+    );
+  };
+
+  // Démarrer la mise à jour périodique de la position
+  useEffect(() => {
+    getCurrentPosition();
+
+    // Mettre à jour la position toutes les 30 secondes
+    const interval = setInterval(() => {
+      getCurrentPosition();
+    }, 30000);
+
+    setRefreshInterval(interval);
+
+    return () => {
+      if (refreshInterval) clearInterval(refreshInterval);
+    };
+  }, []);
 
   // Démarrer un pointage
-  const handleStartTimeLog = async () => {
+  const startTimeLog = async () => {
+    if (!position) {
+      setError('La position GPS est requise pour le pointage');
+      return;
+    }
+    
     try {
-      setActionLoading(true);
+      setLoading(true);
       setError(null);
       
-      // Obtenir la position actuelle
-      let locationData;
-      try {
-        locationData = location || await getCurrentLocation();
-      } catch (geoError) {
-        console.error('Erreur de géolocalisation lors du démarrage:', geoError);
-        locationData = {
-          name: 'Position non disponible',
-          coordinates: { latitude: null, longitude: null }
-        };
-      }
+      const { latitude, longitude } = position;
+      const response = await timelogService.startTimeLog({ latitude, longitude, notes });
       
-      const response = await timelogService.startTimeLog({ location: locationData });
+      setActiveTimeLog(response.timeLog);
+      setNotes('');
+      setSuccess('Pointage démarré avec succès');
+      setTimeout(() => setSuccess(null), 3000);
       
-      if (response && response.timeLog) {
-        setActiveTimeLog(response.timeLog);
-        setSuccess('Pointage démarré avec succès');
-        setTimeout(() => setSuccess(null), 3000);
-      } else {
-        throw new Error('Format de réponse invalide');
-      }
+      setLoading(false);
     } catch (err) {
-      console.error('Erreur détaillée lors du démarrage du pointage:', err);
-      setError(err.response?.data?.message || 'Erreur lors du démarrage du pointage. Veuillez réessayer.');
-    } finally {
-      setActionLoading(false);
+      setLoading(false);
+      
+      // Gestion spécifique des erreurs de localisation/réseau
+      if (err.response?.data?.error === 'NETWORK_NOT_ALLOWED') {
+        setError('Réseau non autorisé pour le pointage. Vous devez être connecté à un réseau d\'entreprise.');
+      } else if (err.response?.data?.error === 'LOCATION_NOT_ALLOWED') {
+        // Affichage des détails sur l'emplacement le plus proche
+        const details = err.response?.data?.details;
+        let errorMsg = 'Vous devez être à un emplacement autorisé pour pointer.';
+        
+        if (details && details.closestLocation) {
+          errorMsg += ` L'emplacement autorisé le plus proche est "${details.closestLocation}" à ${details.distance} mètres.`;
+        }
+        
+        setError(errorMsg);
+      } else {
+        setError(err.response?.data?.message || 'Erreur lors du pointage');
+      }
+      
+      console.error(err);
     }
   };
 
   // Terminer un pointage
-  const handleEndTimeLog = async () => {
+  const endTimeLog = async () => {
+    if (!position) {
+      setError('La position GPS est requise pour terminer le pointage');
+      return;
+    }
+    
     try {
-      setActionLoading(true);
+      setLoading(true);
       setError(null);
       
-      // Récupérer la position actuelle si possible
-      let locationData;
-      try {
-        locationData = location || await getCurrentLocation();
-      } catch (geoError) {
-        locationData = {
-          name: 'Position non disponible',
-          coordinates: { latitude: null, longitude: null }
-        };
-      }
-      
-      await timelogService.endTimeLog(locationData, notes);
+      const { latitude, longitude } = position;
+      await timelogService.endTimeLog({ latitude, longitude, notes });
       
       setActiveTimeLog(null);
       setNotes('');
       setSuccess('Pointage terminé avec succès');
+      setTimeout(() => setSuccess(null), 3000);
       
-      setTimeout(() => {
-        setSuccess(null);
-        navigate('/dashboard');
-      }, 2000);
+      setLoading(false);
     } catch (err) {
-      console.error('Erreur lors de la fin du pointage:', err);
-      setError(err.response?.data?.message || 'Erreur lors de la fin du pointage. Veuillez réessayer.');
-    } finally {
-      setActionLoading(false);
+      setLoading(false);
+      
+      // Gestion spécifique des erreurs de localisation/réseau
+      if (err.response?.data?.error === 'NETWORK_NOT_ALLOWED') {
+        setError('Réseau non autorisé pour le pointage. Vous devez être connecté à un réseau d\'entreprise.');
+      } else if (err.response?.data?.error === 'LOCATION_NOT_ALLOWED') {
+        // Affichage des détails sur l'emplacement le plus proche
+        const details = err.response?.data?.details;
+        let errorMsg = 'Vous devez être à un emplacement autorisé pour terminer le pointage.';
+        
+        if (details && details.closestLocation) {
+          errorMsg += ` L'emplacement autorisé le plus proche est "${details.closestLocation}" à ${details.distance} mètres.`;
+        }
+        
+        setError(errorMsg);
+      } else {
+        setError(err.response?.data?.message || 'Erreur lors de la fin du pointage');
+      }
+      
+      console.error(err);
     }
   };
 
-  if (loading) {
-    return (
-      <div>
-        <Navigation />
-        <div className="loading-container">
-          <div className="spinner"></div>
-          <p>Chargement en cours...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Vérification si l'utilisateur est admin ou direction
-  const isUnauthorized = currentUser && ['admin', 'direction'].includes(currentUser.role);
-  
+  // Affichage du composant
   return (
     <div>
       <Navigation />
-      
-      {isUnauthorized ? (
-        <div className="unauthorized-message">
-          <h2>Accès non autorisé</h2>
-          <p>Votre rôle ne permet pas d'accéder à la fonctionnalité de pointage.</p>
-          <button onClick={() => navigate('/dashboard')} className="btn btn-primary">
-            Retour au tableau de bord
-          </button>
-        </div>
-      ) : (
-        <div className="timelog-container">
-          <h1 className="timelog-title">Pointage de service</h1>
-          
-          {error && <div className="error-message">{error}</div>}
-          {success && <div className="success-message">{success}</div>}
-          
+      <div className="timelog-container">
+        <h1 className="timelog-title">Gestion du pointage</h1>
+        
+        {error && <AlertMessage type="error" message={error} onDismiss={() => setError(null)} />}
+        {success && <AlertMessage type="success" message={success} onDismiss={() => setSuccess(null)} />}
+        
+        {loading ? (
+          <div className="loading-container">
+            <LoadingSpinner />
+            <p>Chargement...</p>
+          </div>
+        ) : (
           <div className="timelog-card">
             <div className="status-section">
               <h2 className="status-title">Statut actuel</h2>
               <div className="status-indicator">
                 <div className={`status-dot ${activeTimeLog ? 'active' : 'inactive'}`}></div>
-                <span className="status-text">{activeTimeLog ? 'En service' : 'Hors service'}</span>
+                <span className="status-text">
+                  {activeTimeLog ? 'En service' : 'Hors service'}
+                </span>
               </div>
+              
+              {activeTimeLog && (
+                <p className="timestamp">
+                  Service démarré le {new Date(activeTimeLog.startTime).toLocaleString()}
+                </p>
+              )}
             </div>
             
-            {activeTimeLog ? (
-              <div>
-                <div className="timestamp">
-                  <p>Service démarré le {new Date(activeTimeLog.startTime).toLocaleString()}</p>
+            <div className="location-section">
+              <h2 className="location-title">Position GPS</h2>
+              
+              {locationError ? (
+                <div className="location-error">
+                  <i className="fas fa-exclamation-triangle"></i>
+                  <span>{locationError}</span>
+                  <button 
+                    className="btn btn-sm btn-primary" 
+                    onClick={getCurrentPosition}
+                  >
+                    Réessayer
+                  </button>
                 </div>
-                
-                <div className="notes-section">
-                  <label htmlFor="notes" className="notes-label">Notes de fin de service</label>
-                  <textarea
-                    id="notes"
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    className="notes-textarea"
-                    rows="4"
-                    placeholder="Entrez des notes concernant votre service (facultatif)"
-                  ></textarea>
+              ) : position ? (
+                <div className="location-info">
+                  <div className="location-coordinates">
+                    <span className="coordinate">
+                      <i className="fas fa-map-marker-alt"></i> Latitude: {position.latitude.toFixed(6)}
+                    </span>
+                    <span className="coordinate">
+                      <i className="fas fa-map-marker-alt"></i> Longitude: {position.longitude.toFixed(6)}
+                    </span>
+                    {position.accuracy && (
+                      <span className="coordinate">
+                      <i className="fas fa-bullseye"></i> Précision: {Math.round(position.accuracy)} m
+                    </span>
+                  )}
                 </div>
-                
-                <button 
-                  onClick={handleEndTimeLog}
-                  disabled={actionLoading}
-                  className="btn-end"
-                >
-                  {actionLoading ? 'Traitement en cours...' : 'Terminer le service'}
-                </button>
+                <div className="location-status">
+                  {locationStatus && (
+                    <div className="status-message">
+                      <i className="fas fa-info-circle"></i> {locationStatus}
+                    </div>
+                  )}
+                  <button 
+                    className="btn btn-sm btn-secondary refresh-position"
+                    onClick={getCurrentPosition}
+                  >
+                    <i className="fas fa-sync-alt"></i> Actualiser
+                  </button>
+                </div>
               </div>
             ) : (
-              <div>
-                <p className="instruction-text">
-                  Appuyez sur le bouton ci-dessous pour commencer votre service.
-                </p>
-                
-                <button
-                  onClick={handleStartTimeLog}
-                  disabled={actionLoading}
-                  className="btn-start"
-                >
-                  {actionLoading ? 'Traitement en cours...' : 'Démarrer le service'}
-                </button>
+              <div className="location-loading">
+                <div className="spinner-sm"></div>
+                <span>Obtention de votre position...</span>
               </div>
             )}
           </div>
           
-          <div className="back-link">
-            <a href='/' onClick={(e) => { e.preventDefault(); navigate('/dashboard'); }}>
-              Retour au tableau de bord
-            </a>
+          <div className="notes-section">
+            <label htmlFor="notes" className="notes-label">Notes</label>
+            <textarea
+              id="notes"
+              className="notes-textarea"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Ajouter des notes (facultatif)"
+              disabled={loading}
+            ></textarea>
+          </div>
+          
+          {activeTimeLog ? (
+            <button
+              className="btn-end"
+              onClick={endTimeLog}
+              disabled={loading || !position}
+            >
+              {loading ? (
+                <>
+                  <div className="spinner-sm"></div>
+                  <span>Traitement en cours...</span>
+                </>
+              ) : (
+                <>
+                  <i className="fas fa-stop-circle"></i> Terminer le service
+                </>
+              )}
+            </button>
+          ) : (
+            <button
+              className="btn-start"
+              onClick={startTimeLog}
+              disabled={loading || !position}
+            >
+              {loading ? (
+                <>
+                  <div className="spinner-sm"></div>
+                  <span>Traitement en cours...</span>
+                </>
+              ) : (
+                <>
+                  <i className="fas fa-play-circle"></i> Démarrer le service
+                </>
+              )}
+            </button>
+          )}
+          
+          <div className="timelog-info">
+            <i className="fas fa-info-circle"></i>
+            <p>
+              Pour effectuer un pointage, vous devez être sur un réseau autorisé et 
+              à proximité d'un emplacement enregistré. La géolocalisation de votre 
+              appareil doit être activée avec une précision suffisante.
+            </p>
           </div>
         </div>
       )}
+      
+      <div className="back-link">
+        <a href="#back" onClick={() => navigate('/dashboard')}>Retour au tableau de bord</a>
+      </div>
     </div>
+  </div>
   );
 };
 
