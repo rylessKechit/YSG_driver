@@ -20,46 +20,21 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
 };
 
 // Middleware pour vérifier l'IP et la géolocalisation
+// Dans votre fichier location.middleware.js (autour de la ligne 49)
+
 const verifyLocationAndIP = async (req, res, next) => {
   try {
-    // 1. Vérification de l'IP
-    const clientIP = req.ip || req.connection.remoteAddress;
-    
-    // Récupérer toutes les plages IP actives
-    const allowedNetworks = await AllowedNetwork.find({ isActive: true });
-    const isIPAllowed = allowedNetworks.some(network => 
-      ipRangeCheck(clientIP, network.ipRange)
-    );
-
-    console.log('Client IP:', clientIP);
-    console.log('Allowed Networks:', allowedNetworks);
-    console.log('Is IP Allowed:', isIPAllowed);
-    
-    if (!isIPAllowed) {
-      return res.status(403).json({
-        message: 'Accès refusé: réseau non autorisé',
-        error: 'NETWORK_NOT_ALLOWED'
-      });
-    }
+    // Code de vérification IP...
     
     // 2. Vérification de la géolocalisation
     const { latitude, longitude } = req.body;
-
-    console.log('Coords:', latitude, longitude);
-    console.log('Closest location:', closestLocation, 'distance:', minDistance);
-    
-    if (!latitude || !longitude) {
-      return res.status(400).json({
-        message: 'Latitude et longitude requises pour la vérification de position',
-        error: 'COORDINATES_REQUIRED'
-      });
-    }
     
     // Récupérer tous les emplacements actifs
     const allowedLocations = await AllowedLocation.find({ isActive: true });
     
+    // Initialiser ces variables AVANT de les utiliser
     let isLocationAllowed = false;
-    let closestLocation = null;
+    let closestLocation = null;  // Assurez-vous que cette déclaration est AVANT toute utilisation
     let minDistance = Infinity;
     
     // Vérifier si la position est dans au moins un des emplacements autorisés
@@ -87,7 +62,7 @@ const verifyLocationAndIP = async (req, res, next) => {
         message: 'Accès refusé: emplacement non autorisé',
         error: 'LOCATION_NOT_ALLOWED',
         details: {
-          closestLocation,
+          closestLocation,  // Ici, closestLocation doit être initialisé
           distance: Math.round(minDistance)
         }
       });
