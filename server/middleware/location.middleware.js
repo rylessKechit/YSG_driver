@@ -30,6 +30,10 @@ const verifyLocationAndIP = async (req, res, next) => {
     const isIPAllowed = allowedNetworks.some(network => 
       ipRangeCheck(clientIP, network.ipRange)
     );
+
+    console.log('Client IP:', clientIP);
+    console.log('Allowed Networks:', allowedNetworks);
+    console.log('Is IP Allowed:', isIPAllowed);
     
     if (!isIPAllowed) {
       return res.status(403).json({
@@ -40,6 +44,9 @@ const verifyLocationAndIP = async (req, res, next) => {
     
     // 2. Vérification de la géolocalisation
     const { latitude, longitude } = req.body;
+
+    console.log('Coords:', latitude, longitude);
+    console.log('Closest location:', closestLocation, 'distance:', minDistance);
     
     if (!latitude || !longitude) {
       return res.status(400).json({
