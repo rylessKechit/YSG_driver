@@ -30,7 +30,6 @@ const uploadService = {
    */
   uploadWithPresignedUrl: async (presignedUrl, file) => {
     try {
-      console.log(`Uploading file to presigned URL: ${presignedUrl}`);
       
       // Utiliser fetch au lieu d'axios car nous devons envoyer des données binaires brutes
       const response = await fetch(presignedUrl, {
@@ -44,8 +43,6 @@ const uploadService = {
       if (!response.ok) {
         throw new Error(`Erreur lors de l'upload: ${response.status} ${response.statusText}`);
       }
-      
-      console.log('Fichier uploadé avec succès via URL pré-signée');
       
       return { success: true };
     } catch (error) {
@@ -61,15 +58,12 @@ const uploadService = {
    */
   uploadDirect: async (file) => {
     try {
-      console.log(`Demande d'upload direct pour le fichier: ${file.name} (${file.type})`);
       
       // 1. Obtenir une URL pré-signée
       const { presignedUrl, fileUrl } = await uploadService.getPresignedUrl(
         file.type,
         file.name
       );
-      
-      console.log(`URL pré-signée obtenue, URL fichier finale sera: ${fileUrl}`);
       
       // 2. Uploader directement à S3
       await uploadService.uploadWithPresignedUrl(presignedUrl, file);
@@ -92,15 +86,12 @@ const uploadService = {
    */
   uploadMultipleDirect: async (files) => {
     try {
-      console.log(`Démarrage de l'upload multiple pour ${files.length} fichiers`);
       
       const uploadPromises = Array.from(files).map(file => 
         uploadService.uploadDirect(file)
       );
       
       const results = await Promise.all(uploadPromises);
-      
-      console.log(`${results.length} fichiers uploadés avec succès`);
       
       return {
         success: true,

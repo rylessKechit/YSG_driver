@@ -79,59 +79,43 @@ router.get('/preparators-on-duty', verifyToken, isAdmin, async (req, res) => {
 });
 
 // Commencer une tâche (avec photo "before")
-router.post('/:id/tasks/:taskType/start', verifyToken, (req, res) => {
-  // Utiliser le middleware d'upload pour gérer les photos
-  uploadMiddleware.single('photos')(req, res, async (err) => {
-    try {
-      if (err) {
-        console.error('Erreur d\'upload:', err);
-        return res.status(400).json({ message: `Erreur lors de l'upload: ${err.message}` });
-      }
-      
-      const { id, taskType } = req.params;
-      const { notes } = req.body;
-      
-      const preparation = await Preparation.findById(id);
-      if (!preparation) return res.status(404).json({ message: 'Préparation non trouvée' });
-      
-      const permError = checkPermissions(preparation, req.user._id, req.user.role, res);
-      if (permError) return permError;
-      
-      const validTasks = ['exteriorWashing', 'interiorCleaning', 'refueling', 'parking'];
-      if (!validTasks.includes(taskType)) return res.status(400).json({ message: 'Type de tâche invalide' });
-      
-      if (!preparation.tasks[taskType]) preparation.tasks[taskType] = { status: 'not_started', photos: { additional: [] } };
-      
-      if (preparation.tasks[taskType].status !== 'not_started')
-        return res.status(400).json({ message: `La tâche ${taskType} est déjà ${preparation.tasks[taskType].status === 'in_progress' ? 'en cours' : 'terminée'}` });
-      
-      if (!req.file) return res.status(400).json({ message: 'Une photo "before" est requise pour commencer la tâche' });
-      
-      preparation.tasks[taskType].status = 'in_progress';
-      preparation.tasks[taskType].startedAt = new Date();
-      preparation.tasks[taskType].notes = notes || preparation.tasks[taskType].notes;
-      
-      if (!preparation.tasks[taskType].photos) preparation.tasks[taskType].photos = { additional: [] };
-      
-      // Gestion des différents formats d'URL selon le fournisseur de stockage (S3, Cloudinary, local)
-      preparation.tasks[taskType].photos.before = {
-        url: req.file.location || req.file.path || req.file.url, // Supporte S3, Cloudinary et local
-        timestamp: new Date()
-      };
-      
-      if (preparation.status === 'pending') {
-        preparation.status = 'in-progress';
-        preparation.startTime = new Date();
-      }
-      
-      await preparation.save();
-      
-      res.json({ message: `Tâche ${taskType} commencée avec succès`, preparation });
-    } catch (e) {
-      console.error('Erreur lors du démarrage de la tâche:', e);
-      res.status(500).json({ message: `Erreur lors du démarrage de la tâche: ${e.message}` });
+router.post('/:id/tasks/:taskType/start', verifyToken, async (req, res) => {
+  try {
+    const { id, taskType } = req.params;
+    const { notes } = req.body;
+    
+    const preparation = await Preparation.findById(id);
+    if (!preparation) return res.status(404).json({ message: 'Préparation non trouvée' });
+    
+    const permError = checkPermissions(preparation, req.user._id, req.user.role, res);
+    if (permError) return permError;
+    
+    const validTasks = ['exteriorWashing', 'interiorCleaning', 'refueling', 'parking'];
+    if (!validTasks.includes(taskType)) return res.status(400).json({ message: 'Type de tâche invalide' });
+    
+    if (!preparation.tasks[taskType]) preparation.tasks[taskType] = { status: 'not_started', photos: { additional: [] } };
+    
+    if (preparation.tasks[taskType].status !== 'not_started')
+      return res.status(400).json({ message: `La tâche ${taskType} est déjà ${preparation.tasks[taskType].status === 'in_progress' ? 'en cours' : 'terminée'}` });
+    
+    preparation.tasks[taskType].status = 'in_progress';
+    preparation.tasks[taskType].startedAt = new Date();
+    preparation.tasks[taskType].notes = notes || preparation.tasks[taskType].notes;
+    
+    if (!preparation.tasks[taskType].photos) preparation.tasks[taskType].photos = { additional: [] };
+    
+    if (preparation.status === 'pending') {
+      preparation.status = 'in-progress';
+      preparation.startTime = new Date();
     }
-  });
+    
+    await preparation.save();
+    
+    res.json({ message: `Tâche ${taskType} commencée avec succès`, preparation });
+  } catch (e) {
+    console.error('Erreur lors du démarrage de la tâche:', e);
+    res.status(500).json({ message: `Erreur lors du démarrage de la tâche: ${e.message}` });
+  }
 });
 
 // Terminer une tâche (avec photo "after")
@@ -767,7 +751,7 @@ router.post('/:id/photos-with-s3', verifyToken, async (req, res) => {
 router.post('/:id/photos/batch-s3', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const { photoUrls, photoPositions, taskType } = req.body;
+    const { photoUrls, type = 'other' } = req.body;
     
     if (!photoUrls || (Array.isArray(photoUrls) && photoUrls.length === 0)) {
       return res.status(400).json({ message: 'URLs de photos requises' });
@@ -778,88 +762,37 @@ router.post('/:id/photos/batch-s3', verifyToken, async (req, res) => {
       return res.status(404).json({ message: 'Préparation non trouvée' });
     }
     
-    // Vérification des permissions
-    const permError = checkPermissions(preparation, req.user._id, req.user.role, res);
-    if (permError) return permError;
+    // Convertir en tableau si ce n'est pas déjà un tableau
+    const urls = Array.isArray(photoUrls) ? photoUrls : [photoUrls];
     
-    // Si un type de tâche est spécifié, nous ajoutons les photos à cette tâche
-    if (taskType) {
-      const validTasks = ['exteriorWashing', 'interiorCleaning', 'refueling', 'parking'];
-      if (!validTasks.includes(taskType)) {
-        return res.status(400).json({ message: 'Type de tâche invalide' });
+    // Créer les objets photo - S'assurer que chaque photo a une URL valide
+    const photos = urls.map(url => {
+      if (!url) {
+        return null;
       }
-      
-      // Convertir en tableaux si nécessaire
-      const urls = Array.isArray(photoUrls) ? photoUrls : [photoUrls];
-      const positions = Array.isArray(photoPositions) ? photoPositions : [photoPositions];
-      
-      if (urls.length !== positions.length) {
-        return res.status(400).json({ message: 'Le nombre de positions ne correspond pas au nombre de photos' });
-      }
-      
-      // Vérifier si la tâche existe
-      if (!preparation.tasks[taskType]) {
-        preparation.tasks[taskType] = { 
-          status: 'not_started',
-          photos: { additional: [] }
-        };
-      }
-      
-      // Pour chaque photo...
-      for (let i = 0; i < urls.length; i++) {
-        const url = urls[i];
-        const position = positions[i];
-        
-        // Selon la position, on ajoute la photo
-        if (position === 'before') {
-          preparation.tasks[taskType].photos.before = {
-            url: url,
-            timestamp: new Date()
-          };
-          // Si c'est une photo "before", on met à jour le statut
-          if (preparation.tasks[taskType].status === 'not_started') {
-            preparation.tasks[taskType].status = 'in_progress';
-            preparation.tasks[taskType].startedAt = new Date();
-          }
-        } else if (position === 'after') {
-          preparation.tasks[taskType].photos.after = {
-            url: url,
-            timestamp: new Date()
-          };
-          // Si c'est une photo "after", on met à jour le statut
-          if (preparation.tasks[taskType].status === 'in_progress') {
-            preparation.tasks[taskType].status = 'completed';
-            preparation.tasks[taskType].completedAt = new Date();
-          }
-        } else if (position === 'additional') {
-          preparation.tasks[taskType].photos.additional.push({
-            url: url,
-            timestamp: new Date(),
-            description: ''
-          });
-        }
-      }
-      
-      // Mise à jour du statut général de la préparation
-      if (preparation.status === 'pending') {
-        preparation.status = 'in-progress';
-        preparation.startTime = new Date();
-      }
-    } else {
-      // Gestion des photos générales (sans type de tâche spécifié)
-      return res.status(400).json({ message: 'Type de tâche requis pour batch-s3' });
+      return {
+        url,
+        type,
+        timestamp: new Date()
+      };
+    }).filter(photo => photo !== null);
+    
+    // Vérifier que toutes les photos ont une URL valide
+    if (photos.some(photo => !photo.url)) {
+      return res.status(400).json({ message: 'Certaines photos ont des URLs invalides' });
     }
     
+    // Ajouter les photos
+    preparation.photos.push(...photos);
     await preparation.save();
     
-    res.json({ 
-      message: `${photoUrls.length} photos ajoutées avec succès via S3`, 
-      photosUploaded: photoUrls.length,
-      preparation
+    res.json({
+      message: `${photos.length} photo(s) ajoutée(s) avec succès via S3`,
+      photos: preparation.photos
     });
   } catch (error) {
-    console.error('Erreur lors de l\'upload batch S3 des photos:', error);
-    res.status(500).json({ message: 'Erreur serveur lors de l\'upload des photos' });
+    console.error('Erreur lors de l\'ajout des photos via S3:', error);
+    res.status(500).json({ message: 'Erreur serveur' });
   }
 });
 

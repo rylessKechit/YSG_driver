@@ -27,7 +27,6 @@ if (bucketName && accessKeyId && secretAccessKey) {
         secretAccessKey
       }
     });
-    console.log('✅ Client S3 initialisé pour les routes d\'upload');
   } catch (error) {
     console.error('❌ Erreur S3 (routes d\'upload):', error.message);
   }

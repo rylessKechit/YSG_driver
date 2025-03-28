@@ -14,7 +14,6 @@ const movementService = {
    */
   uploadAllPhotosDirectS3: async (movementId, photoFiles, isArrival = false) => {
     try {
-      console.log(`Démarrage upload S3 direct pour le mouvement ${movementId}, type: ${isArrival ? 'arrivée' : 'départ'}`);
       
       // 1. Filtrer les fichiers non-null
       const validFiles = [];
@@ -31,8 +30,6 @@ const movementService = {
         console.warn('Aucun fichier à uploader');
         return { success: false, message: 'Aucun fichier à uploader' };
       }
-      
-      console.log(`Upload de ${validFiles.length} fichiers pour types: ${validTypes.join(', ')}`);
       
       // 2. Upload direct à S3
       const uploadResults = await uploadService.uploadMultipleDirect(validFiles);
@@ -56,8 +53,6 @@ const movementService = {
         `${ENDPOINTS.MOVEMENTS.BATCH_S3_PHOTOS(movementId)}`,
         formData
       );
-      
-      console.log(`Photos enregistrées avec succès pour ${movementId}`);
       
       return response.data;
     } catch (error) {
@@ -153,6 +148,44 @@ const movementService = {
       }
     );
     return response.data;
+  },
+
+  uploadPhotosToS3: async (movementId, photos, photoTypes, photoType = 'departure') => {
+    try {
+      // 1. Obtenir des URLs présignées pour chaque photo
+      const presignedUrls = await Promise.all(photos.map(photo => 
+        api.post(`${ENDPOINTS.UPLOAD.PRESIGNED_URL}`, { 
+          fileType: photo.type, 
+          fileName: photo.name 
+        })
+      ));
+      
+      // 2. Uploader chaque photo directement à S3
+      await Promise.all(presignedUrls.map((urlData, index) => 
+        fetch(urlData.data.presignedUrl, {
+          method: 'PUT',
+          body: photos[index],
+          headers: {
+            'Content-Type': photos[index].type
+          }
+        })
+      ));
+      
+      // 3. Envoyer les URLs des photos au serveur pour les enregistrer dans MongoDB
+      const photoUrls = presignedUrls.map(urlData => urlData.data.fileUrl);
+      
+      // 4. Enregistrer les URLs des photos dans le mouvement
+      const response = await api.post(`${ENDPOINTS.MOVEMENTS.BATCH_S3_PHOTOS(movementId)}`, {
+        photoUrls,
+        photoTypes,
+        photoType
+      });
+      
+      return response.data;
+    } catch (error) {
+      console.error('Erreur lors de l\'upload des photos vers S3:', error);
+      throw error;
+    }
   },
   
   deleteMovement: async (movementId) => {

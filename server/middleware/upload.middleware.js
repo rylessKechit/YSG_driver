@@ -95,7 +95,6 @@ try {
       },
       fileFilter: fileFilter
     });
-    console.log('✅ Middleware d\'upload S3 configuré');
   } else {
     console.warn('⚠️ S3 non configuré, utilisation du stockage local en fallback');
     upload = multer({
