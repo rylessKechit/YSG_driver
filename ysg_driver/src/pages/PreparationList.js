@@ -7,22 +7,22 @@ import Navigation from '../components/Navigation';
 import '../styles/PreparationList.css';
 
 const PreparationList = () => {
-  const [preparations, setPreparations] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [allPreparations, setAllPreparations] = useState([]);
+  const [filteredPreparations, setFilteredPreparations] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [statusFilter, setStatusFilter] = useState('');
+  const [dateFilter, setDateFilter] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const { currentUser } = useAuth();
-  const [allPreparations, setAllPreparations] = useState([]);
-  const [filteredPreparations, setFilteredPreparations] = useState([]);
   
   // Fonction de chargement des préparations
   const loadPreparations = async () => {
     try {
-      if (loading) return;
+      if (loading && allPreparations.length > 0) return;
       
       setLoading(true);
       
@@ -47,9 +47,48 @@ const PreparationList = () => {
   const applyFilters = (preparations) => {
     let result = [...preparations];
     
+    // Filtrer par rôle: les préparateurs ne voient que leurs préparations
+    if (currentUser && currentUser.role === 'preparator') {
+      result = result.filter(prep => 
+        prep.userId && prep.userId._id === currentUser._id
+      );
+    }
+    
     // Filtrer par statut si nécessaire
     if (statusFilter) {
       result = result.filter(prep => prep.status === statusFilter);
+    }
+    
+    // Filtrer par date si nécessaire
+    if (dateFilter) {
+      const today = new Date();
+      const todayStart = new Date(today.setHours(0, 0, 0, 0));
+      const todayEnd = new Date(today.setHours(23, 59, 59, 999));
+      
+      switch(dateFilter) {
+        case 'today':
+          result = result.filter(prep => {
+            const createdAt = new Date(prep.createdAt);
+            return createdAt >= todayStart && createdAt <= todayEnd;
+          });
+          break;
+        case 'week':
+          const weekStart = new Date();
+          weekStart.setDate(weekStart.getDate() - 7);
+          result = result.filter(prep => {
+            const createdAt = new Date(prep.createdAt);
+            return createdAt >= weekStart;
+          });
+          break;
+        case 'month':
+          const monthStart = new Date();
+          monthStart.setMonth(monthStart.getMonth() - 1);
+          result = result.filter(prep => {
+            const createdAt = new Date(prep.createdAt);
+            return createdAt >= monthStart;
+          });
+          break;
+      }
     }
     
     // Filtrer par recherche si nécessaire
@@ -61,32 +100,52 @@ const PreparationList = () => {
       );
     }
     
-    setFilteredPreparations(result);
+    // Trier du plus récent au plus ancien par défaut
+    result.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    
+    // Pagination côté client
+    const startIndex = (page - 1) * 10;
+    const paginatedPreparations = result.slice(startIndex, startIndex + 10);
+    
+    setFilteredPreparations(paginatedPreparations);
   };
   
-  // Effet pour charger les préparations quand les filtres changent
+  // Charger les préparations au montage
   useEffect(() => {
     loadPreparations();
-  }, [page, statusFilter, isSearching]);
+  }, []);
+  
+  // Appliquer les filtres quand les critères changent
+  useEffect(() => {
+    if (allPreparations.length > 0) {
+      applyFilters(allPreparations);
+    }
+  }, [page, statusFilter, dateFilter, isSearching, searchQuery, currentUser]);
 
-  // Gestionnaire de changement de filtre
-  const handleFilterChange = (e) => {
+  // Gestionnaire de changement de filtre de statut
+  const handleStatusFilterChange = (e) => {
     setStatusFilter(e.target.value);
-    applyFilters(allPreparations);
+    setPage(1); // Réinitialiser à la première page
+  };
+  
+  // Gestionnaire de changement de filtre de date
+  const handleDateFilterChange = (e) => {
+    setDateFilter(e.target.value);
+    setPage(1); // Réinitialiser à la première page
   };  
 
   // Gestionnaire de recherche
   const handleSearch = (e) => {
     e.preventDefault();
     setIsSearching(!!searchQuery);
-    applyFilters(allPreparations);
+    setPage(1); // Réinitialiser à la première page
   };
 
   // Réinitialiser la recherche
   const resetSearch = () => {
     setSearchQuery('');
     setIsSearching(false);
-    applyFilters(allPreparations);
+    setPage(1); // Réinitialiser à la première page
   };
 
   // Formatter la date
@@ -123,6 +182,7 @@ const PreparationList = () => {
         <div className="page-header">
           <h1 className="page-title">
             Préparations de véhicules
+            {currentUser?.role === 'preparator' && " - Mes préparations uniquement"}
           </h1>
           {currentUser && (currentUser.role === 'admin' || currentUser.role === 'preparator') && (
             <Link to="/preparations/create" className="btn btn-primary">
@@ -138,7 +198,9 @@ const PreparationList = () => {
           </div>
         )}
         
+        {/* Section des filtres */}
         <div className="filters-section">
+          {/* Barre de recherche */}
           <div className="search-container">
             <form onSubmit={handleSearch} className="search-form">
               <input
@@ -157,19 +219,37 @@ const PreparationList = () => {
             )}
           </div>
           
-          <div className="filter-container">
-            <label htmlFor="statusFilter" className="filter-label">Filtrer par statut:</label>
-            <select
-              id="statusFilter"
-              value={statusFilter}
-              onChange={handleFilterChange}
-              className="status-filter"
-            >
-              <option value="">Tous</option>
-              <option value="pending">En attente</option>
-              <option value="in-progress">En cours</option>
-              <option value="completed">Terminées</option>
-            </select>
+          {/* Filtres dropdown */}
+          <div className="filters-row">
+            <div className="filter-item">
+              <label htmlFor="statusFilter" className="filter-label">Statut:</label>
+              <select
+                id="statusFilter"
+                value={statusFilter}
+                onChange={handleStatusFilterChange}
+                className="filter-select"
+              >
+                <option value="">Tous</option>
+                <option value="pending">En attente</option>
+                <option value="in-progress">En cours</option>
+                <option value="completed">Terminées</option>
+              </select>
+            </div>
+            
+            <div className="filter-item">
+              <label htmlFor="dateFilter" className="filter-label">Date:</label>
+              <select
+                id="dateFilter"
+                value={dateFilter}
+                onChange={handleDateFilterChange}
+                className="filter-select"
+              >
+                <option value="">Tous</option>
+                <option value="today">Aujourd'hui</option>
+                <option value="week">7 derniers jours</option>
+                <option value="month">30 derniers jours</option>
+              </select>
+            </div>
           </div>
         </div>
         
@@ -177,9 +257,9 @@ const PreparationList = () => {
           <div className="loading-container">
             <div className="spinner"></div>
           </div>
-        ) : preparations.length > 0 ? (
+        ) : filteredPreparations.length > 0 ? (
           <div className="preparations-list">
-            {preparations.map((preparation) => (
+            {filteredPreparations.map((preparation) => (
               <div key={preparation._id} className="preparation-card">
                 <div className="preparation-header">
                   <h2 className="preparation-plate">{preparation.licensePlate}</h2>

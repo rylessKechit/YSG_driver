@@ -1,21 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import movementService from '../services/movementService';
+import { useAuth } from '../context/AuthContext';
 import Navigation from '../components/Navigation';
 import '../styles/MovementHistory.css';
 
 const MovementHistory = () => {
-  const [movements, setMovements] = useState([]);
+  const { currentUser } = useAuth();
+  const [allMovements, setAllMovements] = useState([]);
+  const [filteredMovements, setFilteredMovements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [statusFilter, setStatusFilter] = useState('');
+  const [dateFilter, setDateFilter] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
-  const [allMovements, setAllMovements] = useState([]);
-  const [filteredMovements, setFilteredMovements] = useState([]);
-
 
   // Charger les mouvements
   const loadMovements = async () => {
@@ -43,9 +44,48 @@ const MovementHistory = () => {
   const applyFilters = (movements) => {
     let result = [...movements];
     
+    // Filtrer par rôle: les chauffeurs ne voient que leurs mouvements
+    if (currentUser && currentUser.role === 'driver') {
+      result = result.filter(movement => 
+        movement.userId && movement.userId._id === currentUser._id
+      );
+    }
+    
     // Filtrer par statut si nécessaire
     if (statusFilter) {
       result = result.filter(movement => movement.status === statusFilter);
+    }
+
+    // Filtrer par date si nécessaire
+    if (dateFilter) {
+      const today = new Date();
+      const todayStart = new Date(today.setHours(0, 0, 0, 0));
+      const todayEnd = new Date(today.setHours(23, 59, 59, 999));
+      
+      switch(dateFilter) {
+        case 'today':
+          result = result.filter(movement => {
+            const createdAt = new Date(movement.createdAt);
+            return createdAt >= todayStart && createdAt <= todayEnd;
+          });
+          break;
+        case 'week':
+          const weekStart = new Date();
+          weekStart.setDate(weekStart.getDate() - 7);
+          result = result.filter(movement => {
+            const createdAt = new Date(movement.createdAt);
+            return createdAt >= weekStart;
+          });
+          break;
+        case 'month':
+          const monthStart = new Date();
+          monthStart.setMonth(monthStart.getMonth() - 1);
+          result = result.filter(movement => {
+            const createdAt = new Date(movement.createdAt);
+            return createdAt >= monthStart;
+          });
+          break;
+      }
     }
     
     // Filtrer par recherche si nécessaire
@@ -57,6 +97,9 @@ const MovementHistory = () => {
       );
     }
     
+    // Trier du plus récent au plus ancien par défaut
+    result.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    
     // Pagination côté client
     const startIndex = (page - 1) * 10;
     const paginatedMovements = result.slice(startIndex, startIndex + 10);
@@ -64,16 +107,28 @@ const MovementHistory = () => {
     setFilteredMovements(paginatedMovements);
   };
 
-  // Charger les mouvements au montage et quand les filtres changent
+  // Charger les mouvements au montage
   useEffect(() => {
     loadMovements();
-  }, [page, statusFilter, isSearching]);
+  }, []);
 
-  // Gestionnaire de changement de filtre
-  const handleFilterChange = (e) => {
+  // Appliquer les filtres quand les critères changent
+  useEffect(() => {
+    if (allMovements.length > 0) {
+      applyFilters(allMovements);
+    }
+  }, [page, statusFilter, dateFilter, isSearching, searchQuery, currentUser]);
+
+  // Gestionnaire de changement de filtre de statut
+  const handleStatusFilterChange = (e) => {
     setStatusFilter(e.target.value);
     setPage(1); // Réinitialiser à la première page
-    applyFilters(allMovements);
+  };
+  
+  // Gestionnaire de changement de filtre de date
+  const handleDateFilterChange = (e) => {
+    setDateFilter(e.target.value);
+    setPage(1); // Réinitialiser à la première page
   };
 
   // Gestionnaire de recherche
@@ -81,7 +136,6 @@ const MovementHistory = () => {
     e.preventDefault();
     setIsSearching(!!searchQuery);
     setPage(1); // Réinitialiser à la première page
-    applyFilters(allMovements);
   };
 
   // Réinitialiser la recherche
@@ -89,7 +143,6 @@ const MovementHistory = () => {
     setSearchQuery('');
     setIsSearching(false);
     setPage(1); // Réinitialiser à la première page
-    applyFilters(allMovements);
   };
 
   // Formatter la date
@@ -109,7 +162,10 @@ const MovementHistory = () => {
       <Navigation />
       
       <div className="history-container">
-        <h1 className="page-title">Historique des trajets</h1>
+        <h1 className="page-title">
+          Historique des trajets
+          {currentUser?.role === 'driver' && " - Mes trajets uniquement"}
+        </h1>
         
         {error && (
           <div className="error-message">
@@ -117,48 +173,70 @@ const MovementHistory = () => {
           </div>
         )}
         
-        <div className="filters-section">
-          <div className="search-container">
-            <form onSubmit={handleSearch} className="search-form">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Rechercher par plaque..."
-                className="search-input"
-              />
-              <button type="submit" className="search-button">Rechercher</button>
-            </form>
-            {isSearching && (
-              <button onClick={resetSearch} className="reset-button">
-                Réinitialiser
-              </button>
-            )}
-          </div>
-          
+        {/* Section des filtres */}
+      <div className="filters-section">
+        {/* Barre de recherche */}
+        <div className="search-container">
+          <form onSubmit={handleSearch} className="search-form">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Rechercher par plaque..."
+              className="search-input"
+            />
+            <button type="submit" className="search-button">Rechercher</button>
+          </form>
+          {isSearching && (
+            <button onClick={resetSearch} className="reset-button">
+              Réinitialiser
+            </button>
+          )}
+        </div>
+        
+        {/* Filtres dropdown */}
+        <div className="filters-group">
           <div className="filter-container">
-            <label htmlFor="statusFilter" className="filter-label">Filtrer par statut:</label>
+            <label htmlFor="statusFilter" className="filter-label">Statut:</label>
             <select
               id="statusFilter"
               value={statusFilter}
-              onChange={handleFilterChange}
+              onChange={handleStatusFilterChange}
               className="status-filter"
             >
               <option value="">Tous</option>
               <option value="pending">En attente</option>
+              <option value="assigned">Assignés</option>
+              <option value="preparing">En préparation</option>
               <option value="in-progress">En cours</option>
               <option value="completed">Terminés</option>
             </select>
           </div>
+          
+          <div className="filter-container">
+            <label htmlFor="dateFilter" className="filter-label">Date:</label>
+            <select
+              id="dateFilter"
+              value={dateFilter}
+              onChange={handleDateFilterChange}
+              className="date-filter"
+            >
+              <option value="">Tous</option>
+              <option value="today">Aujourd'hui</option>
+              <option value="week">7 derniers jours</option>
+              <option value="month">30 derniers jours</option>
+            </select>
+          </div>
         </div>
+      </div>
         
         {loading ? (
           <div className="loading-container">
             <div className="spinner"></div>
           </div>
-        ) : movements.length > 0 ? (
+        ) : filteredMovements.length > 0 ? (
           <div className="movements-list">
-            {movements.map((movement) => (
+            {filteredMovements.map((movement) => (
               <div key={movement._id} className="movement-card">
                 <div className="movement-header">
                   <h2 className="movement-plate">{movement.licensePlate}</h2>
