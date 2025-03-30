@@ -1,5 +1,4 @@
-// src/components/movement/PhotoUploadSection.js
-import React, { useState } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import PhotoAccordionItem from './PhotoAccordionItem';
 
 const PhotoUploadSection = ({ 
@@ -8,15 +7,15 @@ const PhotoUploadSection = ({
   selectedFiles,
   onExpandSection, 
   onSelectPhoto, 
-  onUploadAllPhotos,  // Nouvelle prop pour uploader toutes les photos
+  onUploadAllPhotos,
   onResetPhotoStatus,
   uploadingPhotos,
   getPhotoUrlByType,
   sectionTitle = "Photos du véhicule",
   instructionText = "Pour continuer ce mouvement, vous devez prendre les photos suivantes du véhicule. Chaque section doit être complétée."
 }) => {
-  // Configuration des sections de photo avec leurs détails
-  const photoSections = [
+  // Configuration des sections de photo avec leurs détails - mémorisée pour éviter recréation
+  const photoSections = useMemo(() => [
     {
       type: 'front',
       label: 'Face avant avec plaque',
@@ -52,60 +51,37 @@ const PhotoUploadSection = ({
       label: 'Compteur',
       instruction: 'Prenez une photo du compteur kilométrique du véhicule. Assurez-vous que les chiffres soient bien lisibles.'
     }
-  ];
+  ], []);
 
-  // Vérifier si toutes les photos requises ont été prises (mais pas nécessairement uploadées)
-  const allPhotosSelected = photoSections.every(section => 
-    photosStatus[section.type] === true || selectedFiles[section.type]
-  );
-
-  // Vérifier si toutes les photos ont été uploadées
-  const allPhotosUploaded = Object.values(photosStatus).every(status => status === true);
-
-  // Compter le nombre de photos prises mais pas encore uploadées
-  const pendingPhotosCount = Object.values(selectedFiles).filter(file => file !== null).length;
-
-  const preparePhotosForDisplay = (movement) => {
-    if (!movement || !movement.photos || movement.photos.length === 0) {
-      return { departure: {}, arrival: {} };
-    }
-  
-    // Initialiser les objets pour les deux types de photos
-    const departurePhotos = {
-      front: null,
-      passenger: null,
-      driver: null,
-      rear: null,
-      windshield: null,
-      roof: null,
-      meter: null,
-      other: []
+  // Calcul mémorisé pour déterminer si toutes les photos sont prises ou sélectionnées
+  const { allPhotosSelected, allPhotosUploaded, pendingPhotosCount } = useMemo(() => {
+    const allSelected = photoSections.every(section => 
+      photosStatus[section.type] === true || selectedFiles[section.type]
+    );
+    
+    const allUploaded = Object.values(photosStatus).every(status => status === true);
+    
+    const pendingCount = Object.values(selectedFiles).filter(file => file !== null).length;
+    
+    return { 
+      allPhotosSelected: allSelected, 
+      allPhotosUploaded: allUploaded,
+      pendingPhotosCount: pendingCount
     };
-  
-    const arrivalPhotos = {
-      front: null,
-      passenger: null,
-      driver: null,
-      rear: null,
-      windshield: null,
-      roof: null,
-      meter: null,
-      other: []
-    };
-  
-    // Répartir les photos dans les objets appropriés
-    movement.photos.forEach(photo => {
-      const targetObj = photo.photoType === 'arrival' ? arrivalPhotos : departurePhotos;
-      
-      if (photo.type === 'other' || photo.type === 'damage') {
-        targetObj.other.push(photo);
-      } else if (targetObj[photo.type] === null) {
-        targetObj[photo.type] = photo;
-      }
-    });
-  
-    return { departure: departurePhotos, arrival: arrivalPhotos };
-  };
+  }, [photosStatus, selectedFiles, photoSections]);
+
+  // Optimisation des gestionnaires d'événements
+  const handleExpandSection = useCallback((section) => {
+    onExpandSection(section);
+  }, [onExpandSection]);
+
+  const handleSelectPhoto = useCallback((type, file) => {
+    onSelectPhoto(type, file);
+  }, [onSelectPhoto]);
+
+  const handleResetStatus = useCallback((type) => {
+    onResetPhotoStatus(type);
+  }, [onResetPhotoStatus]);
 
   return (
     <div className="detail-section photo-upload-section">
@@ -129,10 +105,10 @@ const PhotoUploadSection = ({
             expanded={expandedSection === section.type}
             photoUrl={getPhotoUrlByType(section.type)}
             selectedFile={selectedFiles[section.type]}
-            onToggle={() => onExpandSection(section.type)}
-            onSelectPhoto={(file) => onSelectPhoto(section.type, file)}
+            onToggle={() => handleExpandSection(section.type)}
+            onSelectPhoto={(file) => handleSelectPhoto(section.type, file)}
             onUploadPhoto={() => {}} // Désactivé - les uploads individuels ne sont plus utilisés
-            onResetStatus={() => onResetPhotoStatus(section.type)}
+            onResetStatus={() => handleResetStatus(section.type)}
             uploadingPhoto={false}
             localPreviewOnly={true} // Nouveau flag pour indiquer qu'on ne fait que prévisualiser sans upload immédiat
           />
@@ -171,4 +147,5 @@ const PhotoUploadSection = ({
   );
 };
 
-export default PhotoUploadSection;
+// Wrap dans un React.memo pour éviter les rendus inutiles
+export default React.memo(PhotoUploadSection);

@@ -1,5 +1,4 @@
-// src/components/movement/PhotoAccordionItem.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 
 const PhotoAccordionItem = ({
   type,
@@ -14,7 +13,7 @@ const PhotoAccordionItem = ({
   onUploadPhoto,
   onResetStatus,
   uploadingPhoto,
-  localPreviewOnly = false // Nouveau paramètre indiquant si on est en mode prévisualisation uniquement
+  localPreviewOnly = false
 }) => {
   const [previewUrl, setPreviewUrl] = useState(null);
   
@@ -30,8 +29,8 @@ const PhotoAccordionItem = ({
     return () => URL.revokeObjectURL(url);
   }, [selectedFile]);
 
-  // Les styles communs regroupés
-  const styles = {
+  // Les styles communs mémorisés pour éviter de les recréer à chaque rendu
+  const styles = useMemo(() => ({
     completedSection: {
       borderLeft: '4px solid #10b981',
       borderRadius: '8px',
@@ -64,51 +63,93 @@ const PhotoAccordionItem = ({
       borderRadius: '8px',
       overflow: 'hidden'
     }
-  };
+  }), []);
 
-  // Déterminer le style de la section en fonction de l'état
-  const getSectionStyle = () => {
+  // Déterminer le style de la section en fonction de l'état - mémorisé
+  const sectionStyle = useMemo(() => {
     if (completed) return styles.completedSection;
     if (selectedFile && localPreviewOnly) return styles.photoReady;
     return {};
-  };
+  }, [completed, selectedFile, localPreviewOnly, styles]);
+
+  // Gestionnaires d'événements mémorisés
+  const handleToggle = useCallback(() => {
+    onToggle();
+  }, [onToggle]);
+
+  const handleSelectFile = useCallback((e) => {
+    if (e.target.files?.[0]) {
+      onSelectPhoto(e.target.files[0]);
+    }
+  }, [onSelectPhoto]);
+
+  const handleResetStatus = useCallback((e) => {
+    e.stopPropagation();
+    onResetStatus();
+  }, [onResetStatus]);
+
+  // Mémoriser les statuts et styles conditionnels
+  const { statusText, statusStyle, iconClass, iconStyle } = useMemo(() => {
+    if (completed) {
+      return {
+        statusText: 'Uploadée',
+        statusStyle: { color: '#10b981', fontWeight: '500' },
+        iconClass: 'fa-check-circle',
+        iconStyle: { color: '#10b981' }
+      };
+    } else if (selectedFile && localPreviewOnly) {
+      return {
+        statusText: 'Prête',
+        statusStyle: { color: '#3b82f6', fontWeight: '500' },
+        iconClass: 'fa-camera',
+        iconStyle: { color: '#3b82f6' }
+      };
+    } else {
+      return {
+        statusText: 'À photographier',
+        statusStyle: {},
+        iconClass: 'fa-circle',
+        iconStyle: { color: '#6b7280' }
+      };
+    }
+  }, [completed, selectedFile, localPreviewOnly]);
+
+  // Mémoriser les styles des headers
+  const headerStyle = useMemo(() => {
+    if (completed) {
+      return { backgroundColor: '#d1fae5' };
+    } else if (selectedFile && localPreviewOnly) {
+      return { backgroundColor: '#dbeafe' };
+    } else {
+      return {};
+    }
+  }, [completed, selectedFile, localPreviewOnly]);
 
   return (
     <div 
       className="photo-accordion-item" 
-      style={getSectionStyle()}
+      style={sectionStyle}
     >
       <div 
         className={`photo-accordion-header ${completed ? 'completed' : ''} ${selectedFile && localPreviewOnly ? 'photo-ready' : ''}`} 
-        onClick={onToggle}
-        style={completed ? { backgroundColor: '#d1fae5' } : 
-              (selectedFile && localPreviewOnly ? { backgroundColor: '#dbeafe' } : {})}
+        onClick={handleToggle}
+        style={headerStyle}
       >
         <div className="photo-section-title">
           <span className="status-icon">
             <i 
-              className={`fas ${
-                completed ? 'fa-check-circle' : 
-                (selectedFile && localPreviewOnly ? 'fa-camera' : 'fa-circle')
-              }`} 
-              style={{ 
-                color: completed ? '#10b981' : 
-                      (selectedFile && localPreviewOnly ? '#3b82f6' : '#6b7280') 
-              }}
+              className={`fas ${iconClass}`}
+              style={iconStyle}
             />
           </span>
           <span>{label}</span>
         </div>
         <div className="photo-section-actions">
           <span 
-            className="photo-status-text" 
-            style={
-              completed ? { color: '#10b981', fontWeight: '500' } : 
-              (selectedFile && localPreviewOnly ? { color: '#3b82f6', fontWeight: '500' } : {})
-            }
+            className="photo-status-text"
+            style={statusStyle}
           >
-            {completed ? 'Uploadée' : 
-             (selectedFile && localPreviewOnly ? 'Prête' : 'À photographier')}
+            {statusText}
           </span>
           <i className={`fas fa-chevron-${expanded ? 'up' : 'down'}`} />
         </div>
@@ -133,10 +174,7 @@ const PhotoAccordionItem = ({
               </div>
               <button 
                 className="btn btn-secondary photo-replace-btn" 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onResetStatus();
-                }}
+                onClick={handleResetStatus}
               >
                 Remplacer la photo
               </button>
@@ -149,7 +187,7 @@ const PhotoAccordionItem = ({
                   type="file" 
                   accept="image/*"
                   capture="environment"
-                  onChange={(e) => e.target.files?.[0] && onSelectPhoto(e.target.files[0])}
+                  onChange={handleSelectFile}
                   className="photo-input"
                   style={styles.fileInput}
                 />
@@ -169,16 +207,6 @@ const PhotoAccordionItem = ({
                       </div>
                     )}
                   </div>
-                )}
-                
-                {/* Bouton d'upload individuel - caché en mode localPreviewOnly */}
-                {!localPreviewOnly && (
-                  <button 
-                    onClick={() => localPreviewOnly ? null : onUploadPhoto()}
-                    className="btn btn-primary"
-                  >
-                    {uploadingPhoto ? 'Chargement...' : 'Valider la photo'}
-                  </button>
                 )}
                 
                 {/* En mode localPreviewOnly, montrer un message de confirmation si une photo est sélectionnée */}
@@ -205,4 +233,5 @@ const PhotoAccordionItem = ({
   );
 };
 
-export default PhotoAccordionItem;
+// Utiliser React.memo pour éviter les re-rendus inutiles
+export default React.memo(PhotoAccordionItem);

@@ -263,8 +263,6 @@ const MovementHistory = () => {
                     </div>
                   </div>
                   
-                  <div className="route-line"></div>
-                  
                   <div className="route-point">
                     <div className="point-icon arrival-icon"></div>
                     <div className="point-details">
