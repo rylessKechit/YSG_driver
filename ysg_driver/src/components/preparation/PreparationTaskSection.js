@@ -282,9 +282,8 @@ const PreparationTaskSection = ({
         </div>
       </div>
       
-      {/* Ajout de la classe 'show-task-content' pour forcer l'affichage du contenu */}
       {isExpanded && (
-        <div className="task-content show-task-content">
+        <div className="task-content">
           {/* Métadonnées de la tâche si disponibles */}
           {task.startedAt && (
             <div className="task-info">
@@ -364,7 +363,7 @@ const PreparationTaskSection = ({
             </div>
           )}
           
-          {/* CORRECTION: Ajouté une vérification explicite pour montrer les actions uniquement si elles sont permises */}
+          {/* Actions utilisateur pour les tâches - Section critique qui avait des problèmes */}
           {canEdit && preparation.status !== 'completed' && (
             <div className="task-actions">
               {/* Démarrer une tâche */}
@@ -395,9 +394,8 @@ const PreparationTaskSection = ({
                 </div>
               )}
               
-              {/* CORRECTION: Forcé l'affichage du formulaire pour les tâches en cours */}
               {/* Terminer une tâche en cours */}
-              {task.status === 'in_progress' && taskType !== 'parking' && (
+              {task.status === 'in_progress' && (
                 <div className="task-step">
                   <div className="task-step-header">
                     <span className="step-number">2</span>

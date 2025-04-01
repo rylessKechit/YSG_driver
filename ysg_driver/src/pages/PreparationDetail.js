@@ -112,7 +112,7 @@ const PreparationDetail = () => {
     }
   }, [preparation, expandedTask, taskTypes]);
 
-  // Version optimisée pour traiter les actions de tâche - AVEC MISE À JOUR DIRECTE DEPUIS LA RÉPONSE API
+  // Version optimisée pour traiter les actions de tâche
   const handleTaskAction = async (action, taskType, data, additionalData = {}) => {
     if (taskLoading) return;
     
@@ -174,10 +174,10 @@ const PreparationDetail = () => {
                 setPreparation(result.preparation);
                 if (result.preparation.notes) setNotes(result.preparation.notes);
                 
-                // Après avoir terminé la tâche, fermer l'accordéon et ouvrir le suivant
+                // Après avoir terminé la tâche, ouvrir la tâche suivante
                 setTimeout(() => {
                   if (!isUnmounted.current) {
-                    setExpandedTask(null);
+                    openNextTask();
                   }
                 }, 1000);
               }
@@ -192,10 +192,10 @@ const PreparationDetail = () => {
                 setPreparation(result.preparation);
                 if (result.preparation.notes) setNotes(result.preparation.notes);
                 
-                // Après avoir terminé la tâche, fermer l'accordéon et ouvrir le suivant
+                // Après avoir terminé la tâche, ouvrir la tâche suivante
                 setTimeout(() => {
                   if (!isUnmounted.current) {
-                    setExpandedTask(null);
+                    openNextTask();
                   }
                 }, 1000);
               }
@@ -238,10 +238,10 @@ const PreparationDetail = () => {
               setPreparation(result.preparation);
               if (result.preparation.notes) setNotes(result.preparation.notes);
               
-              // Après avoir terminé la tâche, fermer l'accordéon et ouvrir le suivant
+              // Après avoir terminé la tâche, ouvrir la tâche suivante
               setTimeout(() => {
                 if (!isUnmounted.current) {
-                  setExpandedTask(null);
+                  openNextTask();
                 }
               }, 1000);
             }
@@ -304,18 +304,30 @@ const PreparationDetail = () => {
   // Permissions - Optimisé avec mémoisation
   const canEdit = useCallback(() => {
     if (!preparation || !currentUser) return false;
-    return (preparation.userId && preparation.userId._id === currentUser._id) || currentUser.role === 'admin';
+    
+    // Vérifier si l'utilisateur est l'assigné ou un admin
+    if (currentUser.role === 'admin') return true;
+    
+    // Extraction sécurisée de l'ID utilisateur
+    const prepUserId = preparation.userId?._id || preparation.userId;
+    
+    return prepUserId && prepUserId.toString() === currentUser._id.toString();
   }, [preparation, currentUser]);
 
   // Vérifier si au moins une tâche est complétée
   const hasCompletedTasks = useCallback(() => {
     if (!preparation) return false;
-    return Object.values(preparation.tasks).some(task => task.status === 'completed');
+    
+    // Vérifier que les tâches existent et qu'au moins une est complétée
+    return Object.values(preparation.tasks).some(task => 
+      task && task.status === 'completed'
+    );
   }, [preparation]);
 
   // Obtenir l'URL d'une photo
   const getPhotoUrlByType = useCallback((taskType, photoType) => {
     if (!preparation?.tasks[taskType]?.photos) return '';
+    
     const photo = preparation.tasks[taskType].photos[photoType];
     return photo?.url || '';
   }, [preparation]);
@@ -389,7 +401,7 @@ const PreparationDetail = () => {
                   expandedTask={expandedTask}
                   onToggleTask={toggleTaskExpansion}
                   canEdit={canEdit()}
-                  onStartTask={(type, photo, notes) => handleTaskAction('startTask', type, photo, notes)}
+                  onStartTask={(type, notes) => handleTaskAction('startTask', type, notes)}
                   onCompleteTask={(type, photos, data) => handleTaskAction('completeTask', type, photos, data)}
                   onAddTaskPhoto={(type, photo, desc) => handleTaskAction('addTaskPhoto', type, photo, desc)}
                   onParkingTask={(type, photo, notes) => handleTaskAction('parkingTask', type, photo, notes)}

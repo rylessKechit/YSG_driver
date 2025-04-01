@@ -136,11 +136,11 @@ const preparationService = {
   getPreparatorsOnDuty: async () => fetchWithCache(`${ENDPOINTS.PREPARATIONS.BASE}/preparators-on-duty`),
   
   /**
-   * Démarrer une tâche (sans photo requise) - optimisé avec mise en cache
+   * Démarrer une tâche sans photo directement - corrigé pour gérer la structure de réponse API
    * @param {string} preparationId - ID de la préparation
    * @param {string} taskType - Type de tâche
    * @param {string} notes - Notes optionnelles
-   * @returns {Promise} Résultat de l'opération
+   * @returns {Promise} Résultat de l'opération avec la préparation mise à jour
    */
   startTask: async (preparationId, taskType, notes = '') => {
     try {
@@ -155,7 +155,14 @@ const preparationService = {
       return response.data;
     } catch (error) {
       console.error(`Erreur lors du démarrage de la tâche ${taskType}:`, error);
-      throw error;
+      
+      // Récupérer des informations détaillées sur l'erreur
+      let errorMessage = error.message;
+      if (error.response) {
+        errorMessage = error.response.data?.message || 
+          `Erreur HTTP: ${error.response.status} ${error.response.statusText}`;
+      }
+      throw new Error(`Erreur lors du démarrage de la tâche: ${errorMessage}`);
     }
   },
   
