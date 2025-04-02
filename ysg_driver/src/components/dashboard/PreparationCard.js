@@ -45,7 +45,6 @@ const PreparationCard = ({ preparation }) => {
       {preparation.vehicleModel && (
         <div className="vehicle-info">
           <span className="vehicle-model">{preparation.vehicleModel}</span>
-          <span className="vehicle-serie">série {preparation.series || '3'}</span>
         </div>
       )}
       
