@@ -1,5 +1,6 @@
 // src/components/movement/NotesSection.js ou src/components/preparation/NotesSection.js
 import React from 'react';
+import '../../styles/NotesSection.css'; // Assurez-vous que le chemin est correct
 
 const NotesSection = ({ notes, onChange, readOnly }) => {
   return (

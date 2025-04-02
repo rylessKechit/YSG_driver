@@ -1,5 +1,6 @@
 // src/components/preparation/PreparationDatesSection.js ou src/components/movement/DatesSection.js
 import React from 'react';
+import '../../styles/DatesSection.css'; // Assurez-vous que le chemin est correct
 
 const PreparationDatesSection = ({ preparation }) => {
   const formatDate = (date) => {
