@@ -56,7 +56,7 @@ router.get('/movements', verifyToken, canAccessReports, async (req, res) => {
     
     // Définir les colonnes
     worksheet.columns = [
-      { header: 'ID', key: 'id', width: 24 },
+      { header: 'Agence à facturer', key: 'invoiceAgency', width: 24 },
       { header: 'Plaque', key: 'licensePlate', width: 15 },
       { header: 'Modèle', key: 'vehicleModel', width: 20 },
       { header: 'Chauffeur', key: 'driver', width: 20 },
@@ -76,7 +76,7 @@ router.get('/movements', verifyToken, canAccessReports, async (req, res) => {
     // Ajouter les données
     movements.forEach(movement => {
       worksheet.addRow({
-        id: movement._id.toString(),
+        invoiceAgency: movement.arrivalLocation.name,
         licensePlate: movement.licensePlate,
         vehicleModel: movement.vehicleModel || '',
         driver: movement.userId ? movement.userId.fullName : '',
