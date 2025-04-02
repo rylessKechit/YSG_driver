@@ -432,3 +432,52 @@
       justify-content: center;
     }
   }
+
+  .video-container {
+    background-color: #f3f4f6;
+    height: 180px;
+    overflow: hidden;
+    border-radius: 8px 8px 0 0;
+    position: relative;
+  }
+  
+  .training-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  
+  .video-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.1);
+    z-index: 1;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  
+  .video-container:hover::before {
+    opacity: 1;
+  }
+
+  /* 2. Ajoutez ces styles dans votre CSS */
+.video-container {
+  position: relative;
+  z-index: 1;
+}
+
+.training-video {
+  position: relative;
+  z-index: 2;
+  pointer-events: auto !important;
+}
+
+/* Assurez-vous qu'aucun pseudo-élément ne bloque les clics */
+.video-container::before,
+.video-container::after {
+  pointer-events: none;
+}
