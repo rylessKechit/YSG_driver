@@ -41,17 +41,29 @@ const timelogService = {
   },
   
   // Récupérer l'historique des pointages
-  getTimeLogs: async (page = 1, limit = 10, status = null) => {
+  getTimeLogs: async (page = 1, limit = 10, status = null, filters = {}) => {
     try {
+      // Construction de l'URL de base
       let url = `${ENDPOINTS.TIMELOGS.BASE}?page=${page}&limit=${limit}`;
       
+      // Ajouter le statut s'il est fourni
       if (status) {
         url += `&status=${status}`;
+      }
+      
+      // S'assurer que les filtres sont correctement ajoutés
+      if (filters && typeof filters === 'object') {
+        Object.entries(filters).forEach(([key, value]) => {
+          if (value !== undefined && value !== null && value !== '') {
+            url += `&${key}=${encodeURIComponent(value)}`;
+          }
+        });
       }
       
       const response = await api.get(url);
       return response.data;
     } catch (error) {
+      console.error('Erreur dans getTimeLogs:', error);
       throw error;
     }
   }

@@ -411,7 +411,6 @@ class ScheduledReportsService {
       
       if (fileAge > maxAge) {
         fs.unlinkSync(filePath);
-        console.log(`Fichier temporaire supprimé: ${file}`);
       }
     });
   }

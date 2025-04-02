@@ -123,10 +123,17 @@ router.get('/', verifyToken, async (req, res) => {
     const skip = (page - 1) * limit;
     const { userId, startDate, endDate, status } = req.query;
     
-    // Construire la requête avec filtres
-    const query = { userId: userId || req.user._id };
+    // Construction de la requête avec filtres
+    const query = {};
     
-    // Filtrage par date
+    // Définir explicitement l'userId
+    if (userId) {
+      query.userId = userId;
+    } else {
+      query.userId = req.user._id;
+    }
+    
+    // Amélioration du filtrage par date
     if (startDate || endDate) {
       query.startTime = {};
       if (startDate) {

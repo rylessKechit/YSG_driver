@@ -87,7 +87,7 @@ const ScheduleComparison = () => {
   // Charger les données de planning et de pointage
   useEffect(() => {
     if (!selectedUser) return;
-
+  
     const fetchScheduleAndTimelogs = async () => {
       try {
         setLoading(true);
@@ -97,38 +97,24 @@ const ScheduleComparison = () => {
         const schedule = await scheduleService.getUserSchedule(selectedUser);
         setScheduleData(schedule || []);
     
-        // Charger les pointages
-        // Modifier pour spécifier le userId dans la requête des pointages
-        const params = {
-          userId: selectedUser,
-          startDate: dateRange.startDate,
-          endDate: dateRange.endDate
-        };
+        // Correction des paramètres pour timelogService
+        const timelogs = await timelogService.getTimeLogs(
+          1,                    // page
+          500,                  // limit
+          null,                 // status
+          {
+            userId: selectedUser,
+            startDate: dateRange.startDate,
+            endDate: dateRange.endDate
+          }
+        );
         
-        const timelogs = await timelogService.getTimeLogs(1, 500, null, params);
-        
-        // S'assurer que les pointages sont bien pour le bon utilisateur
+        // Vérification explicite que timelogs existe et contient des données
         const timeLogsArray = timelogs && timelogs.timeLogs ? timelogs.timeLogs : [];
+        setTimelogData(timeLogsArray);
         
-        // Filtrer pour l'utilisateur et la plage de dates de façon explicite
-        const startDate = new Date(dateRange.startDate);
-        startDate.setHours(0, 0, 0, 0);
-        
-        const endDate = new Date(dateRange.endDate);
-        endDate.setHours(23, 59, 59, 999);
-        
-        const filteredTimelogs = timeLogsArray.filter(log => {
-          const logStartDate = new Date(log.startTime);
-          return log.userId === selectedUser && 
-                 logStartDate >= startDate && 
-                 logStartDate <= endDate;
-        });
-        
-        console.log("Timelogs filtrés:", filteredTimelogs);
-        setTimelogData(filteredTimelogs);
-    
         // Générer les données de comparaison
-        generateComparisonData(schedule || [], filteredTimelogs);
+        generateComparisonData(schedule || [], timeLogsArray);
         
         setLoading(false);
       } catch (err) {
@@ -137,7 +123,7 @@ const ScheduleComparison = () => {
         setLoading(false);
       }
     };
-
+  
     fetchScheduleAndTimelogs();
   }, [selectedUser, dateRange]);
 
