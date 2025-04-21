@@ -23,6 +23,7 @@ const AdminPanel = () => {
     fullName: '',
     email: '',
     phone: '',
+    sixtNumber: '',
     role: 'driver'
   });
   const [loading, setLoading] = useState(true);
@@ -41,13 +42,40 @@ const AdminPanel = () => {
     }
   }, [currentUser, navigate]);
 
+  // Fonction pour trier les utilisateurs selon l'ordre spécifié des rôles
+  const sortUsersByRole = (users) => {
+    // Définir l'ordre des rôles (1 = premier, 5 = dernier)
+    const roleOrder = {
+      'admin': 1,
+      'direction': 2,
+      'team-leader': 3, // 'chef d'équipe' dans l'interface, 'team-leader' dans la base de données
+      'driver': 4,      // 'chauffeur' dans l'interface, 'driver' dans la base de données
+      'preparator': 5   // 'préparateur' dans l'interface, 'preparator' dans la base de données
+    };
+
+    // Créer une copie de la liste des utilisateurs pour ne pas modifier l'original
+    return [...users].sort((a, b) => {
+      // Si les rôles sont différents, trier par priorité de rôle
+      if (a.role !== b.role) {
+        return roleOrder[a.role] - roleOrder[b.role];
+      }
+      
+      // Si les rôles sont identiques, trier par nom complet
+      return a.fullName.localeCompare(b.fullName);
+    });
+  };
+
   // Charger la liste des utilisateurs
   useEffect(() => {
     const fetchUsers = async () => {
       try {
         setLoading(true);
         const data = await userService.getAllUsers();
-        setUsers(data);
+        
+        // Appliquer le tri par rôle
+        const sortedData = sortUsersByRole(data);
+        
+        setUsers(sortedData);
         setAllUsers(data);
         setLoading(false);
       } catch (err) {
@@ -122,8 +150,9 @@ const AdminPanel = () => {
         const response = await userService.createUser(formData);
         // Mettre à jour localement
         const newUsers = [...allUsers, response.user];
+        const sortedUsers = sortUsersByRole(newUsers);
         setAllUsers(newUsers);
-        setUsers(newUsers);
+        setUsers(sortedUsers);
         setSuccess('Utilisateur créé avec succès');
       } else {
         // Modifier un utilisateur existant
@@ -132,8 +161,9 @@ const AdminPanel = () => {
         const updatedUsers = allUsers.map(user => 
           user._id === selectedUser._id ? response.user : user
         );
+        const sortedUsers = sortUsersByRole(updatedUsers);
         setAllUsers(updatedUsers);
-        setUsers(updatedUsers);
+        setUsers(sortedUsers);
         setSuccess('Utilisateur mis à jour avec succès');
       }
       
@@ -150,7 +180,6 @@ const AdminPanel = () => {
     }
   };
   
-
   // Supprimer un utilisateur
   const handleDeleteUser = async (userId) => {
     if (!window.confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')) {
@@ -165,8 +194,9 @@ const AdminPanel = () => {
       
       // Mettre à jour localement
       const remainingUsers = allUsers.filter(user => user._id !== userId);
+      const sortedUsers = sortUsersByRole(remainingUsers);
       setAllUsers(remainingUsers);
-      setUsers(remainingUsers);
+      setUsers(sortedUsers);
       
       setSuccess('Utilisateur supprimé avec succès');
       
@@ -217,7 +247,7 @@ const AdminPanel = () => {
           </div>
         ) : (
           <UsersTable 
-            users={users}
+            users={users} // La liste est déjà triée par la fonction sortUsersByRole
             currentUser={currentUser}
             onEditUser={handleEditUser}
             onDeleteUser={handleDeleteUser}
