@@ -68,6 +68,7 @@ const AdminPanel = () => {
       fullName: '',
       email: '',
       phone: '',
+      sixtNumber: '',
       role: 'driver'
     });
     setShowUserForm(false);
@@ -92,6 +93,7 @@ const AdminPanel = () => {
       fullName: user.fullName,
       email: user.email,
       phone: user.phone,
+      sixtNumber: user.sixtNumber || '',
       role: user.role
     });
     setShowUserForm(true);

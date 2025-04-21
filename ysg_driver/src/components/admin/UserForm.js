@@ -97,6 +97,22 @@ const UserForm = ({
           </div>
           
           <div className="form-group">
+            <label htmlFor="sixtNumber" className="form-label">
+              Numéro Sixt
+            </label>
+            <input
+              type="text"
+              id="sixtNumber"
+              name="sixtNumber"
+              value={formData.sixtNumber}
+              onChange={onChange}
+              className="form-input"
+            />
+          </div>
+        </div>
+        
+        <div className="form-row">
+          <div className="form-group">
             <label htmlFor="role" className="form-label">
               Rôle *
             </label>

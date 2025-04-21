@@ -16,6 +16,7 @@ const UsersTable = ({
             <th>Utilisateur</th>
             <th>Nom complet</th>
             <th>Téléphone</th>
+            <th>Numéro Sixt</th>
             <th>Rôle</th>
             <th>Actions</th>
           </tr>
@@ -26,6 +27,7 @@ const UsersTable = ({
               <td>{user.username}</td>
               <td>{user.fullName}</td>
               <td>{user.phone}</td>
+              <td>{user.sixtNumber || '-'}</td>
               <td>
                 <span className={`role-badge ${
                   user.role === 'admin' ? 'admin-role' : 
