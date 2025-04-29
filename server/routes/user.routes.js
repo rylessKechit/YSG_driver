@@ -1,3 +1,4 @@
+// server/routes/user.routes.js
 const express = require('express');
 const router = express.Router();
 const User = require('../models/user.model');
@@ -22,7 +23,7 @@ router.get('/profile', verifyToken, async (req, res) => {
 // Mettre à jour le profil de l'utilisateur connecté
 router.put('/profile', verifyToken, async (req, res) => {
   try {
-    const { fullName, email, phone } = req.body;
+    const { fullName, email, phone, sixtNumber } = req.body;
     
     // Vérifier si l'email est déjà utilisé par un autre utilisateur
     if (email) {
@@ -43,7 +44,8 @@ router.put('/profile', verifyToken, async (req, res) => {
         $set: { 
           fullName: fullName || req.user.fullName,
           email: email || req.user.email,
-          phone: phone || req.user.phone
+          phone: phone || req.user.phone,
+          sixtNumber: sixtNumber // Ajout du numéro Sixt
         } 
       },
       { new: true }

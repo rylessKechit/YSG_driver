@@ -15,6 +15,7 @@ const QuickActions = ({ currentUser }) => {
         { path: '/reports', icon: 'fas fa-file-excel', title: 'Rapports' },
         { path: '/schedules', icon: 'fas fa-calendar-week', title: 'Planning préparateurs' },
         { path: '/schedule-comparison', icon: 'fas fa-chart-line', title: 'Comparaison pointages' },
+        { path: '/admin/agencies', icon: 'fas fa-building', title: 'Gestion des agences' }, // Nouveau lien
         { path: '/admin', icon: 'fas fa-user-shield', title: 'Administration' },
         { path: '/admin/location', icon: 'fas fa-map-marker-alt', title: 'Gestion des emplacements' },
         { path: '/tracking', icon: 'fas fa-map-marked-alt', title: 'Suivi en temps réel' },
@@ -23,6 +24,7 @@ const QuickActions = ({ currentUser }) => {
         { path: '/admin/movements/create', icon: 'fas fa-plus-circle', title: 'Créer un mouvement' },
         { path: '/preparations/create', icon: 'fas fa-tools', title: 'Créer une préparation' },
         { path: '/movement/history', icon: 'fas fa-history', title: 'Historique' },
+        { path: '/admin/agencies', icon: 'fas fa-building', title: 'Gestion des agences' }, // Nouveau lien
         { path: '/profile', icon: 'fas fa-user', title: 'Mon profil' },
         { path: '/tracking', icon: 'fas fa-map-marked-alt', title: 'Suivi en temps réel' },
       ],

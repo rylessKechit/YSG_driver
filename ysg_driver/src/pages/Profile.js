@@ -6,8 +6,17 @@ import '../styles/Profile.css';
 
 const Profile = () => {
   const { currentUser, logout } = useAuth();
-  const [profileData, setProfileData] = useState({ fullName: '', email: '', phone: '' });
-  const [passwordData, setPasswordData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [profileData, setProfileData] = useState({ 
+    fullName: '', 
+    email: '', 
+    phone: '',
+    sixtNumber: '' // Ajout du numéro Sixt
+  });
+  const [passwordData, setPasswordData] = useState({ 
+    currentPassword: '', 
+    newPassword: '', 
+    confirmPassword: '' 
+  });
   const [loading, setLoading] = useState(false);
   const [profileError, setProfileError] = useState(null);
   const [passwordError, setPasswordError] = useState(null);
@@ -20,7 +29,8 @@ const Profile = () => {
       setProfileData({
         fullName: currentUser.fullName || '',
         email: currentUser.email || '',
-        phone: currentUser.phone || ''
+        phone: currentUser.phone || '',
+        sixtNumber: currentUser.sixtNumber || '' // Initialiser le numéro Sixt
       });
     }
   }, [currentUser]);
@@ -147,6 +157,20 @@ const Profile = () => {
                 onChange={handleProfileChange}
                 className="form-input"
                 required
+              />
+            </div>
+            
+            {/* Ajout du champ Numéro Sixt */}
+            <div className="form-group">
+              <label htmlFor="sixtNumber" className="form-label">Numéro Sixt</label>
+              <input
+                type="text"
+                id="sixtNumber"
+                name="sixtNumber"
+                value={profileData.sixtNumber}
+                onChange={handleProfileChange}
+                className="form-input"
+                placeholder="Facultatif"
               />
             </div>
             

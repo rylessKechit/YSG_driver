@@ -19,6 +19,7 @@ const roleLinks = {
     { name: 'Rapports', path: '/reports' },
     { name: 'Planning préparateurs', path: '/schedules' },
     { name: 'Comparaison pointages', path: '/schedule-comparison' },
+    { name: 'Gestion des agences', path: '/admin/agencies' }, // Nouveau lien pour la gestion des agences
     { name: 'Administration', path: '/admin' },
     { name: 'Suivi en temps réel', path: '/tracking' },
   ],
@@ -27,6 +28,7 @@ const roleLinks = {
     { name: 'Mouvements', path: '/movement/history' },
     { name: 'Préparations', path: '/preparations' },
     { name: 'Nouvelle préparation', path: '/preparations/create' },
+    { name: 'Gestion des agences', path: '/admin/agencies' }, // Nouveau lien pour la gestion des agences
     { name: 'Suivi en temps réel', path: '/tracking' },
   ],
   driver: [

@@ -1,4 +1,4 @@
-// src/services/userService.js (sans système de cache)
+// src/services/userService.js
 import { api, fetchWithCache } from './authService';
 import { ENDPOINTS } from '../config';
 
