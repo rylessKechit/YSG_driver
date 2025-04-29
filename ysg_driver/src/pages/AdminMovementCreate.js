@@ -1,10 +1,12 @@
-// Modifier le composant AdminMovementCreate.js
-
+// ysg_driver/src/pages/AdminMovementCreate.js
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import movementService from '../services/movementService';
+import agencyService from '../services/agencyService';
 import Navigation from '../components/Navigation';
+import LoadingSpinner from '../components/ui/LoadingSpinner';
+import AlertMessage from '../components/ui/AlertMessage';
 import '../styles/AdminMovementCreate.css';
 
 const AdminMovementCreate = () => {
@@ -12,10 +14,12 @@ const AdminMovementCreate = () => {
     userId: '',
     licensePlate: '',
     vehicleModel: '',
+    departureAgencyId: '',
     departureLocation: {
       name: '',
       coordinates: { latitude: null, longitude: null }
     },
+    arrivalAgencyId: '',
     arrivalLocation: {
       name: '',
       coordinates: { latitude: null, longitude: null }
@@ -24,10 +28,16 @@ const AdminMovementCreate = () => {
     notes: ''
   });
   
+  // État pour les agences
+  const [agencies, setAgencies] = useState([]);
+  const [showManualDeparture, setShowManualDeparture] = useState(false);
+  const [showManualArrival, setShowManualArrival] = useState(false);
+  
   // Utiliser une liste de tous les chauffeurs au lieu de seulement ceux en service
   const [allDrivers, setAllDrivers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [fetchingDrivers, setFetchingDrivers] = useState(true);
+  const [fetchingAgencies, setFetchingAgencies] = useState(true);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const { currentUser } = useAuth();
@@ -62,6 +72,24 @@ const AdminMovementCreate = () => {
 
     loadAllDrivers();
   }, []);
+  
+  // Charger toutes les agences actives
+  useEffect(() => {
+    const loadAgencies = async () => {
+      try {
+        setFetchingAgencies(true);
+        const agenciesData = await agencyService.getAgencies(true); // true pour n'obtenir que les agences actives
+        setAgencies(agenciesData);
+      } catch (err) {
+        console.error('Erreur lors du chargement des agences:', err);
+        setError('Impossible de charger la liste des agences');
+      } finally {
+        setFetchingAgencies(false);
+      }
+    };
+    
+    loadAgencies();
+  }, []);
 
   // Gérer les changements dans le formulaire
   const handleChange = (e) => {
@@ -76,6 +104,90 @@ const AdminMovementCreate = () => {
           [child]: value
         }
       });
+    } else if (name === 'departureAgencyId') {
+      // Si aucune agence n'est sélectionnée, afficher les champs de saisie manuelle
+      if (value === "") {
+        setShowManualDeparture(true);
+        setFormData({
+          ...formData,
+          departureAgencyId: '',
+          departureLocation: {
+            name: '',
+            coordinates: { latitude: null, longitude: null }
+          }
+        });
+      } else if (value === "manual") {
+        // Option pour saisie manuelle
+        setShowManualDeparture(true);
+        setFormData({
+          ...formData,
+          departureAgencyId: '',
+          departureLocation: {
+            name: '',
+            coordinates: { latitude: null, longitude: null }
+          }
+        });
+      } else {
+        // Trouver l'agence sélectionnée et utiliser ses coordonnées
+        const selectedAgency = agencies.find(agency => agency._id === value);
+        setShowManualDeparture(false);
+        
+        if (selectedAgency) {
+          setFormData({
+            ...formData,
+            departureAgencyId: value,
+            departureLocation: {
+              name: selectedAgency.name,
+              coordinates: {
+                latitude: selectedAgency.location.coordinates.latitude,
+                longitude: selectedAgency.location.coordinates.longitude
+              }
+            }
+          });
+        }
+      }
+    } else if (name === 'arrivalAgencyId') {
+      // Si aucune agence n'est sélectionnée, afficher les champs de saisie manuelle
+      if (value === "") {
+        setShowManualArrival(true);
+        setFormData({
+          ...formData,
+          arrivalAgencyId: '',
+          arrivalLocation: {
+            name: '',
+            coordinates: { latitude: null, longitude: null }
+          }
+        });
+      } else if (value === "manual") {
+        // Option pour saisie manuelle
+        setShowManualArrival(true);
+        setFormData({
+          ...formData,
+          arrivalAgencyId: '',
+          arrivalLocation: {
+            name: '',
+            coordinates: { latitude: null, longitude: null }
+          }
+        });
+      } else {
+        // Trouver l'agence sélectionnée et utiliser ses coordonnées
+        const selectedAgency = agencies.find(agency => agency._id === value);
+        setShowManualArrival(false);
+        
+        if (selectedAgency) {
+          setFormData({
+            ...formData,
+            arrivalAgencyId: value,
+            arrivalLocation: {
+              name: selectedAgency.name,
+              coordinates: {
+                latitude: selectedAgency.location.coordinates.latitude,
+                longitude: selectedAgency.location.coordinates.longitude
+              }
+            }
+          });
+        }
+      }
     } else {
       setFormData({
         ...formData,
@@ -142,8 +254,21 @@ const AdminMovementCreate = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!formData.licensePlate || !formData.departureLocation.name || !formData.arrivalLocation.name) {
-      setError('Veuillez remplir tous les champs obligatoires');
+    // Validation des données
+    if (!formData.licensePlate) {
+      setError('La plaque d\'immatriculation est requise');
+      return;
+    }
+    
+    // Vérifier le lieu de départ
+    if (!formData.departureAgencyId && (!formData.departureLocation.name || !formData.departureLocation.coordinates.latitude)) {
+      setError('Veuillez sélectionner une agence de départ ou saisir un lieu de départ personnalisé');
+      return;
+    }
+    
+    // Vérifier le lieu d'arrivée
+    if (!formData.arrivalAgencyId && (!formData.arrivalLocation.name || !formData.arrivalLocation.coordinates.latitude)) {
+      setError('Veuillez sélectionner une agence d\'arrivée ou saisir un lieu d\'arrivée personnalisé');
       return;
     }
     
@@ -152,9 +277,20 @@ const AdminMovementCreate = () => {
       setError(null);
       
       // Créer le mouvement
-      await movementService.createMovement(formData);
+      const response = await movementService.createMovement(formData);
       
-      setSuccess('Mouvement créé avec succès');
+      // Vérifier si des notifications d'email ont été envoyées
+      const emailSent = response.movement && 
+                       response.movement.emailNotifications && 
+                       response.movement.emailNotifications.length > 0;
+      
+      let successMessage = 'Mouvement créé avec succès';
+      if (emailSent) {
+        successMessage += '. Les agences de départ et d\'arrivée ont été notifiées par email.';
+      }
+      
+      setSuccess(successMessage);
+      
       setTimeout(() => {
         navigate('/movement/history');
       }, 2000);
@@ -173,7 +309,7 @@ const AdminMovementCreate = () => {
       <div className="admin-movement-container">
         <div className="page-header">
           <h1 className="page-title">Créer un mouvement de véhicule</h1>
-          <p className="page-subtitle">Assignez un nouveau mouvement à un chauffeur ou créez-le sans chauffeur</p>
+          <p className="page-subtitle">Assignez un nouveau mouvement à un chauffeur et envoyez des notifications aux agences concernées</p>
         </div>
         
         {error && (
@@ -190,15 +326,15 @@ const AdminMovementCreate = () => {
           </div>
         )}
         
-        {fetchingDrivers ? (
+        {fetchingDrivers || fetchingAgencies ? (
           <div className="loading-container">
             <div className="spinner"></div>
-            <p className="loading-text">Chargement des chauffeurs...</p>
+            <p className="loading-text">Chargement des données...</p>
           </div>
         ) : (
           <div className="card">
             <div className="card-body">
-            <form onSubmit={handleSubmit}>
+              <form onSubmit={handleSubmit}>
                 <div className="form-section">
                   <h2 className="section-title">
                     <i className="fas fa-user"></i> Sélection du chauffeur (optionnel)
@@ -287,36 +423,64 @@ const AdminMovementCreate = () => {
                   </h2>
                   
                   <div className="form-group">
-                    <label htmlFor="departureLocation.name" className="form-label">
-                      Nom du lieu de départ *
+                    <label htmlFor="departureAgencyId" className="form-label">
+                      Agence de départ <span className="notification-info">(Sera notifiée par email)</span>
                     </label>
-                    <input
-                      type="text"
-                      id="departureLocation.name"
-                      name="departureLocation.name"
-                      value={formData.departureLocation.name}
+                    <select
+                      id="departureAgencyId"
+                      name="departureAgencyId"
+                      value={formData.departureAgencyId}
                       onChange={handleChange}
-                      className="form-input"
-                      placeholder="Ex: Aéroport d'Orly"
-                      required
-                    />
+                      className="form-select"
+                    >
+                      <option value="">Sélectionnez une agence</option>
+                      <option value="manual">Saisie manuelle (pas de notification)</option>
+                      {agencies.map(agency => (
+                        <option key={agency._id} value={agency._id}>
+                          {agency.name} - {agency.address}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="form-hint">
+                      La sélection d'une agence permettra l'envoi automatique d'un bon de convoyage par email.
+                    </p>
                   </div>
                   
-                  <div className="location-helper">
-                    {formData.departureLocation.coordinates.latitude && (
-                      <div className="coordinates-box">
-                        <p>Lat: {formData.departureLocation.coordinates.latitude.toFixed(6)}</p>
-                        <p>Lng: {formData.departureLocation.coordinates.longitude.toFixed(6)}</p>
+                  {(showManualDeparture || !formData.departureAgencyId) && (
+                    <>
+                      <div className="form-group">
+                        <label htmlFor="departureLocation.name" className="form-label">
+                          Nom du lieu de départ *
+                        </label>
+                        <input
+                          type="text"
+                          id="departureLocation.name"
+                          name="departureLocation.name"
+                          value={formData.departureLocation.name}
+                          onChange={handleChange}
+                          className="form-input"
+                          placeholder="Ex: Aéroport d'Orly"
+                          required={!formData.departureAgencyId}
+                        />
                       </div>
-                    )}
-                    <button 
-                      type="button" 
-                      onClick={useCurrentLocationForDeparture}
-                      className="btn btn-secondary"
-                    >
-                      <i className="fas fa-map-pin"></i> Utiliser ma position actuelle
-                    </button>
-                  </div>
+                      
+                      <div className="location-helper">
+                        {formData.departureLocation.coordinates.latitude && (
+                          <div className="coordinates-box">
+                            <p>Lat: {formData.departureLocation.coordinates.latitude.toFixed(6)}</p>
+                            <p>Lng: {formData.departureLocation.coordinates.longitude.toFixed(6)}</p>
+                          </div>
+                        )}
+                        <button 
+                          type="button" 
+                          onClick={useCurrentLocationForDeparture}
+                          className="btn btn-secondary"
+                        >
+                          <i className="fas fa-map-pin"></i> Utiliser ma position actuelle
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
                 
                 <div className="form-section">
@@ -325,39 +489,67 @@ const AdminMovementCreate = () => {
                   </h2>
                   
                   <div className="form-group">
-                    <label htmlFor="arrivalLocation.name" className="form-label">
-                      Nom du lieu d'arrivée *
+                    <label htmlFor="arrivalAgencyId" className="form-label">
+                      Agence d'arrivée <span className="notification-info">(Sera notifiée par email)</span>
                     </label>
-                    <input
-                      type="text"
-                      id="arrivalLocation.name"
-                      name="arrivalLocation.name"
-                      value={formData.arrivalLocation.name}
+                    <select
+                      id="arrivalAgencyId"
+                      name="arrivalAgencyId"
+                      value={formData.arrivalAgencyId}
                       onChange={handleChange}
-                      className="form-input"
-                      placeholder="Ex: Aéroport Charles de Gaulle"
-                      required
-                    />
+                      className="form-select"
+                    >
+                      <option value="">Sélectionnez une agence</option>
+                      <option value="manual">Saisie manuelle (pas de notification)</option>
+                      {agencies.map(agency => (
+                        <option key={agency._id} value={agency._id}>
+                          {agency.name} - {agency.address}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="form-hint">
+                      La sélection d'une agence permettra l'envoi automatique d'un bon de convoyage par email.
+                    </p>
                   </div>
                   
-                  <div className="location-helper">
-                    {formData.arrivalLocation.coordinates.latitude && (
-                      <div className="coordinates-box">
-                        <p>Lat: {formData.arrivalLocation.coordinates.latitude.toFixed(6)}</p>
-                        <p>Lng: {formData.arrivalLocation.coordinates.longitude.toFixed(6)}</p>
+                  {(showManualArrival || !formData.arrivalAgencyId) && (
+                    <>
+                      <div className="form-group">
+                        <label htmlFor="arrivalLocation.name" className="form-label">
+                          Nom du lieu d'arrivée *
+                        </label>
+                        <input
+                          type="text"
+                          id="arrivalLocation.name"
+                          name="arrivalLocation.name"
+                          value={formData.arrivalLocation.name}
+                          onChange={handleChange}
+                          className="form-input"
+                          placeholder="Ex: Aéroport Charles de Gaulle"
+                          required={!formData.arrivalAgencyId}
+                        />
                       </div>
-                    )}
-                    <button 
-                      type="button" 
-                      onClick={useCurrentLocationForArrival}
-                      className="btn btn-secondary"
-                    >
-                      <i className="fas fa-map-pin"></i> Utiliser ma position actuelle
-                    </button>
-                  </div>
+                      
+                      <div className="location-helper">
+                        {formData.arrivalLocation.coordinates.latitude && (
+                          <div className="coordinates-box">
+                            <p>Lat: {formData.arrivalLocation.coordinates.latitude.toFixed(6)}</p>
+                            <p>Lng: {formData.arrivalLocation.coordinates.longitude.toFixed(6)}</p>
+                          </div>
+                        )}
+                        <button 
+                          type="button" 
+                          onClick={useCurrentLocationForArrival}
+                          className="btn btn-secondary"
+                        >
+                          <i className="fas fa-map-pin"></i> Utiliser ma position actuelle
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
 
-                {/* Nouveau bloc pour la deadline */}
+                {/* Deadline */}
                 <div className="form-section">
                   <h2 className="section-title">
                     <i className="fas fa-clock"></i> Deadline (Optionnel)
@@ -378,7 +570,7 @@ const AdminMovementCreate = () => {
                     />
                     <p className="form-hint">
                       Indiquez la date et l'heure auxquelles le véhicule doit arriver à destination.
-                      Cette information sera partagée avec le chauffeur.
+                      Cette information sera partagée avec l'agence d'arrivée et le chauffeur.
                     </p>
                   </div>
                 </div>
@@ -398,8 +590,39 @@ const AdminMovementCreate = () => {
                       value={formData.notes}
                       onChange={handleChange}
                       className="form-textarea"
-                      placeholder="Informations supplémentaires pour le chauffeur..."
+                      placeholder="Informations supplémentaires pour le chauffeur et les agences..."
+                      rows="5"
                     ></textarea>
+                  </div>
+                </div>
+
+                <div className="form-section notification-section">
+                  <h2 className="section-title">
+                    <i className="fas fa-envelope"></i> Notification par email
+                  </h2>
+                  
+                  <div className="notification-info-box">
+                    <p>
+                      <i className="fas fa-info-circle"></i> Un bon de convoyage sera automatiquement envoyé par email aux agences sélectionnées lorsque vous créez le mouvement.
+                    </p>
+                    <p>
+                      <strong>L'email contient :</strong>
+                    </p>
+                    <ul>
+                      <li>Les informations du véhicule</li>
+                      <li>Les détails des agences de départ et d'arrivée</li>
+                      <li>Les coordonnées du chauffeur (si assigné)</li>
+                      <li>La deadline (si définie)</li>
+                      <li>Les notes que vous avez ajoutées</li>
+                    </ul>
+                    <p>
+                      <strong>L'état du mouvement est mis à jour et les agences sont informées aux étapes clés :</strong>
+                    </p>
+                    <ul>
+                      <li>À la création du mouvement</li>
+                      <li>Lorsque le mouvement démarre</li>
+                      <li>Lorsque le mouvement est terminé</li>
+                    </ul>
                   </div>
                 </div>
                 
@@ -416,7 +639,17 @@ const AdminMovementCreate = () => {
                     className="btn btn-primary"
                     disabled={loading}
                   >
-                    {loading ? 'Création en cours...' : 'Créer le mouvement'}
+                    {loading ? (
+                      <>
+                        <div className="spinner-sm"></div>
+                        <span>Création en cours...</span>
+                      </>
+                    ) : (
+                      <>
+                        <i className="fas fa-paper-plane"></i>
+                        <span>Créer et envoyer le bon de convoyage</span>
+                      </>
+                    )}
                   </button>
                 </div>
               </form>

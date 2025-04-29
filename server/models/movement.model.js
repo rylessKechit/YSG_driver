@@ -1,4 +1,4 @@
-// server/models/movement.model.js - Ajout du champ deadline
+// server/models/movement.model.js
 const mongoose = require('mongoose');
 
 const photoSchema = new mongoose.Schema({
@@ -14,17 +14,30 @@ const photoSchema = new mongoose.Schema({
     type: String,
     enum: [
       'departure', 'arrival', 'damage', 'other',
-      // Nouveaux types de photos
+      // Types de photos
       'front', 'passenger', 'driver', 'rear', 'windshield', 'roof', 'meter'
     ],
     default: 'other'
   },
-  // Nouveau champ pour distinguer les photos de départ des photos d'arrivée
+  // Champ pour distinguer les photos de départ des photos d'arrivée
   photoType: {
     type: String,
     enum: ['departure', 'arrival'],
     default: 'departure'
   }
+});
+
+const emailNotificationSchema = new mongoose.Schema({
+  sentAt: {
+    type: Date,
+    default: Date.now
+  },
+  recipients: [String],
+  success: {
+    type: Boolean,
+    default: false
+  },
+  error: String
 });
 
 const movementSchema = new mongoose.Schema({
@@ -51,6 +64,11 @@ const movementSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  // Nouvelle propriété pour référencer l'agence de départ
+  departureAgencyId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Agency'
+  },
   departureLocation: {
     name: {
       type: String,
@@ -60,6 +78,11 @@ const movementSchema = new mongoose.Schema({
       latitude: Number,
       longitude: Number
     }
+  },
+  // Nouvelle propriété pour référencer l'agence d'arrivée
+  arrivalAgencyId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Agency'
   },
   arrivalLocation: {
     name: {
@@ -77,7 +100,7 @@ const movementSchema = new mongoose.Schema({
   arrivalTime: {
     type: Date
   },
-  // Nouveau champ pour la deadline
+  // Deadline
   deadline: {
     type: Date
   },
@@ -89,7 +112,9 @@ const movementSchema = new mongoose.Schema({
   photos: [photoSchema],
   notes: {
     type: String
-  }
+  },
+  // Nouveau champ pour suivre les notifications d'email
+  emailNotifications: [emailNotificationSchema]
 }, {
   timestamps: true
 });
@@ -98,8 +123,11 @@ const movementSchema = new mongoose.Schema({
 movementSchema.index({ licensePlate: 1 });
 // Index pour rechercher les mouvements d'un utilisateur
 movementSchema.index({ userId: 1, status: 1 });
-// Nouvel index pour trier efficacement par deadline
+// Index pour trier efficacement par deadline
 movementSchema.index({ status: 1, deadline: 1 });
+// Nouveaux index pour les agences
+movementSchema.index({ departureAgencyId: 1 });
+movementSchema.index({ arrivalAgencyId: 1 });
 
 const Movement = mongoose.model('Movement', movementSchema);
 
