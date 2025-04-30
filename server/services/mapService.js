@@ -31,8 +31,6 @@ class MapService {
       // Construire l'URL de l'API
       const url = `https://maps.googleapis.com/maps/api/distancematrix/json?units=metric&origins=${originStr}&destinations=${destinationStr}&key=${GOOGLE_MAPS_API_KEY}`;
 
-      console.log(`📍 Calcul de distance entre: ${originStr} et ${destinationStr}`);
-
       // Faire la requête API
       const response = await axios.get(url);
       const data = response.data;
@@ -54,8 +52,6 @@ class MapService {
       // Extraire la distance en mètres et convertir en kilomètres
       const distanceInMeters = element.distance.value;
       const distanceInKm = distanceInMeters / 1000;
-
-      console.log(`✅ Distance calculée: ${distanceInKm.toFixed(2)} km`);
       return distanceInKm;
     } catch (error) {
       console.error('Erreur lors du calcul de la distance avec Google Maps API:', error);

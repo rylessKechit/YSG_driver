@@ -45,12 +45,10 @@ class WhatsAppService {
     // S'assurer que les dossiers existent
     if (!fs.existsSync(this.dataPath)) {
       fs.mkdirSync(this.dataPath, { recursive: true });
-      console.log(`Dossier de données WhatsApp créé: ${this.dataPath}`);
     }
 
     if (!fs.existsSync(this.tempDir)) {
       fs.mkdirSync(this.tempDir, { recursive: true });
-      console.log(`Dossier temporaire créé: ${this.tempDir}`);
     }
   }
 
@@ -60,7 +58,6 @@ class WhatsAppService {
   async initialize() {
     // Éviter les initialisations simultanées
     if (this.isInitializing) {
-      console.log('Initialisation du client WhatsApp déjà en cours');
       return;
     }
 
@@ -69,12 +66,9 @@ class WhatsAppService {
     try {
       // Vérifier si le client est déjà prêt
       if (this.client && this.isReady) {
-        console.log('Client WhatsApp déjà initialisé et prêt');
         this.isInitializing = false;
         return;
       }
-
-      console.log('Initialisation du client WhatsApp...');
 
       // Configuration spécifique pour Puppeteer sur Railway
       const clientOptions = {
@@ -101,7 +95,6 @@ class WhatsAppService {
       // Utiliser RemoteAuth avec MongoDB si disponible
       if (mongoose.connection.readyState === 1) {
         try {
-          console.log('Configuration de RemoteAuth avec MongoDB...');
           const store = new MongoStore({ mongoose });
           clientOptions.authStrategy = new RemoteAuth({
             store,
@@ -109,12 +102,9 @@ class WhatsAppService {
             backupSyncIntervalMs: 300000, // 5 minutes
             dataPath: this.dataPath
           });
-          console.log('RemoteAuth configurée avec succès');
         } catch (err) {
           console.error('Erreur lors de la configuration de RemoteAuth:', err);
         }
-      } else {
-        console.warn('MongoDB non connecté, WhatsApp utilisera l\'authentification locale');
       }
 
       // Création du client WhatsApp
@@ -146,7 +136,6 @@ class WhatsAppService {
       this.reconnectAttempts++;
       if (this.reconnectAttempts < this.maxReconnectAttempts) {
         const delay = Math.min(30000 * Math.pow(2, this.reconnectAttempts - 1), 300000);
-        console.log(`Tentative de reconnexion #${this.reconnectAttempts} dans ${delay / 1000} secondes...`);
         
         clearTimeout(this.reconnectTimeout);
         this.reconnectTimeout = setTimeout(() => {
@@ -178,7 +167,6 @@ class WhatsAppService {
       this.lastQRGeneration = currentTime;
       
       try {
-        console.log('Génération du QR code WhatsApp...');
         await this.generateAndUploadQRCode(qr);
       } catch (error) {
         console.error('Erreur lors de la génération du QR code:', error);
@@ -190,7 +178,6 @@ class WhatsAppService {
 
     // Gestion de l'authentification
     this.client.on('authenticated', () => {
-      console.log('Client WhatsApp authentifié avec succès');
       this.reconnectAttempts = 0;
       
       // Supprimer le QR code de S3
@@ -199,7 +186,6 @@ class WhatsAppService {
 
     // Gestion de l'état prêt
     this.client.on('ready', () => {
-      console.log('Client WhatsApp prêt à envoyer des messages');
       this.isReady = true;
       this.reconnectAttempts = 0;
       
@@ -209,7 +195,6 @@ class WhatsAppService {
 
     // Gestion des déconnexions
     this.client.on('disconnected', (reason) => {
-      console.log(`Client WhatsApp déconnecté. Raison: ${reason}`);
       this.isReady = false;
       
       // Nettoyage du QR
@@ -219,7 +204,6 @@ class WhatsAppService {
       clearTimeout(this.reconnectTimeout);
       this.reconnectTimeout = setTimeout(() => {
         if (!this.isInitializing && !this.isReady) {
-          console.log('Tentative de reconnexion automatique après déconnexion...');
           this.initialize();
         }
       }, 30000);
@@ -232,21 +216,14 @@ class WhatsAppService {
       
       // Essayer de nettoyer le stockage d'auth si problème persistant
       if (this.reconnectAttempts >= 3) {
-        console.log('Plusieurs échecs d\'authentification, nettoyage des données d\'authentification...');
         try {
           if (fs.existsSync(this.dataPath)) {
             fs.rmdirSync(this.dataPath, { recursive: true });
-            console.log('Données d\'authentification supprimées avec succès');
           }
         } catch (e) {
           console.error('Erreur lors du nettoyage des données d\'authentification:', e);
         }
       }
-    });
-
-    // Messages reçus (pour journalisation)
-    this.client.on('message', (msg) => {
-      console.log(`Message reçu de ${msg.from}: ${msg.body.substring(0, 50)}${msg.body.length > 50 ? '...' : ''}`);
     });
   }
 
@@ -273,7 +250,6 @@ class WhatsAppService {
         
         // Utiliser une URL de fichier local si S3 n'est pas disponible
         this.qrCodeUrl = `file://${localFilePath}`;
-        console.log('QR code disponible localement:', this.qrCodeUrl);
         return;
       }
       
@@ -297,7 +273,6 @@ class WhatsAppService {
       
       // Construire l'URL publique
       this.qrCodeUrl = `https://${bucketName}.s3.${process.env.AWS_REGION || 'eu-west-3'}.amazonaws.com/${s3Key}`;
-      console.log('QR code téléversé sur S3:', this.qrCodeUrl);
       
       // Nettoyer le fichier local
       fs.unlinkSync(localFilePath);
@@ -319,7 +294,6 @@ class WhatsAppService {
         };
         
         await s3Client.send(new DeleteObjectCommand(deleteParams));
-        console.log('QR code supprimé de S3');
         
         this.qrCodeUrl = null;
         this.qrCodeKey = null;
@@ -341,11 +315,9 @@ class WhatsAppService {
     try {
       // Formater le numéro pour WhatsApp
       const formattedNumber = this.formatPhoneNumber(phoneNumber);
-      console.log(`Envoi de message WhatsApp à ${formattedNumber}...`);
       
       // Envoyer le message et attendre la confirmation
       const result = await this.client.sendMessage(formattedNumber, message);
-      console.log(`Message envoyé avec succès à ${formattedNumber}, ID: ${result.id._serialized}`);
       
       return {
         success: true,
@@ -425,11 +397,8 @@ class WhatsAppService {
   async disconnect() {
     try {
       if (!this.client || !this.isReady) {
-        console.log('Client WhatsApp déjà déconnecté ou non initialisé');
         return false;
       }
-      
-      console.log('Déconnexion du client WhatsApp...');
       
       // Déconnexion propre
       await this.client.logout();
@@ -444,7 +413,6 @@ class WhatsAppService {
       // Réinitialiser après un délai
       setTimeout(() => {
         if (!this.isInitializing && !this.isReady) {
-          console.log('Réinitialisation du client WhatsApp après déconnexion manuelle...');
           this.initialize();
         }
       }, 15000);
@@ -462,10 +430,8 @@ const whatsAppService = new WhatsAppService();
 
 // Gérer les arrêts proprement
 process.on('SIGTERM', async () => {
-  console.log('Signal SIGTERM reçu, nettoyage avant arrêt...');
   try {
     if (whatsAppService && whatsAppService.client) {
-      console.log('Déconnexion du client WhatsApp...');
       await whatsAppService.client.destroy();
       console.log('Client WhatsApp déconnecté proprement');
     }

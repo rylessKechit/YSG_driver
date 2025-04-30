@@ -10,14 +10,6 @@ const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY
 
 class EmailService {
   constructor() {
-    // Vérifier et afficher la configuration email
-    console.log('Initialisation du service email avec configuration:');
-    console.log('- EMAIL_HOST:', process.env.EMAIL_HOST || 'Non défini');
-    console.log('- EMAIL_PORT:', process.env.EMAIL_PORT || 'Non défini');
-    console.log('- EMAIL_SECURE:', process.env.EMAIL_SECURE || 'Non défini');
-    console.log('- EMAIL_USER:', process.env.EMAIL_USER ? '[Défini]' : 'Non défini');
-    console.log('- EMAIL_FROM:', process.env.EMAIL_FROM || 'Non défini');
-    
     // Vérifier si les variables essentielles sont définies
     if (!process.env.EMAIL_HOST || !process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
       console.error('⚠️ ATTENTION: Configuration email incomplète - le service ne fonctionnera pas correctement');
@@ -53,21 +45,12 @@ class EmailService {
   }
   
   // Créer un transporteur de test pour le développement
-  setupTestTransporter() {
-    console.log('📧 Configuration du transporteur de test pour les emails (mode développement)');
-    
-    // Créer un compte de test avec Ethereal Email
+  setupTestTransporter() {// Créer un compte de test avec Ethereal Email
     nodemailer.createTestAccount((err, account) => {
       if (err) {
         console.error('❌ Impossible de créer un compte de test Ethereal:', err);
         return;
       }
-      
-      console.log('✅ Compte de test Ethereal créé:');
-      console.log('- Nom d\'utilisateur:', account.user);
-      console.log('- Mot de passe:', account.pass);
-      console.log('- Serveur SMTP:', account.smtp.host);
-      console.log('- Port:', account.smtp.port);
       
       // Créer un transporteur avec le compte de test
       this.transporter = nodemailer.createTransport({
@@ -80,8 +63,6 @@ class EmailService {
         },
         debug: true // Activer le débogage
       });
-      
-      console.log('✅ Transporteur de test configuré');
       
       // Initialisation des templates
       this.initializeTemplates();
@@ -159,20 +140,7 @@ class EmailService {
         
         fs.writeFileSync(path.join(templatesDir, 'default.html'), defaultTemplate);
         fs.writeFileSync(path.join(templatesDir, 'movement-notification.html'), defaultTemplate);
-        console.log('✅ Templates par défaut créés');
       } else {
-        console.log('✅ Dossier des templates trouvé:', templatesDir);
-      }
-      
-      // Vérifier l'existence des fichiers de template
-      const templateFiles = ['default.html', 'movement-notification.html'];
-      for (const file of templateFiles) {
-        const filePath = path.join(templatesDir, file);
-        if (fs.existsSync(filePath)) {
-          console.log(`✅ Template trouvé: ${file}`);
-        } else {
-          console.warn(`⚠️ Template non trouvé: ${file}`);
-        }
       }
       
       // Charger les templates
@@ -253,15 +221,8 @@ class EmailService {
         mailOptions.bcc = Array.isArray(options.bcc) ? options.bcc.join(',') : options.bcc;
       }
       
-      console.log('📧 Tentative d\'envoi d\'email:');
-      console.log(`- À: ${mailOptions.to}`);
-      console.log(`- Sujet: ${mailOptions.subject}`);
-      console.log(`- Template: ${templateName}`);
-      
       // Envoyer l'email
       const info = await this.transporter.sendMail(mailOptions);
-      
-      console.log('✅ Email envoyé avec succès:', info.messageId);
       
       return {
         success: true,
@@ -281,12 +242,6 @@ class EmailService {
   // Envoyer une notification de mouvement aux agences
   async sendMovementNotification(movement, departureAgency, arrivalAgency, driverInfo = null) {
     try {
-      console.log('📧 Préparation de la notification de mouvement avec PDF:');
-      console.log(`- Mouvement ID: ${movement._id}`);
-      console.log(`- De: ${departureAgency?.name || 'Non défini'} (${departureAgency?.email || 'Email non défini'})`);
-      console.log(`- À: ${arrivalAgency?.name || 'Non défini'} (${arrivalAgency?.email || 'Email non défini'})`);
-      console.log(`- Véhicule: ${movement.licensePlate}`);
-      
       // Vérifications des données
       if (!departureAgency || !arrivalAgency) {
         console.error('❌ Erreur: Informations d\'agence manquantes');
@@ -333,14 +288,8 @@ class EmailService {
         ]
       };
       
-      console.log('📧 Tentative d\'envoi d\'email avec PDF joint:');
-      console.log(`- À: ${mailOptions.to}`);
-      console.log(`- Sujet: ${mailOptions.subject}`);
-      
       // Envoyer l'email
       const info = await this.transporter.sendMail(mailOptions);
-      
-      console.log('✅ Email avec PDF envoyé avec succès:', info.messageId);
       
       return {
         success: true,
@@ -369,8 +318,6 @@ class EmailService {
       // Préparer les coordonnées au format requis par l'API
       const originStr = `${origin.latitude},${origin.longitude}`;
       const destinationStr = `${destination.latitude},${destination.longitude}`;
-  
-      console.log(`📍 Calcul de distance entre: ${originStr} et ${destinationStr}`);
   
       // Construire l'URL de l'API
       const url = `https://maps.googleapis.com/maps/api/distancematrix/json?units=metric&origins=${originStr}&destinations=${destinationStr}&key=${GOOGLE_MAPS_API_KEY}`;
@@ -402,8 +349,6 @@ class EmailService {
       // Extraire la distance en mètres et convertir en kilomètres
       const distanceInMeters = element.distance.value;
       const distanceInKm = distanceInMeters / 1000;
-  
-      console.log(`✅ Distance calculée: ${distanceInKm.toFixed(2)} km`);
       return distanceInKm;
     } catch (error) {
       console.error('❌ Erreur lors du calcul de la distance avec Google Maps API:', error);
@@ -436,22 +381,11 @@ class EmailService {
             if (!isNaN(departureCoords.latitude) && !isNaN(departureCoords.longitude) &&
                 !isNaN(arrivalCoords.latitude) && !isNaN(arrivalCoords.longitude)) {
               
-              console.log(`📍 Tentative de calcul de distance entre:`, 
-                          `${departureCoords.latitude},${departureCoords.longitude}`, 
-                          `et ${arrivalCoords.latitude},${arrivalCoords.longitude}`);
-              
               // Calculer la distance réelle entre les agences
               const routeDistance = await this.calculateDistance(
                 departureCoords,
                 arrivalCoords
               );
-              
-              if (routeDistance) {
-                distance = routeDistance;
-                console.log(`✅ Distance calculée avec succès: ${distance.toFixed(2)} km`);
-              } else {
-                console.log(`⚠️ Le calcul de distance a échoué, retour null`);
-              }
             } else {
               console.error(`❌ Coordonnées invalides après conversion: ` +
                             `${JSON.stringify(departureCoords)} -> ${JSON.stringify(arrivalCoords)}`);
