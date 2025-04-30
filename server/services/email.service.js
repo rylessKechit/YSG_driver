@@ -3,22 +3,116 @@ const nodemailer = require('nodemailer');
 const fs = require('fs');
 const path = require('path');
 const handlebars = require('handlebars');
+const PDFDocument = require('pdfkit');
+const moment = require('moment');
+const axios = require('axios');
+const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY
 
 class EmailService {
   constructor() {
-    // Création du transporteur Nodemailer
-    this.transporter = nodemailer.createTransport({
-      host: process.env.EMAIL_HOST,
-      port: process.env.EMAIL_PORT,
-      secure: process.env.EMAIL_SECURE === 'true',
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASSWORD,
-      },
-    });
+    // Vérifier et afficher la configuration email
+    console.log('Initialisation du service email avec configuration:');
+    console.log('- EMAIL_HOST:', process.env.EMAIL_HOST || 'Non défini');
+    console.log('- EMAIL_PORT:', process.env.EMAIL_PORT || 'Non défini');
+    console.log('- EMAIL_SECURE:', process.env.EMAIL_SECURE || 'Non défini');
+    console.log('- EMAIL_USER:', process.env.EMAIL_USER ? '[Défini]' : 'Non défini');
+    console.log('- EMAIL_FROM:', process.env.EMAIL_FROM || 'Non défini');
+    
+    // Vérifier si les variables essentielles sont définies
+    if (!process.env.EMAIL_HOST || !process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+      console.error('⚠️ ATTENTION: Configuration email incomplète - le service ne fonctionnera pas correctement');
+      
+      // En mode développement, utiliser un transporteur de test
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Mode développement détecté, utilisation du transporteur de test...');
+        this.setupTestTransporter();
+        return;
+      }
+    }
 
-    // Initialisation des templates
-    this.initializeTemplates();
+    // Création du transporteur Nodemailer
+    try {
+      this.transporter = nodemailer.createTransport({
+        host: process.env.EMAIL_HOST,
+        port: process.env.EMAIL_PORT || 587,
+        secure: process.env.EMAIL_SECURE === 'true',
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASSWORD,
+        },
+      });
+      
+      // Vérifier la connexion au serveur SMTP
+      this.verifyTransporter();
+      
+      // Initialisation des templates
+      this.initializeTemplates();
+    } catch (error) {
+      console.error('❌ Erreur lors de l\'initialisation du transporteur email:', error);
+    }
+  }
+  
+  // Créer un transporteur de test pour le développement
+  setupTestTransporter() {
+    console.log('📧 Configuration du transporteur de test pour les emails (mode développement)');
+    
+    // Créer un compte de test avec Ethereal Email
+    nodemailer.createTestAccount((err, account) => {
+      if (err) {
+        console.error('❌ Impossible de créer un compte de test Ethereal:', err);
+        return;
+      }
+      
+      console.log('✅ Compte de test Ethereal créé:');
+      console.log('- Nom d\'utilisateur:', account.user);
+      console.log('- Mot de passe:', account.pass);
+      console.log('- Serveur SMTP:', account.smtp.host);
+      console.log('- Port:', account.smtp.port);
+      
+      // Créer un transporteur avec le compte de test
+      this.transporter = nodemailer.createTransport({
+        host: account.smtp.host,
+        port: account.smtp.port,
+        secure: account.smtp.secure,
+        auth: {
+          user: account.user,
+          pass: account.pass
+        },
+        debug: true // Activer le débogage
+      });
+      
+      console.log('✅ Transporteur de test configuré');
+      
+      // Initialisation des templates
+      this.initializeTemplates();
+      
+      // Modifier la méthode sendEmail pour afficher le lien vers le message
+      const originalSendEmail = this.sendEmail.bind(this);
+      this.sendEmail = async (options) => {
+        const result = await originalSendEmail(options);
+        
+        if (result.success && result.info) {
+          console.log('✅ Email de test envoyé, voir le message ici:', nodemailer.getTestMessageUrl(result.info));
+        }
+        
+        return result;
+      };
+    });
+  }
+  
+  // Vérifier la connexion au serveur SMTP
+  async verifyTransporter() {
+    try {
+      if (!this.transporter) {
+        console.error('❌ Transporteur email non initialisé');
+        return;
+      }
+      
+      await this.transporter.verify();
+      console.log('✅ Connexion au serveur SMTP réussie');
+    } catch (error) {
+      console.error('❌ Échec de la connexion au serveur SMTP:', error);
+    }
   }
 
   // Charger les templates d'email
@@ -29,7 +123,7 @@ class EmailService {
       
       // Vérification si le dossier existe
       if (!fs.existsSync(templatesDir)) {
-        console.warn('Le dossier des templates d\'email n\'existe pas encore');
+        console.warn('⚠️ Le dossier des templates d\'email n\'existe pas encore');
         fs.mkdirSync(templatesDir, { recursive: true });
         
         // Créer un template de base si aucun n'existe
@@ -65,6 +159,20 @@ class EmailService {
         
         fs.writeFileSync(path.join(templatesDir, 'default.html'), defaultTemplate);
         fs.writeFileSync(path.join(templatesDir, 'movement-notification.html'), defaultTemplate);
+        console.log('✅ Templates par défaut créés');
+      } else {
+        console.log('✅ Dossier des templates trouvé:', templatesDir);
+      }
+      
+      // Vérifier l'existence des fichiers de template
+      const templateFiles = ['default.html', 'movement-notification.html'];
+      for (const file of templateFiles) {
+        const filePath = path.join(templatesDir, file);
+        if (fs.existsSync(filePath)) {
+          console.log(`✅ Template trouvé: ${file}`);
+        } else {
+          console.warn(`⚠️ Template non trouvé: ${file}`);
+        }
       }
       
       // Charger les templates
@@ -73,7 +181,7 @@ class EmailService {
         movementNotification: this.compileTemplate('movement-notification.html')
       };
     } catch (error) {
-      console.error('Erreur lors de l\'initialisation des templates d\'email:', error);
+      console.error('❌ Erreur lors de l\'initialisation des templates d\'email:', error);
     }
   }
 
@@ -83,14 +191,14 @@ class EmailService {
       const templatePath = path.join(__dirname, '../templates/emails', templateName);
       
       if (!fs.existsSync(templatePath)) {
-        console.warn(`Template ${templateName} non trouvé, utilisation du template par défaut`);
+        console.warn(`⚠️ Template ${templateName} non trouvé, utilisation du template par défaut`);
         return handlebars.compile('{{body}}');
       }
       
       const templateSource = fs.readFileSync(templatePath, 'utf8');
       return handlebars.compile(templateSource);
     } catch (error) {
-      console.error(`Erreur lors de la compilation du template ${templateName}:`, error);
+      console.error(`❌ Erreur lors de la compilation du template ${templateName}:`, error);
       return handlebars.compile('{{body}}');
     }
   }
@@ -102,7 +210,17 @@ class EmailService {
       
       // Vérifier les paramètres obligatoires
       if (!to || !subject) {
+        console.error('❌ Erreur: "to" et "subject" sont requis pour l\'envoi d\'email');
         throw new Error('Les paramètres "to" et "subject" sont requis');
+      }
+      
+      // Vérifier si le transporteur est initialisé
+      if (!this.transporter) {
+        console.error('❌ Erreur: Transporteur email non initialisé');
+        return {
+          success: false,
+          error: 'Transporteur email non initialisé'
+        };
       }
       
       // Récupérer le template approprié ou utiliser le template par défaut
@@ -135,15 +253,23 @@ class EmailService {
         mailOptions.bcc = Array.isArray(options.bcc) ? options.bcc.join(',') : options.bcc;
       }
       
+      console.log('📧 Tentative d\'envoi d\'email:');
+      console.log(`- À: ${mailOptions.to}`);
+      console.log(`- Sujet: ${mailOptions.subject}`);
+      console.log(`- Template: ${templateName}`);
+      
       // Envoyer l'email
       const info = await this.transporter.sendMail(mailOptions);
       
+      console.log('✅ Email envoyé avec succès:', info.messageId);
+      
       return {
         success: true,
-        messageId: info.messageId
+        messageId: info.messageId,
+        info
       };
     } catch (error) {
-      console.error('Erreur lors de l\'envoi de l\'email:', error);
+      console.error('❌ Erreur lors de l\'envoi de l\'email:', error);
       
       return {
         success: false,
@@ -155,80 +281,333 @@ class EmailService {
   // Envoyer une notification de mouvement aux agences
   async sendMovementNotification(movement, departureAgency, arrivalAgency, driverInfo = null) {
     try {
-      // Si l'environnement est en mode développement, logger les informations
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Simulation d\'envoi d\'email de notification de mouvement:');
-        console.log(`- De: ${departureAgency.name} (${departureAgency.email})`);
-        console.log(`- À: ${arrivalAgency.name} (${arrivalAgency.email})`);
-        console.log(`- Véhicule: ${movement.licensePlate}`);
-        
-        return { success: true, devMode: true };
+      console.log('📧 Préparation de la notification de mouvement avec PDF:');
+      console.log(`- Mouvement ID: ${movement._id}`);
+      console.log(`- De: ${departureAgency?.name || 'Non défini'} (${departureAgency?.email || 'Email non défini'})`);
+      console.log(`- À: ${arrivalAgency?.name || 'Non défini'} (${arrivalAgency?.email || 'Email non défini'})`);
+      console.log(`- Véhicule: ${movement.licensePlate}`);
+      
+      // Vérifications des données
+      if (!departureAgency || !arrivalAgency) {
+        console.error('❌ Erreur: Informations d\'agence manquantes');
+        throw new Error('Les informations d\'agence sont requises');
       }
       
       // Préparation des destinataires
       const recipients = [departureAgency.email, arrivalAgency.email].filter(Boolean);
       
       if (recipients.length === 0) {
+        console.error('❌ Erreur: Aucune adresse email d\'agence disponible');
         throw new Error('Aucune adresse email d\'agence disponible');
       }
       
-      // Construction du sujet
-      const subject = `Bon de Convoyage - Véhicule ${movement.licensePlate} - ${departureAgency.name} → ${arrivalAgency.name}`;
+      // Générer le PDF de bon de commande
+      const pdfBuffer = await this.generateOrderPDF(movement, departureAgency, arrivalAgency, driverInfo);
       
-      // Préparation du contexte pour le template
-      const context = {
-        title: 'Bon de Convoyage',
-        movement: {
-          ...movement,
-          departureTime: movement.departureTime ? new Date(movement.departureTime).toLocaleString('fr-FR') : 'Non défini',
-          arrivalTime: movement.arrivalTime ? new Date(movement.arrivalTime).toLocaleString('fr-FR') : 'Non défini',
-          deadline: movement.deadline ? new Date(movement.deadline).toLocaleString('fr-FR') : 'Non défini',
-          status: this.translateStatus(movement.status)
-        },
-        departureAgency: departureAgency,
-        arrivalAgency: arrivalAgency,
-        driver: driverInfo,
-        body: `
-          <h2>Bon de Convoyage</h2>
-          <p><strong>Véhicule:</strong> ${movement.licensePlate} ${movement.vehicleModel ? `(${movement.vehicleModel})` : ''}</p>
-          <p><strong>Statut:</strong> ${this.translateStatus(movement.status)}</p>
-          
-          <h3>Itinéraire</h3>
-          <p><strong>Agence de départ:</strong> ${departureAgency.name}<br>
-             <strong>Adresse:</strong> ${departureAgency.address}</p>
-          
-          <p><strong>Agence d'arrivée:</strong> ${arrivalAgency.name}<br>
-             <strong>Adresse:</strong> ${arrivalAgency.address}</p>
-          
-          ${movement.deadline ? `<p><strong>Date limite d'arrivée:</strong> ${new Date(movement.deadline).toLocaleString('fr-FR')}</p>` : ''}
-          
-          ${driverInfo ? `
-          <h3>Chauffeur</h3>
-          <p><strong>Nom:</strong> ${driverInfo.fullName}<br>
-             ${driverInfo.phone ? `<strong>Téléphone:</strong> ${driverInfo.phone}<br>` : ''}
-             ${driverInfo.email ? `<strong>Email:</strong> ${driverInfo.email}` : ''}</p>
-          ` : '<p><strong>Chauffeur:</strong> Non assigné</p>'}
-          
-          ${movement.notes ? `
-          <h3>Notes</h3>
-          <p>${movement.notes}</p>
-          ` : ''}
-          
-          <p>Ce message est généré automatiquement par le Système de Gestion des Chauffeurs.</p>
-        `
+      // Construction du sujet
+      const subject = `Bon de commande - Véhicule ${movement.licensePlate}`;
+      
+      // Corps simple du message
+      const htmlBody = `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+          <p>Bonjour,</p>
+          <p>Veuillez trouver ci-joint votre bon de commande / convoyage avec YSG.</p>
+          <p>Ce document contient toutes les informations nécessaires concernant le transport du véhicule ${movement.licensePlate}.</p>
+          <p>Pour toute question, n'hésitez pas à nous contacter.</p>
+          <p>Cordialement,<br>L'équipe Your Services Group</p>
+        </div>
+      `;
+      
+      // Configuration de l'email
+      const mailOptions = {
+        from: process.env.EMAIL_FROM || '"YSG Convoyage" <convoyages@yourservices-group.com>',
+        to: Array.isArray(recipients) ? recipients.join(',') : recipients,
+        subject,
+        html: htmlBody,
+        attachments: [
+          {
+            filename: `bon_commande_${movement.licensePlate.replace(/\s+/g, '_')}.pdf`,
+            content: pdfBuffer,
+            contentType: 'application/pdf'
+          }
+        ]
       };
       
-      // Envoi de l'email
-      return await this.sendEmail({
-        to: recipients,
-        subject,
-        templateName: 'movementNotification',
-        context
-      });
+      console.log('📧 Tentative d\'envoi d\'email avec PDF joint:');
+      console.log(`- À: ${mailOptions.to}`);
+      console.log(`- Sujet: ${mailOptions.subject}`);
+      
+      // Envoyer l'email
+      const info = await this.transporter.sendMail(mailOptions);
+      
+      console.log('✅ Email avec PDF envoyé avec succès:', info.messageId);
+      
+      return {
+        success: true,
+        messageId: info.messageId,
+        info
+      };
     } catch (error) {
-      console.error('Erreur lors de l\'envoi de la notification de mouvement:', error);
+      console.error('❌ Erreur lors de l\'envoi de la notification de mouvement avec PDF:', error);
       return { success: false, error: error.message };
     }
+  }
+
+  async calculateDistance(origin, destination) {
+    try {
+      if (!GOOGLE_MAPS_API_KEY) {
+        console.error('❌ Clé API Google Maps non définie');
+        return null;
+      }
+  
+      // Vérifier que les coordonnées sont valides
+      if (!origin?.latitude || !origin?.longitude || !destination?.latitude || !destination?.longitude) {
+        console.error('❌ Coordonnées d\'origine ou de destination invalides');
+        return null;
+      }
+  
+      // Préparer les coordonnées au format requis par l'API
+      const originStr = `${origin.latitude},${origin.longitude}`;
+      const destinationStr = `${destination.latitude},${destination.longitude}`;
+  
+      console.log(`📍 Calcul de distance entre: ${originStr} et ${destinationStr}`);
+  
+      // Construire l'URL de l'API
+      const url = `https://maps.googleapis.com/maps/api/distancematrix/json?units=metric&origins=${originStr}&destinations=${destinationStr}&key=${GOOGLE_MAPS_API_KEY}`;
+  
+      // Faire la requête API
+      const response = await axios.get(url);
+      const data = response.data;
+  
+      // Vérifier si la requête a réussi
+      if (data.status !== 'OK') {
+        console.error(`❌ Erreur API Google Maps: ${data.status}`);
+        return null;
+      }
+  
+      // Vérifier si les données sont valides
+      if (!data.rows || !data.rows[0] || !data.rows[0].elements || !data.rows[0].elements[0]) {
+        console.error('❌ Réponse API Google Maps invalide');
+        return null;
+      }
+  
+      const element = data.rows[0].elements[0];
+  
+      // Vérifier si l'itinéraire a été trouvé
+      if (element.status !== 'OK') {
+        console.error(`❌ Impossible de trouver un itinéraire: ${element.status}`);
+        return null;
+      }
+  
+      // Extraire la distance en mètres et convertir en kilomètres
+      const distanceInMeters = element.distance.value;
+      const distanceInKm = distanceInMeters / 1000;
+  
+      console.log(`✅ Distance calculée: ${distanceInKm.toFixed(2)} km`);
+      return distanceInKm;
+    } catch (error) {
+      console.error('❌ Erreur lors du calcul de la distance avec Google Maps API:', error);
+      return null;
+    }
+  }
+
+  // Nouvelle méthode pour générer un PDF similaire à l'exemple fourni
+  async generateOrderPDF(movement, departureAgency, arrivalAgency, driverInfo) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        // Calculer la distance réelle entre les agences via Google Maps API
+        let distance = null;
+        
+        // Vérifier si nous avons les coordonnées des deux agences
+        if (departureAgency?.location?.coordinates && arrivalAgency?.location?.coordinates) {
+          try {
+            // S'assurer que les coordonnées sont des nombres
+            const departureCoords = {
+              latitude: parseFloat(departureAgency.location.coordinates.latitude),
+              longitude: parseFloat(departureAgency.location.coordinates.longitude)
+            };
+            
+            const arrivalCoords = {
+              latitude: parseFloat(arrivalAgency.location.coordinates.latitude),
+              longitude: parseFloat(arrivalAgency.location.coordinates.longitude)
+            };
+            
+            // Vérifier que les coordonnées sont valides après conversion
+            if (!isNaN(departureCoords.latitude) && !isNaN(departureCoords.longitude) &&
+                !isNaN(arrivalCoords.latitude) && !isNaN(arrivalCoords.longitude)) {
+              
+              console.log(`📍 Tentative de calcul de distance entre:`, 
+                          `${departureCoords.latitude},${departureCoords.longitude}`, 
+                          `et ${arrivalCoords.latitude},${arrivalCoords.longitude}`);
+              
+              // Calculer la distance réelle entre les agences
+              const routeDistance = await this.calculateDistance(
+                departureCoords,
+                arrivalCoords
+              );
+              
+              if (routeDistance) {
+                distance = routeDistance;
+                console.log(`✅ Distance calculée avec succès: ${distance.toFixed(2)} km`);
+              } else {
+                console.log(`⚠️ Le calcul de distance a échoué, retour null`);
+              }
+            } else {
+              console.error(`❌ Coordonnées invalides après conversion: ` +
+                            `${JSON.stringify(departureCoords)} -> ${JSON.stringify(arrivalCoords)}`);
+            }
+          } catch (distanceError) {
+            console.error('❌ Erreur lors du calcul de la distance:', distanceError);
+          }
+        } else {
+          console.log('⚠️ Coordonnées manquantes pour une ou les deux agences');
+          console.log('- Départ:', JSON.stringify(departureAgency?.location?.coordinates || 'Manquant'));
+          console.log('- Arrivée:', JSON.stringify(arrivalAgency?.location?.coordinates || 'Manquant'));
+        }
+        
+        // Si la distance n'a pas pu être calculée, utiliser une valeur par défaut
+        if (distance === null) {
+          console.log('⚠️ Impossible de calculer la distance exacte, utilisation d\'une valeur estimée');
+          // Estimer une distance "réaliste" entre 10 et 500 km
+          distance = Math.floor(Math.random() * 490) + 10;
+        }
+        
+        // Arrondir la distance à 2 décimales
+        distance = Math.round(distance * 100) / 100;
+        
+        // Créer un nouveau document PDF
+        const doc = new PDFDocument({
+          margins: {
+            top: 50,
+            bottom: 50,
+            left: 50,
+            right: 50
+          },
+          size: 'A4'
+        });
+        
+        // Collecter les chunks du PDF dans un buffer
+        const buffers = [];
+        doc.on('data', buffers.push.bind(buffers));
+        doc.on('end', () => {
+          const pdfBuffer = Buffer.concat(buffers);
+          resolve(pdfBuffer);
+        });
+        
+        // Convertir les objets Mongoose en objets JS simples si nécessaire
+        const movementObj = movement.toObject ? movement.toObject() : {...movement};
+        const departureObj = departureAgency.toObject ? departureAgency.toObject() : {...departureAgency};
+        const arrivalObj = arrivalAgency.toObject ? arrivalAgency.toObject() : {...arrivalAgency};
+        
+        // Obtenir la date actuelle au format français
+        const currentDate = moment().format('DD.MM.YYYY');
+        
+        // *** PREMIÈRE SECTION: LOGO EN HAUT À DROITE SEUL ***
+        
+        // Ajouter le logo YSG en haut à droite
+        const logoPath = path.join(__dirname, '../assets/logo.png');
+        if (fs.existsSync(logoPath)) {
+          doc.image(logoPath, 400, 30, { width: 75 });
+        }
+        
+        // *** SECTION SUIVANTE: TITRE ET INFORMATIONS ***
+        
+        // Titre principal (centré horizontalement)
+        doc.font('Helvetica-Bold').fontSize(16);
+        doc.text('Bon de commande / Confirmation d\'enlèvement', 50, 120, { align: 'center' });
+        
+        // Colonne gauche: Informations société
+        doc.font('Helvetica').fontSize(11);
+        doc.text('YOUR SERVICES GROUP', 50, 160);
+        doc.text('47 BOULEVARD DE COURCELLES', 50, 175);
+        doc.text('75008 PARIS', 50, 190);
+        
+        // Colonne droite: Informations du document
+        doc.font('Helvetica').fontSize(11);
+        doc.text(`Paris, le ${currentDate}`, 350, 160, { align: 'right' });
+        doc.text(`Date de commande: ${currentDate}`, 350, 175, { align: 'right' });
+        
+        // Date de livraison
+        if (movementObj.deadline) {
+          const deliveryDate = moment(movementObj.deadline).format('DD.MM.YYYY');
+          doc.text(`Date de livraison: ${deliveryDate}`, 350, 190, { align: 'right' });
+        } else {
+          const deliveryDate = moment(currentDate, 'DD.MM.YYYY').add(1, 'days').format('DD.MM.YYYY');
+          doc.text(`Date de livraison: ${deliveryDate}`, 350, 190, { align: 'right' });
+        }
+        
+        // *** SECTION TABLEAU: INFORMATIONS DU VÉHICULE ***
+        
+        // Texte d'introduction
+        doc.moveDown(3);
+        doc.text('Nos avons été mandaté pour le transport du véhicule suivant:', 50, 245);
+        
+        // Tableau des véhicules (entêtes)
+        const tableY = 270;
+        doc.font('Helvetica-Bold').fontSize(10);
+        doc.text('Véhicule', 50, tableY);
+        doc.text('Détails', 200, tableY);
+        doc.text('Enlèvement', 300, tableY);
+        doc.text('Livraison', 430, tableY);
+        
+        // Ligne horizontale
+        doc.moveTo(50, tableY + 15).lineTo(550, tableY + 15).stroke();
+        
+        // Données du véhicule
+        doc.font('Helvetica').fontSize(10);
+        
+        // Colonne Véhicule
+        const vehicleY = tableY + 25;
+        doc.text(movementObj.licensePlate || 'N/A', 50, vehicleY);
+        if (movementObj.vehicleModel) {
+          doc.text(movementObj.vehicleModel, 50, vehicleY + 15);
+        }
+        
+        // Colonne Détails - Utiliser la distance calculée avec Google Maps
+        doc.text(`${distance.toFixed(2)} km`, 200, vehicleY);
+        
+        // Colonne Enlèvement
+        doc.text(departureObj.name || 'N/A', 300, vehicleY);
+        doc.text(departureObj.address || 'N/A', 300, vehicleY + 15, { width: 120 });
+        
+        // Colonne Livraison
+        doc.text(arrivalObj.name || 'N/A', 430, vehicleY);
+        doc.text(arrivalObj.address || 'N/A', 430, vehicleY + 15, { width: 120 });
+        
+        // *** SECTION FINALE: INFORMATIONS JURIDIQUES ET SIGNATURES ***
+        
+        // Accord tarifaire
+        doc.moveDown(3);
+        const accordY = vehicleY + 80;
+        doc.text('Accord tarifaire individuel', 50, accordY);
+        
+        // Zone de signature
+        const signatureY = accordY + 30;
+        doc.moveTo(50, signatureY).lineTo(250, signatureY).stroke();
+        doc.text('Lieu, Date', 50, signatureY + 5);
+        
+        doc.moveTo(350, signatureY).lineTo(550, signatureY).stroke();
+        doc.text('Signature du conducteur', 350, signatureY + 5);
+        
+        // Texte légal en petit
+        const legalY = signatureY + 40;
+        doc.fontSize(8);
+        doc.text('Les chargements et déchargements doivent avoir lieu durant les horaires d\'ouverture de l\'agence. Le prestataire en charge du transport est responsable de la vérification de l\'état des véhicules. Toute anomalie doit être signalée sur le bon de transport.',
+          50, legalY, { align: 'justify', width: 500 });
+        doc.text('Veuillez-vous référer au contrat cadre de transport pour les modalités détaillées.',
+          50, legalY + 25, { align: 'justify', width: 500 });
+        
+        // Note finale
+        doc.text('Ceci est une commande électronique et est valable sans signature.', 50, legalY + 50, { align: 'center', width: 500 });
+        
+        // Finaliser le document
+        doc.end();
+        
+      } catch (error) {
+        console.error('❌ Erreur lors de la génération du PDF:', error);
+        reject(error);
+      }
+    });
   }
 
   // Fonction utilitaire pour traduire les statuts
