@@ -60,7 +60,7 @@ class WhatsAppService {
     if (this.isInitializing) {
       return;
     }
-
+  
     this.isInitializing = true;
     
     try {
@@ -69,8 +69,8 @@ class WhatsAppService {
         this.isInitializing = false;
         return;
       }
-
-      // Configuration spécifique pour Puppeteer sur Railway
+  
+      // Configuration spécifique pour Puppeteer
       const clientOptions = {
         puppeteer: {
           args: [
@@ -80,7 +80,7 @@ class WhatsAppService {
             '--disable-accelerated-2d-canvas',
             '--no-first-run',
             '--no-zygote',
-            '--single-process', // <- Ceci est important sur Railway
+            '--single-process', 
             '--disable-gpu'
           ],
           headless: 'new',
@@ -88,13 +88,24 @@ class WhatsAppService {
           defaultViewport: { width: 1280, height: 720 }
         },
         qrMaxRetries: 5,
-        authTimeoutMs: 60000,
+        authTimeoutMs: 120000, // Augmenter le timeout à 2 minutes
         restartOnAuthFail: true
       };
-
+  
+      // Attendre explicitement que MongoDB soit connecté
+      if (mongoose.connection.readyState !== 1) {
+        console.log('Attente de la connexion MongoDB...');
+        // Attendre jusqu'à 10 secondes pour la connexion MongoDB
+        for (let i = 0; i < 10; i++) {
+          if (mongoose.connection.readyState === 1) break;
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+  
       // Utiliser RemoteAuth avec MongoDB si disponible
       if (mongoose.connection.readyState === 1) {
         try {
+          console.log('Configuration de RemoteAuth avec MongoDB...');
           const store = new MongoStore({ mongoose });
           clientOptions.authStrategy = new RemoteAuth({
             store,
@@ -105,14 +116,35 @@ class WhatsAppService {
         } catch (err) {
           console.error('Erreur lors de la configuration de RemoteAuth:', err);
         }
+      } else {
+        console.warn('MongoDB non connecté, RemoteAuth ne sera pas utilisé');
       }
-
+  
+      // S'assurer que les dossiers existent
+      if (!fs.existsSync(this.dataPath)) {
+        fs.mkdirSync(this.dataPath, { recursive: true });
+      }
+  
+      if (!fs.existsSync(this.tempDir)) {
+        fs.mkdirSync(this.tempDir, { recursive: true });
+      }
+  
+      // Nettoyage du client précédent si existant
+      if (this.client) {
+        try {
+          await this.client.destroy();
+          this.client = null;
+        } catch (e) {
+          console.warn('Erreur lors de la destruction du client précédent:', e);
+        }
+      }
+  
       // Création du client WhatsApp
       this.client = new Client(clientOptions);
-
+  
       // Configuration des écouteurs d'événements
       this.setupEventListeners();
-
+  
       // Démarrer le client
       console.log('Démarrage du client WhatsApp...');
       await this.client.initialize();

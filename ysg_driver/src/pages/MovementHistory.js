@@ -242,6 +242,7 @@ const MovementHistory = () => {
                   <h2 className="movement-plate">{movement.licensePlate}</h2>
                   <span className={`movement-status status-${movement.status}`}>
                     {movement.status === 'pending' && 'En attente'}
+                    {movement.status === 'assigned' && 'Assigné'}
                     {movement.status === 'in-progress' && 'En cours'}
                     {movement.status === 'completed' && 'Terminé'}
                   </span>

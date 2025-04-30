@@ -10,6 +10,11 @@
   margin-bottom: 20px;
 }
 
+.status-assigned {
+  background-color: #dbeafe;
+  color: #2563eb;
+}
+
 /* Style pour le groupe de filtres */
 .filters-group {
   display: flex;
