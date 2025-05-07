@@ -42,13 +42,30 @@ const ActionButtons = ({
       
       const orderFormUrl = await orderFormService.getOrderFormUrl(movement._id);
       
-      // Ouvrir le PDF dans un nouvel onglet
-      window.open(orderFormUrl, '_blank');
+      // Vérifier si nous sommes sur mobile
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      
+      if (isMobile) {
+        // Sur mobile, proposer un download ou une ouverture dans une app externe
+        // Option 1: utiliser un lien <a> avec attribut download
+        const link = document.createElement('a');
+        link.href = orderFormUrl;
+        link.setAttribute('download', `bon_commande_${movement.licensePlate}.pdf`);
+        link.setAttribute('target', '_blank');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Afficher un message pour guider l'utilisateur
+        setOrderFormError('Si le téléchargement ne démarre pas, vérifiez les notifications de votre appareil ou appuyez longuement sur le bouton et choisissez "Ouvrir dans une nouvelle fenêtre".');
+        setTimeout(() => setOrderFormError(null), 6000);
+      } else {
+        // Sur desktop, comportement standard
+        window.open(orderFormUrl, '_blank');
+      }
     } catch (error) {
       console.error('Erreur lors de l\'ouverture du bon de commande:', error);
       setOrderFormError('Impossible de récupérer le bon de commande');
-      
-      // Effacer l'erreur après 3 secondes
       setTimeout(() => setOrderFormError(null), 3000);
     } finally {
       setLoadingOrderForm(false);
