@@ -1,4 +1,5 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
+import orderFormService from '../../services/orderFormService';
 
 const ActionButtons = ({ 
   movement, 
@@ -12,6 +13,9 @@ const ActionButtons = ({
   onDeleteMovement,
   navigateBack
 }) => {
+  const [loadingOrderForm, setLoadingOrderForm] = useState(false);
+  const [orderFormError, setOrderFormError] = useState(null);
+
   // Calcul mémorisé pour éviter des calculs répétés à chaque render
   const canEditMovement = useMemo(() => {
     if (!movement || !currentUser) return false;
@@ -29,6 +33,36 @@ const ActionButtons = ({
            movementUserId && 
            String(movementUserId) === String(currentUser._id);
   }, [movement, currentUser]);
+
+  // Ouvrir le bon de commande
+  const handleViewOrderForm = async () => {
+    try {
+      setLoadingOrderForm(true);
+      setOrderFormError(null);
+      
+      const orderFormUrl = await orderFormService.getOrderFormUrl(movement._id);
+      
+      // Ouvrir le PDF dans un nouvel onglet
+      window.open(orderFormUrl, '_blank');
+    } catch (error) {
+      console.error('Erreur lors de l\'ouverture du bon de commande:', error);
+      setOrderFormError('Impossible de récupérer le bon de commande');
+      
+      // Effacer l'erreur après 3 secondes
+      setTimeout(() => setOrderFormError(null), 3000);
+    } finally {
+      setLoadingOrderForm(false);
+    }
+  };
+
+  // Déterminer si le bon de commande est disponible
+  const showOrderFormButton = useMemo(() => {
+    // Afficher le bouton si le mouvement est au moins assigné ou s'il a déjà un bon de commande
+    return movement && 
+           (movement.status !== 'pending' || 
+            (movement.orderForm && movement.orderForm.url)) &&
+           (canEditMovement || currentUser.role === 'admin' || currentUser.role === 'team-leader');
+  }, [movement, canEditMovement, currentUser]);
 
   return (
     <div className="detail-actions">
@@ -85,6 +119,32 @@ const ActionButtons = ({
         >
           {loading ? 'Suppression...' : 'Supprimer le mouvement'}
         </button>
+      )}
+      
+      {/* Bouton pour voir le bon de commande */}
+      {showOrderFormButton && (
+        <button 
+          onClick={handleViewOrderForm}
+          className="btn btn-info"
+          disabled={loadingOrderForm}
+        >
+          {loadingOrderForm ? (
+            <>
+              <i className="fas fa-spinner fa-spin"></i> Chargement...
+            </>
+          ) : (
+            <>
+              <i className="fas fa-file-pdf"></i> Bon de commande
+            </>
+          )}
+        </button>
+      )}
+      
+      {/* Message d'erreur pour le bon de commande */}
+      {orderFormError && (
+        <div className="order-form-error">
+          {orderFormError}
+        </div>
       )}
     </div>
   );
