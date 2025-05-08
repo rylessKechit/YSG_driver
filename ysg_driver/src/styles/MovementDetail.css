@@ -569,3 +569,131 @@
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
+
+/* Ajouter à votre fichier CSS (MovementDetail.css) */
+.waze-navigation-section {
+  margin-top: 15px;
+  text-align: center;
+}
+
+.btn-waze {
+  background-color: #33ccff;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btn-waze:hover {
+  background-color: #00adef;
+}
+
+.btn-waze i {
+  font-size: 1.125rem;
+}
+
+/* Styles pour le bouton Waze et la section ETA */
+.waze-navigation-section {
+  margin-top: 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.btn-waze {
+  background-color: #33ccff;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  justify-content: center;
+}
+
+.btn-waze:hover {
+  background-color: #00adef;
+}
+
+.btn-waze i {
+  font-size: 1.125rem;
+}
+
+/* Styles pour la section ETA */
+.eta-section {
+  background-color: #f9fafb;
+  border-radius: 8px;
+  padding: 12px;
+  width: 100%;
+  border: 1px solid #e5e7eb;
+}
+
+.eta-loading {
+  color: #6b7280;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+}
+
+.eta-error {
+  color: #ef4444;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+}
+
+.eta-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  position: relative;
+}
+
+.eta-detail {
+  flex: 1;
+  min-width: 120px;
+}
+
+.eta-label {
+  font-size: 0.75rem;
+  color: #6b7280;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.eta-value {
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 0.9375rem;
+}
+
+.eta-refresh {
+  background: none;
+  border: none;
+  color: #3b82f6;
+  font-size: 0.875rem;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.eta-refresh:hover {
+  background-color: #eff6ff;
+}
