@@ -131,6 +131,17 @@ const preparationService = {
     });
     return response.data;
   },
+
+  // Get the latest completed preparation
+  getLatestCompletedPreparation: async () => {
+    try {
+      const response = await api.get(`${ENDPOINTS.PREPARATIONS.BASE}?page=1&limit=1&status=completed`);
+      return response.data.preparations?.[0] || null;
+    } catch (error) {
+      console.error('Error fetching latest completed preparation:', error);
+      throw error;
+    }
+  },
   
   // Obtenir les préparateurs en service (admin seulement)
   getPreparatorsOnDuty: async () => fetchWithCache(`${ENDPOINTS.PREPARATIONS.BASE}/preparators-on-duty`),

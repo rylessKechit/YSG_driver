@@ -60,6 +60,28 @@ const movementService = {
       throw error;
     }
   },
+
+  // Get completed movements with pagination
+  getCompletedMovements: async (page = 1, limit = 10) => {
+    try {
+      const response = await api.get(`${ENDPOINTS.MOVEMENTS.BASE}?page=${page}&limit=${limit}&status=completed`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching completed movements:', error);
+      throw error;
+    }
+  },
+  
+  // Get the latest completed movement
+  getLatestCompletedMovement: async () => {
+    try {
+      const response = await api.get(`${ENDPOINTS.MOVEMENTS.BASE}?page=1&limit=1&status=completed`);
+      return response.data.movements?.[0] || null;
+    } catch (error) {
+      console.error('Error fetching latest completed movement:', error);
+      throw error;
+    }
+  },
   
   // OBTENIR DES DONNÉES
   getMovements: async (page = 1, limit = 10, status = null) => {
